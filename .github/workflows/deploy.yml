@@ -133,6 +133,7 @@ jobs:
           sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" .env
 
           # Migrations
+          php artisan config:cache || true
           php artisan migrate --force || true
 
           # Caches
