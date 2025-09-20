@@ -84,7 +84,7 @@ jobs:
 
       - name: Create directories on server
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p domains/axontis.net/apps/axontis"
+          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p domains/axontis.net/apps/axontis domains/axontis.net/public_html"
 
       - name: Upload release to server
         run: |
@@ -93,108 +93,182 @@ jobs:
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}'; /bin/bash" << 'EOF'
+          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}'; /bin/bash" << 'EOF'
           set -e
 
+          # Debug environment
+          echo "=== ENVIRONMENT DEBUG ==="
+          echo "Current directory: $(pwd)"
+          echo "Current user: $(whoami)"
+          echo "Home directory: $HOME"
+          echo "Listing home contents:"
+          ls -la $HOME/
+          
           # Use relative paths from home directory
           APP_DIR="domains/axontis.net/apps/axontis"
           WEB_DIR="domains/axontis.net/public_html"
-          
-          # Get the absolute path for index.php
-          HOME_PATH="/home/${HOSTINGER_USER_ID}"
 
-          echo "Current directory: $(pwd)"
-          echo "Home path: $HOME_PATH"
-          echo "APP_DIR: $HOME_PATH/$APP_DIR"
-          echo "WEB_DIR: $HOME_PATH/$WEB_DIR"
+          echo "APP_DIR: $APP_DIR"
+          echo "WEB_DIR: $WEB_DIR"
           
-          # Create directories relative to home
+          # Verify and create directories step by step
+          echo "=== CREATING DIRECTORIES ==="
+          
+          # Create domains directory
+          if [ ! -d "domains" ]; then
+            mkdir -p domains
+            echo "✅ Created domains directory"
+          else
+            echo "✅ domains directory exists"
+          fi
+          
+          # Create axontis.net directory
+          if [ ! -d "domains/axontis.net" ]; then
+            mkdir -p domains/axontis.net
+            echo "✅ Created domains/axontis.net directory"
+          else
+            echo "✅ domains/axontis.net directory exists"
+          fi
+          
+          # Create apps and public_html directories
           mkdir -p "$APP_DIR" "$WEB_DIR"
+          echo "✅ Created $APP_DIR and $WEB_DIR directories"
+          
+          # Verify directories exist
+          echo "=== DIRECTORY VERIFICATION ==="
+          [ -d "$APP_DIR" ] && echo "✅ $APP_DIR exists" || echo "❌ $APP_DIR missing"
+          [ -d "$WEB_DIR" ] && echo "✅ $WEB_DIR exists" || echo "❌ $WEB_DIR missing"
+          
+          # Change to app directory
           cd "$APP_DIR"
+          echo "Changed to directory: $(pwd)"
 
           # Décompression
+          echo "=== EXTRACTING RELEASE ==="
           tar -xzf release.tar.gz
           rm -f release.tar.gz
+          echo "✅ Release extracted"
 
           # Composer install (prod)
+          echo "=== COMPOSER INSTALL ==="
           composer install --no-dev --optimize-autoloader --prefer-dist
 
           # .env géré côté serveur
           if [ ! -f .env ]; then
             cp .env.example .env
             php artisan key:generate
+            echo "✅ .env file created and key generated"
+          else
+            echo "✅ .env file already exists"
           fi
 
           # Configure MySQL database for Hostinger
+          echo "=== DATABASE CONFIGURATION ==="
           sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
           sed -i "s/DB_HOST=.*/DB_HOST=$DB_HOST/" .env
           sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
           sed -i "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" .env
           sed -i "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" .env
           sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" .env
+          echo "✅ Database configuration updated"
 
           # Migrations
-          php artisan migrate --force || true
+          echo "=== RUNNING MIGRATIONS ==="
+          php artisan migrate --force || echo "⚠️ Migration failed or no migrations to run"
 
           # Caches
-          php artisan config:cache || true
-          php artisan route:cache || true
-          php artisan view:cache || true
+          echo "=== BUILDING CACHES ==="
+          php artisan config:cache || echo "⚠️ Config cache failed"
+          php artisan route:cache || echo "⚠️ Route cache failed"
+          php artisan view:cache || echo "⚠️ View cache failed"
 
           # Permissions
-          chmod -R 755 storage bootstrap/cache || true
+          echo "=== SETTING PERMISSIONS ==="
+          chmod -R 755 storage bootstrap/cache || echo "⚠️ Permission setting failed"
 
-          # Ensure web directory exists and is writable
-          mkdir -p "$HOME/$WEB_DIR"
-
-          # Copy Laravel public files to web root (CORRECTION: utiliser le chemin absolu)
-          echo "Copying files to web directory..."
-          cp -f public/.htaccess "$HOME_PATH/$WEB_DIR/" || echo "Failed to copy .htaccess"
+          # Go back to home directory for file operations
+          cd $HOME
           
-          # Copy assets
-          if [ -d "public/build" ]; then
-            mkdir -p "$HOME_PATH/$WEB_DIR/build"
-            cp -r public/build/* "$HOME_PATH/$WEB_DIR/build/" || echo "Failed to copy build assets"
+          # Verify web directory exists before copying
+          echo "=== PREPARING WEB DIRECTORY ==="
+          if [ ! -d "$WEB_DIR" ]; then
+            mkdir -p "$WEB_DIR"
+            echo "✅ Created web directory: $WEB_DIR"
+          fi
+          
+          # Test write permissions
+          if touch "$WEB_DIR/test_write" 2>/dev/null; then
+            rm -f "$WEB_DIR/test_write"
+            echo "✅ Web directory is writable"
+          else
+            echo "❌ Web directory is not writable"
+            ls -la "$WEB_DIR"
+            exit 1
+          fi
+
+          # Copy Laravel public files to web root
+          echo "=== COPYING PUBLIC FILES ==="
+          
+          # Copy .htaccess
+          if [ -f "$APP_DIR/public/.htaccess" ]; then
+            cp "$APP_DIR/public/.htaccess" "$WEB_DIR/" && echo "✅ .htaccess copied" || echo "❌ Failed to copy .htaccess"
+          fi
+          
+          # Copy build assets
+          if [ -d "$APP_DIR/public/build" ]; then
+            mkdir -p "$WEB_DIR/build"
+            cp -r "$APP_DIR/public/build"/* "$WEB_DIR/build/" && echo "✅ Build assets copied" || echo "❌ Failed to copy build assets"
           fi
           
           # Copy other public assets
-          [ -d "public/css" ] && cp -r public/css "$HOME_PATH/$WEB_DIR/" || true
-          [ -d "public/js" ] && cp -r public/js "$HOME_PATH/$WEB_DIR/" || true
-          [ -d "public/images" ] && cp -r public/images "$HOME_PATH/$WEB_DIR/" || true
+          for dir in css js images; do
+            if [ -d "$APP_DIR/public/$dir" ]; then
+              cp -r "$APP_DIR/public/$dir" "$WEB_DIR/" && echo "✅ $dir directory copied" || echo "❌ Failed to copy $dir"
+            fi
+          done
 
-          # Create storage symlink (using absolute path for target)
-          if [ ! -L "$HOME_PATH/$WEB_DIR/storage" ]; then
-            ln -sf "$HOME_PATH/$APP_DIR/storage/app/public" "$HOME_PATH/$WEB_DIR/storage" || echo "Failed to create storage symlink"
+          # Create storage symlink
+          echo "=== CREATING STORAGE SYMLINK ==="
+          if [ ! -L "$WEB_DIR/storage" ]; then
+            ln -sf "$HOME/$APP_DIR/storage/app/public" "$WEB_DIR/storage" && echo "✅ Storage symlink created" || echo "❌ Failed to create storage symlink"
+          else
+            echo "✅ Storage symlink already exists"
           fi
 
-          # Create index.php file with absolute path (CORRECTION: utiliser le chemin absolu)
-          echo '<?php' > "$HOME_PATH/$WEB_DIR/index.php"
-          echo "\$root = \"$HOME_PATH/$APP_DIR\";" >> "$HOME_PATH/$WEB_DIR/index.php"
-          echo 'require $root . "/vendor/autoload.php";' >> "$HOME_PATH/$WEB_DIR/index.php"
-          echo '$app = require_once $root . "/bootstrap/app.php";' >> "$HOME_PATH/$WEB_DIR/index.php"
-          echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "$HOME_PATH/$WEB_DIR/index.php"
-          echo '$response = $kernel->handle(' >> "$HOME_PATH/$WEB_DIR/index.php"
-          echo '    $request = Illuminate\Http\Request::capture()' >> "$HOME_PATH/$WEB_DIR/index.php"
-          echo ')->send();' >> "$HOME_PATH/$WEB_DIR/index.php"
-          echo '$kernel->terminate($request, $response);' >> "$HOME_PATH/$WEB_DIR/index.php"
+          # Create index.php file
+          echo "=== CREATING INDEX.PHP ==="
+          cat > "$WEB_DIR/index.php" << INDEXPHP
+            <?php
+            \$root = \$_SERVER['HOME'] . "/domains/axontis.net/apps/axontis";
+            if (!is_dir(\$root)) {
+                \$root = getenv('HOME') . "/domains/axontis.net/apps/axontis";
+            }
+            require \$root . "/vendor/autoload.php";
+            \$app = require_once \$root . "/bootstrap/app.php";
+            \$kernel = \$app->make(Illuminate\Contracts\Http\Kernel::class);
+            \$response = \$kernel->handle(
+                \$request = Illuminate\Http\Request::capture()
+            )->send();
+            \$kernel->terminate(\$request, \$response);
+            INDEXPHP
+          echo "✅ index.php created"
 
-          # Debug: Show what we created
-          echo "Files in web directory:"
-          ls -la "$HOME_PATH/$WEB_DIR/"
-          echo "Content of index.php:"
-          cat "$HOME_PATH/$WEB_DIR/index.php"
+          # Create test files
+          echo "=== CREATING TEST FILES ==="
+          echo "Test deployment $(date)" > "$WEB_DIR/deployment-test.txt"
+          echo "Laravel App Deployed Successfully" > "$WEB_DIR/test.html"
+          echo "✅ Test files created"
 
-          # Create a test file to verify deployment
-          echo "Test deployment $(date)" > "$HOME_PATH/$WEB_DIR/deployment-test.txt"
-          echo "Laravel App Deployed Successfully" > "$HOME_PATH/$WEB_DIR/test.html"
-
-          # Show final verification
+          # Final verification
           echo "=== FINAL VERIFICATION ==="
-          echo "Files in public_html:"
-          ls -la "$HOME_PATH/$WEB_DIR/"
-          echo "Test if web directory is accessible:"
-          [ -f "$HOME_PATH/$WEB_DIR/index.php" ] && echo "✅ index.php exists" || echo "❌ index.php missing"
-          [ -f "$HOME_PATH/$WEB_DIR/.htaccess" ] && echo "✅ .htaccess exists" || echo "❌ .htaccess missing"
+          echo "Files in web directory:"
+          ls -la "$WEB_DIR/"
+          
+          echo "Content of index.php:"
+          cat "$WEB_DIR/index.php"
+          
+          [ -f "$WEB_DIR/index.php" ] && echo "✅ index.php exists" || echo "❌ index.php missing"
+          [ -f "$WEB_DIR/.htaccess" ] && echo "✅ .htaccess exists" || echo "❌ .htaccess missing"
 
-          echo "Deployment complete (PHP 8.1)"
+          echo "🎉 Deployment complete (PHP 8.1)"
           EOF
