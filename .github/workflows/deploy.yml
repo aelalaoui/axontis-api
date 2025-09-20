@@ -98,7 +98,7 @@ jobs:
 
           # Use relative paths from home directory
           APP_DIR="domains/axontis.net/apps/axontis"
-          WEB_DIR="../public_html"
+          WEB_DIR="domains/axontis.net/public_html"
           
           # Get the absolute path for index.php
           HOME_PATH="/home/${HOSTINGER_USER_ID}"
