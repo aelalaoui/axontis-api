@@ -84,7 +84,7 @@ jobs:
 
       - name: Create directories on server
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p domains/axontis.net/apps/axontis"
+          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p domains/axontis.net/apps/axontis domains/axontis.net/public_html"
 
       - name: Upload release to server
         run: |
