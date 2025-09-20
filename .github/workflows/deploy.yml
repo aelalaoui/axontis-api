@@ -93,7 +93,7 @@ jobs:
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}'; /bin/bash" << 'EOF'
+          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}'; /bin/bash" << 'EOF'
           set -e
 
           # Debug environment
@@ -101,43 +101,25 @@ jobs:
           echo "Current directory: $(pwd)"
           echo "Current user: $(whoami)"
           echo "Home directory: $HOME"
-          echo "Listing home contents:"
-          ls -la $HOME/
+          echo "User ID: $HOSTINGER_USER_ID"
           
           # Use relative paths from home directory
           APP_DIR="domains/axontis.net/apps/axontis"
           WEB_DIR="domains/axontis.net/public_html"
+          
+          # Get absolute paths
+          HOME_PATH="/home/${HOSTINGER_USER_ID}"
+          APP_PATH="$HOME_PATH/$APP_DIR"
+          WEB_PATH="$HOME_PATH/$WEB_DIR"
 
           echo "APP_DIR: $APP_DIR"
           echo "WEB_DIR: $WEB_DIR"
+          echo "APP_PATH: $APP_PATH"
+          echo "WEB_PATH: $WEB_PATH"
           
-          # Verify and create directories step by step
-          echo "=== CREATING DIRECTORIES ==="
-          
-          # Create domains directory
-          if [ ! -d "domains" ]; then
-            mkdir -p domains
-            echo "✅ Created domains directory"
-          else
-            echo "✅ domains directory exists"
-          fi
-          
-          # Create axontis.net directory
-          if [ ! -d "domains/axontis.net" ]; then
-            mkdir -p domains/axontis.net
-            echo "✅ Created domains/axontis.net directory"
-          else
-            echo "✅ domains/axontis.net directory exists"
-          fi
-          
-          # Create apps and public_html directories
+          # Create directories
           mkdir -p "$APP_DIR" "$WEB_DIR"
-          echo "✅ Created $APP_DIR and $WEB_DIR directories"
-          
-          # Verify directories exist
-          echo "=== DIRECTORY VERIFICATION ==="
-          [ -d "$APP_DIR" ] && echo "✅ $APP_DIR exists" || echo "❌ $APP_DIR missing"
-          [ -d "$WEB_DIR" ] && echo "✅ $WEB_DIR exists" || echo "❌ $WEB_DIR missing"
+          echo "✅ Created directories"
           
           # Change to app directory
           cd "$APP_DIR"
@@ -189,23 +171,6 @@ jobs:
           # Go back to home directory for file operations
           cd $HOME
           
-          # Verify web directory exists before copying
-          echo "=== PREPARING WEB DIRECTORY ==="
-          if [ ! -d "$WEB_DIR" ]; then
-            mkdir -p "$WEB_DIR"
-            echo "✅ Created web directory: $WEB_DIR"
-          fi
-          
-          # Test write permissions
-          if touch "$WEB_DIR/test_write" 2>/dev/null; then
-            rm -f "$WEB_DIR/test_write"
-            echo "✅ Web directory is writable"
-          else
-            echo "❌ Web directory is not writable"
-            ls -la "$WEB_DIR"
-            exit 1
-          fi
-
           # Copy Laravel public files to web root
           echo "=== COPYING PUBLIC FILES ==="
           
@@ -230,18 +195,15 @@ jobs:
           # Create storage symlink
           echo "=== CREATING STORAGE SYMLINK ==="
           if [ ! -L "$WEB_DIR/storage" ]; then
-            ln -sf "$HOME/$APP_DIR/storage/app/public" "$WEB_DIR/storage" && echo "✅ Storage symlink created" || echo "❌ Failed to create storage symlink"
+            ln -sf "$APP_PATH/storage/app/public" "$WEB_DIR/storage" && echo "✅ Storage symlink created" || echo "❌ Failed to create storage symlink"
           else
             echo "✅ Storage symlink already exists"
           fi
 
-          # Create index.php file using echo
+          # Create index.php file using the correct absolute path
           echo "=== CREATING INDEX.PHP ==="
           echo '<?php' > "$WEB_DIR/index.php"
-          echo '$root = $_SERVER["HOME"] . "/domains/axontis.net/apps/axontis";' >> "$WEB_DIR/index.php"
-          echo 'if (!is_dir($root)) {' >> "$WEB_DIR/index.php"
-          echo '    $root = getenv("HOME") . "/domains/axontis.net/apps/axontis";' >> "$WEB_DIR/index.php"
-          echo '}' >> "$WEB_DIR/index.php"
+          echo "\$root = \"$APP_PATH\";" >> "$WEB_DIR/index.php"
           echo 'require $root . "/vendor/autoload.php";' >> "$WEB_DIR/index.php"
           echo '$app = require_once $root . "/bootstrap/app.php";' >> "$WEB_DIR/index.php"
           echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "$WEB_DIR/index.php"
@@ -257,7 +219,7 @@ jobs:
           echo "Laravel App Deployed Successfully" > "$WEB_DIR/test.html"
           echo "✅ Test files created"
 
-          # Create debug files using echo
+          # Create debug files using the correct absolute path
           echo "=== CREATING DEBUG FILES ==="
           echo "<?php phpinfo(); ?>" > "$WEB_DIR/info.php"
           
@@ -265,10 +227,7 @@ jobs:
           echo 'error_reporting(E_ALL);' >> "$WEB_DIR/test-laravel.php"
           echo 'ini_set("display_errors", 1);' >> "$WEB_DIR/test-laravel.php"
           echo 'echo "<h1>Laravel Test</h1>";' >> "$WEB_DIR/test-laravel.php"
-          echo '$root = $_SERVER["HOME"] . "/domains/axontis.net/apps/axontis";' >> "$WEB_DIR/test-laravel.php"
-          echo 'if (!is_dir($root)) {' >> "$WEB_DIR/test-laravel.php"
-          echo '    $root = getenv("HOME") . "/domains/axontis.net/apps/axontis";' >> "$WEB_DIR/test-laravel.php"
-          echo '}' >> "$WEB_DIR/test-laravel.php"
+          echo "\$root = \"$APP_PATH\";" >> "$WEB_DIR/test-laravel.php"
           echo 'echo "<p>App root: " . $root . "</p>";' >> "$WEB_DIR/test-laravel.php"
           echo 'echo "<p>Vendor exists: " . (is_dir($root . "/vendor") ? "YES" : "NO") . "</p>";' >> "$WEB_DIR/test-laravel.php"
           echo 'echo "<p>Bootstrap exists: " . (file_exists($root . "/bootstrap/app.php") ? "YES" : "NO") . "</p>";' >> "$WEB_DIR/test-laravel.php"
