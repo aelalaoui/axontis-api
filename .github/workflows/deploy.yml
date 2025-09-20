@@ -84,15 +84,15 @@ jobs:
 
       - name: Upload release to server
         run: |
-          scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no release.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/apps/mon-app/release.tar.gz
+          scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no release.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/apps/axontis/release.tar.gz
 
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} /bin/bash << 'EOF'
           set -e
 
-          APP_DIR="/home/${USER}/apps/mon-app"
-          WEB_DIR="/home/${USER}/public_html/mon-app"
+          APP_DIR="/home/${USER}/apps/axontis"
+          WEB_DIR="/home/${USER}/public_html/axontis"
 
           mkdir -p "$APP_DIR" "$WEB_DIR"
           cd "$APP_DIR"
