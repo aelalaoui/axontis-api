@@ -16,7 +16,7 @@ return new class extends Migration
             $table->morphs('taskable');
             $table->text('address');
             $table->enum('status', ['scheduled', 'in_progress', 'completed'])->default('scheduled');
-            $table->enum('type', ['installation', 'sav', 'prospection'])->default('scheduled');
+            $table->enum('type', ['installation', 'sav', 'prospection'])->nullable();
             $table->date('scheduled_date')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->text('notes')->nullable();
