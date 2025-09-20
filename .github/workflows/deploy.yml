@@ -91,15 +91,19 @@ jobs:
           scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no release.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/apps/axontis/release.tar.gz
 
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} /bin/bash << 'EOF'
+          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} /bin/bash << EOF
           set -e
 
-          APP_DIR="/home/${USER}/apps/axontis"
-          WEB_DIR="/home/${USER}/public_html"
+          APP_DIR="/home/\${USER}/apps/axontis"
+          WEB_DIR="/home/\${USER}/public_html"
 
-          mkdir -p "$APP_DIR" "$WEB_DIR"
-          cd "$APP_DIR"
+          mkdir -p "\$APP_DIR" "\$WEB_DIR"
+          cd "\$APP_DIR"
 
           # Décompression
           tar -xzf release.tar.gz
@@ -114,8 +118,20 @@ jobs:
             php artisan key:generate
           fi
 
-          # Liens & migrations
-          php artisan storage:link || true
+          # Configure MySQL database for Hostinger
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+          sed -i 's/DB_HOST=.*/DB_HOST=localhost/' .env
+          sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
+          sed -i "s/DB_DATABASE=.*/DB_DATABASE=${DB_NAME}/" .env
+          sed -i "s/DB_USERNAME=.*/DB_USERNAME=${DB_USER}/" .env
+          sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" .env
+
+          # Manual storage link for shared hosting
+          if [ ! -L "\$WEB_DIR/storage" ]; then
+            ln -sf "\$APP_DIR/storage/app/public" "\$WEB_DIR/storage" || true
+          fi
+
+          # Migrations
           php artisan migrate --force || true
 
           # Caches
@@ -126,24 +142,5 @@ jobs:
           # Permissions
           chmod -R 755 storage bootstrap/cache || true
 
-          # Mettre à jour le webroot avec .htaccess + assets + index.php
-          cp -f public/.htaccess "$WEB_DIR"/
-          rsync -a --delete public/build/ "$WEB_DIR/build/" 2>/dev/null || true
-          [ -d public/css ] && rsync -a public/css/ "$WEB_DIR/css/" || true
-          [ -d public/js ] && rsync -a public/js/ "$WEB_DIR/js/" || true
-          [ -d public/images ] && rsync -a public/images/ "$WEB_DIR/images/" || true
-
-          cat > "$WEB_DIR/index.php" << PHP
-          <?php
-          \$root = '$APP_DIR';
-          require \$root . '/vendor/autoload.php';
-          \$app = require_once \$root . '/bootstrap/app.php';
-          \$kernel = \$app->make(Illuminate\\Contracts\\Http\\Kernel::class);
-          \$response = \$kernel->handle(
-              \$request = Illuminate\\Http\\Request::capture()
-          )->send();
-          \$kernel->terminate(\$request, \$response);
-          PHP
-
-          echo "Deployment complete (PHP 8.1)"
+          # Rest of your deployment script...
           EOF
