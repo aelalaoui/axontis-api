@@ -44,13 +44,21 @@ jobs:
           rm -rf .github
           rm -f .env
 
+      - name: Prepare staging dir
+        run: |
+          rm -rf deploy_staging
+          mkdir deploy_staging
+          rsync -a . deploy_staging \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'node_modules' \
+            --exclude 'tests' \
+            --exclude 'vendor' \
+            --exclude 'storage/logs' \
+            --exclude 'storage/framework/cache/data'
       - name: Create release archive
         run: |
-          tar -czf release.tar.gz \
-            --exclude='storage/logs/*' \
-            --exclude='storage/framework/cache/data/*' \
-            --exclude='vendor' \
-            .
+          tar -czf release.tar.gz -C deploy_staging .
 
       - name: Start SSH agent and add key
         uses: webfactory/ssh-agent@v0.9.0
