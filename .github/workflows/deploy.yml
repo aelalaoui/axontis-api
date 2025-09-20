@@ -93,16 +93,17 @@ jobs:
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}'; /bin/bash" << 'EOF'
+          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}'; /bin/bash" << 'EOF'
           set -e
 
-          # Use absolute paths based on Hostinger structure
-          APP_DIR="/home/u177717572/apps/axontis"
-          WEB_DIR="/home/u177717572/public_html"
+          # Use the user ID from GitHub secrets
+          APP_DIR="/home/${HOSTINGER_USER_ID}/apps/axontis"
+          WEB_DIR="/home/${HOSTINGER_USER_ID}/public_html"
 
           echo "Current directory: $(pwd)"
           echo "APP_DIR: $APP_DIR"
           echo "WEB_DIR: $WEB_DIR"
+          echo "User ID: $HOSTINGER_USER_ID"
           
           mkdir -p "$APP_DIR" "$WEB_DIR"
           cd "$APP_DIR"
@@ -159,9 +160,9 @@ jobs:
             ln -sf "$APP_DIR/storage/app/public" "$WEB_DIR/storage" || echo "Failed to create storage symlink"
           fi
 
-          # Create index.php file
+          # Create index.php file with dynamic user ID
           echo '<?php' > "$WEB_DIR/index.php"
-          echo '$root = "/home/u177717572/apps/axontis";' >> "$WEB_DIR/index.php"
+          echo "\$root = \"/home/${HOSTINGER_USER_ID}/apps/axontis\";" >> "$WEB_DIR/index.php"
           echo 'require $root . "/vendor/autoload.php";' >> "$WEB_DIR/index.php"
           echo '$app = require_once $root . "/bootstrap/app.php";' >> "$WEB_DIR/index.php"
           echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "$WEB_DIR/index.php"
@@ -173,6 +174,8 @@ jobs:
           # Debug: Show what we created
           echo "Files in web directory:"
           ls -la "$WEB_DIR/"
+          echo "Content of index.php:"
+          cat "$WEB_DIR/index.php"
 
           echo "Deployment complete (PHP 8.1)"
           EOF
