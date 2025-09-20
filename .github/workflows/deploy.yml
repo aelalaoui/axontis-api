@@ -60,11 +60,17 @@ jobs:
         run: |
           tar -czf release.tar.gz -C deploy_staging .
 
-      - name: Debug SSH auth
+      - name: Start ssh-agent
+        run: eval "$(ssh-agent -s)"
+
+      - name: Add private key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          ssh -V
-          ssh-add -l || true
-          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'echo OK' || true
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-add ~/.ssh/id_ed25519
 
       - name: Start SSH agent and add key
         uses: webfactory/ssh-agent@v0.9.0
