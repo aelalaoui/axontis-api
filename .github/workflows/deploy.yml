@@ -95,15 +95,21 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} /bin/bash << EOF
+          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} /bin/bash << 'EOF'
           set -e
 
-          APP_DIR="/home/\${USER}/apps/axontis"
-          WEB_DIR="/home/\${USER}/public_html"
+          APP_DIR="apps/axontis"
+          WEB_DIR="public_html"
 
-          mkdir -p "\$APP_DIR" "\$WEB_DIR"
-          cd "\$APP_DIR"
+          # Debug: Show current directory and user
+          echo "Current directory: $(pwd)"
+          echo "Current user: $(whoami)"
+          
+          # Create directories
+          mkdir -p "$APP_DIR" "$WEB_DIR"
+          cd "$APP_DIR"
 
           # Décompression
           tar -xzf release.tar.gz
@@ -120,16 +126,11 @@ jobs:
 
           # Configure MySQL database for Hostinger
           sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
-          sed -i 's/DB_HOST=.*/DB_HOST=mysql.hostinger.com/' .env
+          sed -i "s/DB_HOST=.*/DB_HOST=${DB_HOST}/" .env
           sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
           sed -i "s/DB_DATABASE=.*/DB_DATABASE=${DB_NAME}/" .env
           sed -i "s/DB_USERNAME=.*/DB_USERNAME=${DB_USER}/" .env
           sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" .env
-
-          # Manual storage link for shared hosting
-          if [ ! -L "\$WEB_DIR/storage" ]; then
-            ln -sf "\$APP_DIR/storage/app/public" "\$WEB_DIR/storage" || true
-          fi
 
           # Migrations
           php artisan migrate --force || true
@@ -142,5 +143,43 @@ jobs:
           # Permissions
           chmod -R 755 storage bootstrap/cache || true
 
-          # Rest of your deployment script...
+          # Copy Laravel public files to web root
+          echo "Copying files to web directory..."
+          cp -f public/.htaccess "../$WEB_DIR/" || echo "Failed to copy .htaccess"
+          cp -f public/index.php "../$WEB_DIR/" || echo "Failed to copy index.php"
+          
+          # Copy assets
+          if [ -d "public/build" ]; then
+            mkdir -p "../$WEB_DIR/build"
+            cp -r public/build/* "../$WEB_DIR/build/" || echo "Failed to copy build assets"
+          fi
+          
+          # Copy other public assets
+          [ -d "public/css" ] && cp -r public/css "../$WEB_DIR/" || true
+          [ -d "public/js" ] && cp -r public/js "../$WEB_DIR/" || true
+          [ -d "public/images" ] && cp -r public/images "../$WEB_DIR/" || true
+
+          # Create storage symlink
+          if [ ! -L "../$WEB_DIR/storage" ]; then
+            ln -sf "$(pwd)/storage/app/public" "../$WEB_DIR/storage" || echo "Failed to create storage symlink"
+          fi
+
+          # Create custom index.php that points to our Laravel app
+          cat > "../$WEB_DIR/index.php" << 'PHP'
+            <?php
+            $root = __DIR__ . '/../apps/axontis';
+            require $root . '/vendor/autoload.php';
+            $app = require_once $root . '/bootstrap/app.php';
+            $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+            $response = $kernel->handle(
+                $request = Illuminate\Http\Request::capture()
+            )->send();
+            $kernel->terminate($request, $response);
+            PHP
+
+          # Debug: Show what we created
+          echo "Files in web directory:"
+          ls -la "../$WEB_DIR/"
+
+          echo "Deployment complete (PHP 8.1)"
           EOF
