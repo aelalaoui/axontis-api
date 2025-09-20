@@ -91,13 +91,10 @@ jobs:
           scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no release.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/apps/axontis/release.tar.gz
 
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
-        env:
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} /bin/bash << 'EOF'
+          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+          "DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}'" \
+          /bin/bash << 'EOF'
           set -e
 
           APP_DIR="apps/axontis"
@@ -106,6 +103,8 @@ jobs:
           # Debug: Show current directory and user
           echo "Current directory: $(pwd)"
           echo "Current user: $(whoami)"
+          echo "DB_NAME: $DB_NAME"
+          echo "DB_USER: $DB_USER"
           
           # Create directories
           mkdir -p "$APP_DIR" "$WEB_DIR"
@@ -126,14 +125,17 @@ jobs:
 
           # Configure MySQL database for Hostinger
           sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
-          sed -i "s/DB_HOST=.*/DB_HOST=mysql.hostinger.com/" .env
+          sed -i "s/DB_HOST=.*/DB_HOST=$DB_HOST/" .env
           sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
-          sed -i "s/DB_DATABASE=.*/DB_DATABASE=${DB_NAME}/" .env
-          sed -i "s/DB_USERNAME=.*/DB_USERNAME=${DB_USER}/" .env
-          sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" .env
+          sed -i "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" .env
+          sed -i "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" .env
+          sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" .env
+
+          # Debug: Show .env database config (without password)
+          echo "Database config:"
+          grep "DB_" .env | grep -v "DB_PASSWORD"
 
           # Migrations
-          php artisan config:cache || true
           php artisan migrate --force || true
 
           # Caches
@@ -147,7 +149,6 @@ jobs:
           # Copy Laravel public files to web root
           echo "Copying files to web directory..."
           cp -f public/.htaccess "../$WEB_DIR/" || echo "Failed to copy .htaccess"
-          cp -f public/index.php "../$WEB_DIR/" || echo "Failed to copy index.php"
           
           # Copy assets
           if [ -d "public/build" ]; then
@@ -166,7 +167,7 @@ jobs:
           fi
 
           # Create custom index.php that points to our Laravel app
-          cat > "../$WEB_DIR/index.php" << 'PHP'
+          cat > "../$WEB_DIR/index.php" << 'PHPEND'
             <?php
             $root = __DIR__ . '/../apps/axontis';
             require $root . '/vendor/autoload.php';
@@ -176,7 +177,7 @@ jobs:
                 $request = Illuminate\Http\Request::capture()
             )->send();
             $kernel->terminate($request, $response);
-            PHP
+            PHPEND
 
           # Debug: Show what we created
           echo "Files in web directory:"
