@@ -101,28 +101,41 @@ jobs:
           echo "Current directory: $(pwd)"
           echo "Current user: $(whoami)"
           echo "Home directory: $HOME"
-          echo "User ID: $HOSTINGER_USER_ID"
+          echo "Hostinger User ID: $HOSTINGER_USER_ID"
           
-          # Use relative paths from home directory
+          # Check if the hostinger path exists
+          HOSTINGER_PATH="/home/${HOSTINGER_USER_ID}"
+          echo "Checking Hostinger path: $HOSTINGER_PATH"
+          
+          if [ -d "$HOSTINGER_PATH" ]; then
+            echo "✅ Hostinger path exists"
+            BASE_PATH="$HOSTINGER_PATH"
+          else
+            echo "❌ Hostinger path doesn't exist, using HOME: $HOME"
+            BASE_PATH="$HOME"
+          fi
+          
+          # Use relative paths from base directory
           APP_DIR="domains/axontis.net/apps/axontis"
           WEB_DIR="domains/axontis.net/public_html"
           
           # Get absolute paths
-          HOME_PATH="/home/${HOSTINGER_USER_ID}"
-          APP_PATH="$HOME_PATH/$APP_DIR"
-          WEB_PATH="$HOME_PATH/$WEB_DIR"
+          APP_PATH="$BASE_PATH/$APP_DIR"
+          WEB_PATH="$BASE_PATH/$WEB_DIR"
 
-          echo "APP_DIR: $APP_DIR"
-          echo "WEB_DIR: $WEB_DIR"
+          echo "BASE_PATH: $BASE_PATH"
           echo "APP_PATH: $APP_PATH"
           echo "WEB_PATH: $WEB_PATH"
           
-          # Create directories
-          mkdir -p "$APP_DIR" "$WEB_DIR"
+          # Create directories in both locations if needed
+          mkdir -p "$HOME/$APP_DIR" "$HOME/$WEB_DIR"
+          if [ "$BASE_PATH" != "$HOME" ]; then
+            mkdir -p "$APP_PATH" "$WEB_PATH"
+          fi
           echo "✅ Created directories"
           
-          # Change to app directory
-          cd "$APP_DIR"
+          # Change to app directory (use HOME path for operations)
+          cd "$HOME/$APP_DIR"
           echo "Changed to directory: $(pwd)"
 
           # Décompression
@@ -168,91 +181,113 @@ jobs:
           echo "=== SETTING PERMISSIONS ==="
           chmod -R 755 storage bootstrap/cache || echo "⚠️ Permission setting failed"
 
-          # Go back to home directory for file operations
+          # Copy files to both locations if different
+          if [ "$BASE_PATH" != "$HOME" ]; then
+            echo "=== SYNCING TO HOSTINGER PATH ==="
+            rsync -av "$HOME/$APP_DIR/" "$APP_PATH/"
+            echo "✅ App files synced to Hostinger path"
+          fi
+
+          # Go back to home directory for web operations
           cd $HOME
           
-          # Copy Laravel public files to web root
+          # Copy Laravel public files to web root (use HOME path)
           echo "=== COPYING PUBLIC FILES ==="
           
           # Copy .htaccess
-          if [ -f "$APP_DIR/public/.htaccess" ]; then
-            cp "$APP_DIR/public/.htaccess" "$WEB_DIR/" && echo "✅ .htaccess copied" || echo "❌ Failed to copy .htaccess"
+          if [ -f "$HOME/$APP_DIR/public/.htaccess" ]; then
+            cp "$HOME/$APP_DIR/public/.htaccess" "$HOME/$WEB_DIR/" && echo "✅ .htaccess copied" || echo "❌ Failed to copy .htaccess"
           fi
           
           # Copy build assets
-          if [ -d "$APP_DIR/public/build" ]; then
-            mkdir -p "$WEB_DIR/build"
-            cp -r "$APP_DIR/public/build"/* "$WEB_DIR/build/" && echo "✅ Build assets copied" || echo "❌ Failed to copy build assets"
+          if [ -d "$HOME/$APP_DIR/public/build" ]; then
+            mkdir -p "$HOME/$WEB_DIR/build"
+            cp -r "$HOME/$APP_DIR/public/build"/* "$HOME/$WEB_DIR/build/" && echo "✅ Build assets copied" || echo "❌ Failed to copy build assets"
           fi
           
           # Copy other public assets
           for dir in css js images; do
-            if [ -d "$APP_DIR/public/$dir" ]; then
-              cp -r "$APP_DIR/public/$dir" "$WEB_DIR/" && echo "✅ $dir directory copied" || echo "❌ Failed to copy $dir"
+            if [ -d "$HOME/$APP_DIR/public/$dir" ]; then
+              cp -r "$HOME/$APP_DIR/public/$dir" "$HOME/$WEB_DIR/" && echo "✅ $dir directory copied" || echo "❌ Failed to copy $dir"
             fi
           done
 
           # Create storage symlink
           echo "=== CREATING STORAGE SYMLINK ==="
-          if [ ! -L "$WEB_DIR/storage" ]; then
-            ln -sf "$APP_PATH/storage/app/public" "$WEB_DIR/storage" && echo "✅ Storage symlink created" || echo "❌ Failed to create storage symlink"
+          if [ ! -L "$HOME/$WEB_DIR/storage" ]; then
+            ln -sf "$APP_PATH/storage/app/public" "$HOME/$WEB_DIR/storage" && echo "✅ Storage symlink created" || echo "❌ Failed to create storage symlink"
           else
             echo "✅ Storage symlink already exists"
           fi
 
-          # Create index.php file using the correct absolute path
+          # Create index.php file using the Hostinger path
           echo "=== CREATING INDEX.PHP ==="
-          echo '<?php' > "$WEB_DIR/index.php"
-          echo "\$root = \"$APP_PATH\";" >> "$WEB_DIR/index.php"
-          echo 'require $root . "/vendor/autoload.php";' >> "$WEB_DIR/index.php"
-          echo '$app = require_once $root . "/bootstrap/app.php";' >> "$WEB_DIR/index.php"
-          echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "$WEB_DIR/index.php"
-          echo '$response = $kernel->handle(' >> "$WEB_DIR/index.php"
-          echo '    $request = Illuminate\Http\Request::capture()' >> "$WEB_DIR/index.php"
-          echo ')->send();' >> "$WEB_DIR/index.php"
-          echo '$kernel->terminate($request, $response);' >> "$WEB_DIR/index.php"
+          echo '<?php' > "$HOME/$WEB_DIR/index.php"
+          echo "\$root = \"$APP_PATH\";" >> "$HOME/$WEB_DIR/index.php"
+          echo 'require $root . "/vendor/autoload.php";' >> "$HOME/$WEB_DIR/index.php"
+          echo '$app = require_once $root . "/bootstrap/app.php";' >> "$HOME/$WEB_DIR/index.php"
+          echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "$HOME/$WEB_DIR/index.php"
+          echo '$response = $kernel->handle(' >> "$HOME/$WEB_DIR/index.php"
+          echo '    $request = Illuminate\Http\Request::capture()' >> "$HOME/$WEB_DIR/index.php"
+          echo ')->send();' >> "$HOME/$WEB_DIR/index.php"
+          echo '$kernel->terminate($request, $response);' >> "$HOME/$WEB_DIR/index.php"
           echo "✅ index.php created"
+
+          # Copy web files to Hostinger path if different
+          if [ "$BASE_PATH" != "$HOME" ]; then
+            echo "=== SYNCING WEB FILES TO HOSTINGER PATH ==="
+            rsync -av "$HOME/$WEB_DIR/" "$WEB_PATH/"
+            echo "✅ Web files synced to Hostinger path"
+          fi
 
           # Create test files
           echo "=== CREATING TEST FILES ==="
-          echo "Test deployment $(date)" > "$WEB_DIR/deployment-test.txt"
-          echo "Laravel App Deployed Successfully" > "$WEB_DIR/test.html"
+          echo "Test deployment $(date)" > "$HOME/$WEB_DIR/deployment-test.txt"
+          echo "Laravel App Deployed Successfully" > "$HOME/$WEB_DIR/test.html"
           echo "✅ Test files created"
 
-          # Create debug files using the correct absolute path
+          # Create debug files using the Hostinger path
           echo "=== CREATING DEBUG FILES ==="
-          echo "<?php phpinfo(); ?>" > "$WEB_DIR/info.php"
+          echo "<?php phpinfo(); ?>" > "$HOME/$WEB_DIR/info.php"
           
-          echo '<?php' > "$WEB_DIR/test-laravel.php"
-          echo 'error_reporting(E_ALL);' >> "$WEB_DIR/test-laravel.php"
-          echo 'ini_set("display_errors", 1);' >> "$WEB_DIR/test-laravel.php"
-          echo 'echo "<h1>Laravel Test</h1>";' >> "$WEB_DIR/test-laravel.php"
-          echo "\$root = \"$APP_PATH\";" >> "$WEB_DIR/test-laravel.php"
-          echo 'echo "<p>App root: " . $root . "</p>";' >> "$WEB_DIR/test-laravel.php"
-          echo 'echo "<p>Vendor exists: " . (is_dir($root . "/vendor") ? "YES" : "NO") . "</p>";' >> "$WEB_DIR/test-laravel.php"
-          echo 'echo "<p>Bootstrap exists: " . (file_exists($root . "/bootstrap/app.php") ? "YES" : "NO") . "</p>";' >> "$WEB_DIR/test-laravel.php"
-          echo 'echo "<p>.env exists: " . (file_exists($root . "/.env") ? "YES" : "NO") . "</p>";' >> "$WEB_DIR/test-laravel.php"
-          echo 'try {' >> "$WEB_DIR/test-laravel.php"
-          echo '    require $root . "/vendor/autoload.php";' >> "$WEB_DIR/test-laravel.php"
-          echo '    echo "<p>✅ Autoload successful</p>";' >> "$WEB_DIR/test-laravel.php"
-          echo '    $app = require_once $root . "/bootstrap/app.php";' >> "$WEB_DIR/test-laravel.php"
-          echo '    echo "<p>✅ Bootstrap successful</p>";' >> "$WEB_DIR/test-laravel.php"
-          echo '} catch (Exception $e) {' >> "$WEB_DIR/test-laravel.php"
-          echo '    echo "<p>❌ Error: " . $e->getMessage() . "</p>";' >> "$WEB_DIR/test-laravel.php"
-          echo '    echo "<p>File: " . $e->getFile() . ":" . $e->getLine() . "</p>";' >> "$WEB_DIR/test-laravel.php"
-          echo '}' >> "$WEB_DIR/test-laravel.php"
+          echo '<?php' > "$HOME/$WEB_DIR/test-laravel.php"
+          echo 'error_reporting(E_ALL);' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo 'ini_set("display_errors", 1);' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo 'echo "<h1>Laravel Test</h1>";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo "\$root = \"$APP_PATH\";" >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo 'echo "<p>App root: " . $root . "</p>";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo 'echo "<p>Vendor exists: " . (is_dir($root . "/vendor") ? "YES" : "NO") . "</p>";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo 'echo "<p>Bootstrap exists: " . (file_exists($root . "/bootstrap/app.php") ? "YES" : "NO") . "</p>";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo 'echo "<p>.env exists: " . (file_exists($root . "/.env") ? "YES" : "NO") . "</p>";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo 'try {' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo '    require $root . "/vendor/autoload.php";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo '    echo "<p>✅ Autoload successful</p>";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo '    $app = require_once $root . "/bootstrap/app.php";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo '    echo "<p>✅ Bootstrap successful</p>";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo '} catch (Exception $e) {' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo '    echo "<p>❌ Error: " . $e->getMessage() . "</p>";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo '    echo "<p>File: " . $e->getFile() . ":" . $e->getLine() . "</p>";' >> "$HOME/$WEB_DIR/test-laravel.php"
+          echo '}' >> "$HOME/$WEB_DIR/test-laravel.php"
           echo "✅ Debug files created"
+
+          # Sync debug files to Hostinger path if different
+          if [ "$BASE_PATH" != "$HOME" ]; then
+            rsync -av "$HOME/$WEB_DIR/" "$WEB_PATH/"
+            echo "✅ Debug files synced to Hostinger path"
+          fi
 
           # Final verification
           echo "=== FINAL VERIFICATION ==="
-          echo "Files in web directory:"
-          ls -la "$WEB_DIR/"
+          echo "Files in HOME web directory:"
+          ls -la "$HOME/$WEB_DIR/"
+          
+          if [ "$BASE_PATH" != "$HOME" ]; then
+            echo "Files in Hostinger web directory:"
+            ls -la "$WEB_PATH/" || echo "❌ Cannot access Hostinger web directory"
+          fi
           
           echo "Content of index.php:"
-          cat "$WEB_DIR/index.php"
-          
-          [ -f "$WEB_DIR/index.php" ] && echo "✅ index.php exists" || echo "❌ index.php missing"
-          [ -f "$WEB_DIR/.htaccess" ] && echo "✅ .htaccess exists" || echo "❌ .htaccess missing"
+          cat "$HOME/$WEB_DIR/index.php"
 
           echo "🎉 Deployment complete (PHP 8.1)"
           EOF
