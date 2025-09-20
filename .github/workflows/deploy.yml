@@ -166,7 +166,7 @@ jobs:
 
           # Create index.php file with absolute path
           echo '<?php' > "../$WEB_DIR/index.php"
-          echo "\$root = \"$HOME_PATH/$APP_DIR\";" >> "../$WEB_DIR/index.php"
+          echo "\$root = \"$HOME_PATH/$WEB_DIR\";" >> "../$WEB_DIR/index.php"
           echo 'require $root . "/vendor/autoload.php";' >> "../$WEB_DIR/index.php"
           echo '$app = require_once $root . "/bootstrap/app.php";' >> "../$WEB_DIR/index.php"
           echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "../$WEB_DIR/index.php"
