@@ -93,20 +93,15 @@ jobs:
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-          "DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}'" \
-          /bin/bash << 'EOF'
+          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}'; /bin/bash" << 'EOF'
           set -e
 
           APP_DIR="apps/axontis"
           WEB_DIR="public_html"
 
-          # Debug: Show current directory and user
           echo "Current directory: $(pwd)"
           echo "Current user: $(whoami)"
-          echo "DB_NAME: $DB_NAME"
-          echo "DB_USER: $DB_USER"
           
-          # Create directories
           mkdir -p "$APP_DIR" "$WEB_DIR"
           cd "$APP_DIR"
 
@@ -130,10 +125,6 @@ jobs:
           sed -i "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" .env
           sed -i "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" .env
           sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" .env
-
-          # Debug: Show .env database config (without password)
-          echo "Database config:"
-          grep "DB_" .env | grep -v "DB_PASSWORD"
 
           # Migrations
           php artisan migrate --force || true
@@ -166,22 +157,22 @@ jobs:
             ln -sf "$(pwd)/storage/app/public" "../$WEB_DIR/storage" || echo "Failed to create storage symlink"
           fi
 
-          # Create custom index.php that points to our Laravel app
-          cat > "../$WEB_DIR/index.php" << 'PHPEND'
-            <?php
-            $root = __DIR__ . '/../apps/axontis';
-            require $root . '/vendor/autoload.php';
-            $app = require_once $root . '/bootstrap/app.php';
-            $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-            $response = $kernel->handle(
-                $request = Illuminate\Http\Request::capture()
-            )->send();
-            $kernel->terminate($request, $response);
-            PHPEND
+          # Create index.php file
+          echo '<?php' > "../$WEB_DIR/index.php"
+          echo '$root = __DIR__ . "/../apps/axontis";' >> "../$WEB_DIR/index.php"
+          echo 'require $root . "/vendor/autoload.php";' >> "../$WEB_DIR/index.php"
+          echo '$app = require_once $root . "/bootstrap/app.php";' >> "../$WEB_DIR/index.php"
+          echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "../$WEB_DIR/index.php"
+          echo '$response = $kernel->handle(' >> "../$WEB_DIR/index.php"
+          echo '    $request = Illuminate\Http\Request::capture()' >> "../$WEB_DIR/index.php"
+          echo ')->send();' >> "../$WEB_DIR/index.php"
+          echo '$kernel->terminate($request, $response);' >> "../$WEB_DIR/index.php"
 
           # Debug: Show what we created
           echo "Files in web directory:"
           ls -la "../$WEB_DIR/"
+          echo "Content of index.php:"
+          cat "../$WEB_DIR/index.php"
 
           echo "Deployment complete (PHP 8.1)"
           EOF
