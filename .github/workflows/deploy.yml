@@ -144,6 +144,9 @@ jobs:
           # Permissions
           chmod -R 755 storage bootstrap/cache || true
 
+          # Ensure web directory exists and is writable
+          mkdir -p "$HOME/$WEB_DIR"
+
           # Copy Laravel public files to web root (CORRECTION: utiliser le chemin absolu)
           echo "Copying files to web directory..."
           cp -f public/.htaccess "$HOME_PATH/$WEB_DIR/" || echo "Failed to copy .htaccess"
