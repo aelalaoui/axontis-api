@@ -84,11 +84,11 @@ jobs:
 
       - name: Create directories on server
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p domains/axontis.net/apps/axontis domains/axontis.net/public_html"
+          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p domains/axontis.net/apps/axontis"
 
       - name: Upload release to server
         run: |
-          scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no release.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/domains/axontis.net/apps/axontis/release.tar.gz
+          scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no release.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/release.tar.gz
 
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
         run: |
