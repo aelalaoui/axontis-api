@@ -235,22 +235,20 @@ jobs:
             echo "✅ Storage symlink already exists"
           fi
 
-          # Create index.php file
+          # Create index.php file using echo
           echo "=== CREATING INDEX.PHP ==="
-          cat > "$WEB_DIR/index.php" << INDEXPHP
-            <?php
-            \$root = \$_SERVER['HOME'] . "/domains/axontis.net/apps/axontis";
-            if (!is_dir(\$root)) {
-                \$root = getenv('HOME') . "/domains/axontis.net/apps/axontis";
-            }
-            require \$root . "/vendor/autoload.php";
-            \$app = require_once \$root . "/bootstrap/app.php";
-            \$kernel = \$app->make(Illuminate\Contracts\Http\Kernel::class);
-            \$response = \$kernel->handle(
-                \$request = Illuminate\Http\Request::capture()
-            )->send();
-            \$kernel->terminate(\$request, \$response);
-            INDEXPHP
+          echo '<?php' > "$WEB_DIR/index.php"
+          echo '$root = $_SERVER["HOME"] . "/domains/axontis.net/apps/axontis";' >> "$WEB_DIR/index.php"
+          echo 'if (!is_dir($root)) {' >> "$WEB_DIR/index.php"
+          echo '    $root = getenv("HOME") . "/domains/axontis.net/apps/axontis";' >> "$WEB_DIR/index.php"
+          echo '}' >> "$WEB_DIR/index.php"
+          echo 'require $root . "/vendor/autoload.php";' >> "$WEB_DIR/index.php"
+          echo '$app = require_once $root . "/bootstrap/app.php";' >> "$WEB_DIR/index.php"
+          echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "$WEB_DIR/index.php"
+          echo '$response = $kernel->handle(' >> "$WEB_DIR/index.php"
+          echo '    $request = Illuminate\Http\Request::capture()' >> "$WEB_DIR/index.php"
+          echo ')->send();' >> "$WEB_DIR/index.php"
+          echo '$kernel->terminate($request, $response);' >> "$WEB_DIR/index.php"
           echo "✅ index.php created"
 
           # Create test files
@@ -258,6 +256,33 @@ jobs:
           echo "Test deployment $(date)" > "$WEB_DIR/deployment-test.txt"
           echo "Laravel App Deployed Successfully" > "$WEB_DIR/test.html"
           echo "✅ Test files created"
+
+          # Create debug files using echo
+          echo "=== CREATING DEBUG FILES ==="
+          echo "<?php phpinfo(); ?>" > "$WEB_DIR/info.php"
+          
+          echo '<?php' > "$WEB_DIR/test-laravel.php"
+          echo 'error_reporting(E_ALL);' >> "$WEB_DIR/test-laravel.php"
+          echo 'ini_set("display_errors", 1);' >> "$WEB_DIR/test-laravel.php"
+          echo 'echo "<h1>Laravel Test</h1>";' >> "$WEB_DIR/test-laravel.php"
+          echo '$root = $_SERVER["HOME"] . "/domains/axontis.net/apps/axontis";' >> "$WEB_DIR/test-laravel.php"
+          echo 'if (!is_dir($root)) {' >> "$WEB_DIR/test-laravel.php"
+          echo '    $root = getenv("HOME") . "/domains/axontis.net/apps/axontis";' >> "$WEB_DIR/test-laravel.php"
+          echo '}' >> "$WEB_DIR/test-laravel.php"
+          echo 'echo "<p>App root: " . $root . "</p>";' >> "$WEB_DIR/test-laravel.php"
+          echo 'echo "<p>Vendor exists: " . (is_dir($root . "/vendor") ? "YES" : "NO") . "</p>";' >> "$WEB_DIR/test-laravel.php"
+          echo 'echo "<p>Bootstrap exists: " . (file_exists($root . "/bootstrap/app.php") ? "YES" : "NO") . "</p>";' >> "$WEB_DIR/test-laravel.php"
+          echo 'echo "<p>.env exists: " . (file_exists($root . "/.env") ? "YES" : "NO") . "</p>";' >> "$WEB_DIR/test-laravel.php"
+          echo 'try {' >> "$WEB_DIR/test-laravel.php"
+          echo '    require $root . "/vendor/autoload.php";' >> "$WEB_DIR/test-laravel.php"
+          echo '    echo "<p>✅ Autoload successful</p>";' >> "$WEB_DIR/test-laravel.php"
+          echo '    $app = require_once $root . "/bootstrap/app.php";' >> "$WEB_DIR/test-laravel.php"
+          echo '    echo "<p>✅ Bootstrap successful</p>";' >> "$WEB_DIR/test-laravel.php"
+          echo '} catch (Exception $e) {' >> "$WEB_DIR/test-laravel.php"
+          echo '    echo "<p>❌ Error: " . $e->getMessage() . "</p>";' >> "$WEB_DIR/test-laravel.php"
+          echo '    echo "<p>File: " . $e->getFile() . ":" . $e->getLine() . "</p>";' >> "$WEB_DIR/test-laravel.php"
+          echo '}' >> "$WEB_DIR/test-laravel.php"
+          echo "✅ Debug files created"
 
           # Final verification
           echo "=== FINAL VERIFICATION ==="
