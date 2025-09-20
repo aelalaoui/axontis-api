@@ -181,5 +181,17 @@ jobs:
           echo "Content of index.php:"
           cat "../$WEB_DIR/index.php"
 
+          # Create a test file to verify deployment
+          echo "Test deployment $(date)" > "../$WEB_DIR/deployment-test.txt"
+          echo "Laravel App Deployed Successfully" > "../$WEB_DIR/test.html"
+
+          # Show final verification
+          echo "=== FINAL VERIFICATION ==="
+          echo "Files in public_html:"
+          ls -la "../$WEB_DIR/"
+          echo "Test if web directory is accessible:"
+          [ -f "../$WEB_DIR/index.php" ] && echo "✅ index.php exists" || echo "❌ index.php missing"
+          [ -f "../$WEB_DIR/.htaccess" ] && echo "✅ .htaccess exists" || echo "❌ .htaccess missing"
+
           echo "Deployment complete (PHP 8.1)"
           EOF
