@@ -96,15 +96,19 @@ jobs:
           "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}'; /bin/bash" << 'EOF'
           set -e
 
-          # Use the user ID from GitHub secrets
-          APP_DIR="/home/${HOSTINGER_USER_ID}/apps/axontis"
-          WEB_DIR="/home/${HOSTINGER_USER_ID}/public_html"
+          # Use relative paths from home directory
+          APP_DIR="apps/axontis"
+          WEB_DIR="public_html"
+          
+          # Get the absolute path for index.php
+          HOME_PATH="/home/${HOSTINGER_USER_ID}"
 
           echo "Current directory: $(pwd)"
-          echo "APP_DIR: $APP_DIR"
-          echo "WEB_DIR: $WEB_DIR"
-          echo "User ID: $HOSTINGER_USER_ID"
+          echo "Home path: $HOME_PATH"
+          echo "APP_DIR: $HOME_PATH/$APP_DIR"
+          echo "WEB_DIR: $HOME_PATH/$WEB_DIR"
           
+          # Create directories relative to home
           mkdir -p "$APP_DIR" "$WEB_DIR"
           cd "$APP_DIR"
 
@@ -140,42 +144,42 @@ jobs:
           # Permissions
           chmod -R 755 storage bootstrap/cache || true
 
-          # Copy Laravel public files to web root
+          # Copy Laravel public files to web root (using relative paths)
           echo "Copying files to web directory..."
-          cp -f public/.htaccess "$WEB_DIR/" || echo "Failed to copy .htaccess"
+          cp -f public/.htaccess "../$WEB_DIR/" || echo "Failed to copy .htaccess"
           
           # Copy assets
           if [ -d "public/build" ]; then
-            mkdir -p "$WEB_DIR/build"
-            cp -r public/build/* "$WEB_DIR/build/" || echo "Failed to copy build assets"
+            mkdir -p "../$WEB_DIR/build"
+            cp -r public/build/* "../$WEB_DIR/build/" || echo "Failed to copy build assets"
           fi
           
           # Copy other public assets
-          [ -d "public/css" ] && cp -r public/css "$WEB_DIR/" || true
-          [ -d "public/js" ] && cp -r public/js "$WEB_DIR/" || true
-          [ -d "public/images" ] && cp -r public/images "$WEB_DIR/" || true
+          [ -d "public/css" ] && cp -r public/css "../$WEB_DIR/" || true
+          [ -d "public/js" ] && cp -r public/js "../$WEB_DIR/" || true
+          [ -d "public/images" ] && cp -r public/images "../$WEB_DIR/" || true
 
-          # Create storage symlink
-          if [ ! -L "$WEB_DIR/storage" ]; then
-            ln -sf "$APP_DIR/storage/app/public" "$WEB_DIR/storage" || echo "Failed to create storage symlink"
+          # Create storage symlink (using absolute path for target)
+          if [ ! -L "../$WEB_DIR/storage" ]; then
+            ln -sf "$HOME_PATH/$APP_DIR/storage/app/public" "../$WEB_DIR/storage" || echo "Failed to create storage symlink"
           fi
 
-          # Create index.php file with dynamic user ID
-          echo '<?php' > "$WEB_DIR/index.php"
-          echo "\$root = \"/home/${HOSTINGER_USER_ID}/apps/axontis\";" >> "$WEB_DIR/index.php"
-          echo 'require $root . "/vendor/autoload.php";' >> "$WEB_DIR/index.php"
-          echo '$app = require_once $root . "/bootstrap/app.php";' >> "$WEB_DIR/index.php"
-          echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "$WEB_DIR/index.php"
-          echo '$response = $kernel->handle(' >> "$WEB_DIR/index.php"
-          echo '    $request = Illuminate\Http\Request::capture()' >> "$WEB_DIR/index.php"
-          echo ')->send();' >> "$WEB_DIR/index.php"
-          echo '$kernel->terminate($request, $response);' >> "$WEB_DIR/index.php"
+          # Create index.php file with absolute path
+          echo '<?php' > "../$WEB_DIR/index.php"
+          echo "\$root = \"$HOME_PATH/$APP_DIR\";" >> "../$WEB_DIR/index.php"
+          echo 'require $root . "/vendor/autoload.php";' >> "../$WEB_DIR/index.php"
+          echo '$app = require_once $root . "/bootstrap/app.php";' >> "../$WEB_DIR/index.php"
+          echo '$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);' >> "../$WEB_DIR/index.php"
+          echo '$response = $kernel->handle(' >> "../$WEB_DIR/index.php"
+          echo '    $request = Illuminate\Http\Request::capture()' >> "../$WEB_DIR/index.php"
+          echo ')->send();' >> "../$WEB_DIR/index.php"
+          echo '$kernel->terminate($request, $response);' >> "../$WEB_DIR/index.php"
 
           # Debug: Show what we created
           echo "Files in web directory:"
-          ls -la "$WEB_DIR/"
+          ls -la "../$WEB_DIR/"
           echo "Content of index.php:"
-          cat "$WEB_DIR/index.php"
+          cat "../$WEB_DIR/index.php"
 
           echo "Deployment complete (PHP 8.1)"
           EOF
