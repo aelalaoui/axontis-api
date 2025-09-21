@@ -221,17 +221,18 @@ const toasts = ref([])
 // App configuration
 const appName = computed(() => usePage().props.appName || 'Axontis CRM')
 
-// Navigation items
-const navigation = ref([
-    { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-home' },
-    { name: 'Clients', href: '/clients', icon: 'fas fa-users', badge: '12' },
-    { name: 'Contracts', href: '/contracts', icon: 'fas fa-file-contract' },
-    { name: 'Orders', href: '/orders', icon: 'fas fa-shopping-cart', badge: '3' },
-    { name: 'Devices', href: '/devices', icon: 'fas fa-mobile-alt' },
-    { name: 'Communications', href: '/communications', icon: 'fas fa-comments' },
-    { name: 'Files', href: '/files', icon: 'fas fa-folder' },
-    { name: 'Reports', href: '/reports', icon: 'fas fa-chart-bar' },
-])
+ // Navigation items
+ const navigation = ref([
+     { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-home' },
+     { name: 'Clients', href: '/clients', icon: 'fas fa-users', badge: '12' },
+     { name: 'Contracts', href: '/contracts', icon: 'fas fa-file-contract' },
+     { name: 'Orders', href: '/orders', icon: 'fas fa-shopping-cart', badge: '3' },
+     { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
+     { name: 'Devices', href: '/devices', icon: 'fas fa-mobile-alt' },
+     { name: 'Communications', href: '/communications', icon: 'fas fa-comments' },
+     { name: 'Files', href: '/files', icon: 'fas fa-folder' },
+     { name: 'Reports', href: '/reports', icon: 'fas fa-chart-bar' },
+ ])
 
 // Sample notifications
 const notifications = ref([

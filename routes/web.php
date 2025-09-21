@@ -37,4 +37,11 @@ Route::middleware([
     Route::get('/crm', function () {
         return Inertia::render('AxontisDashboard');
     })->name('crm.dashboard');
+
+    // CRM Suppliers Routes
+    Route::prefix('crm')->name('crm.')->group(function () {
+        Route::resource('suppliers', App\Http\Controllers\SupplierController::class);
+        Route::patch('suppliers/{supplier}/toggle-status', [App\Http\Controllers\SupplierController::class, 'toggleStatus'])
+            ->name('suppliers.toggle-status');
+    });
 });
