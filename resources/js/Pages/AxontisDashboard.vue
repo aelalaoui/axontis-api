@@ -1,0 +1,432 @@
+<template>
+    <AxontisDashboardLayout title="Dashboard" subtitle="Welcome to your Axontis CRM">
+        <!-- Stats Grid -->
+        <div class="axontis-stats-grid">
+            <AxontisStatCard
+                label="Total Clients"
+                :value="stats.totalClients"
+                icon="fas fa-users"
+                :change="stats.clientsChange"
+                change-type="positive"
+                format="compact"
+            />
+            <AxontisStatCard
+                label="Active Contracts"
+                :value="stats.activeContracts"
+                icon="fas fa-file-contract"
+                :change="stats.contractsChange"
+                change-type="positive"
+            />
+            <AxontisStatCard
+                label="Monthly Revenue"
+                :value="stats.monthlyRevenue"
+                icon="fas fa-euro-sign"
+                :change="stats.revenueChange"
+                change-type="positive"
+                format="currency"
+            />
+            <AxontisStatCard
+                label="Pending Orders"
+                :value="stats.pendingOrders"
+                icon="fas fa-shopping-cart"
+                :change="stats.ordersChange"
+                change-type="negative"
+            />
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Revenue Chart -->
+            <AxontisCard title="Revenue Trend" subtitle="Last 12 months">
+                <div class="h-80">
+                    <canvas ref="revenueChart"></canvas>
+                </div>
+                <template #footer>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-white/70">Total: €{{ totalRevenue.toLocaleString() }}</span>
+                        <span class="text-success-400">+12.5% vs last year</span>
+                    </div>
+                </template>
+            </AxontisCard>
+
+            <!-- Client Growth Chart -->
+            <AxontisCard title="Client Growth" subtitle="New clients per month">
+                <div class="h-80">
+                    <canvas ref="clientChart"></canvas>
+                </div>
+                <template #footer>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-white/70">This month: {{ stats.newClientsThisMonth }}</span>
+                        <span class="text-success-400">+8.3% vs last month</span>
+                    </div>
+                </template>
+            </AxontisCard>
+        </div>
+
+        <!-- Recent Activity & Quick Actions -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Recent Activity -->
+            <div class="lg:col-span-2">
+                <AxontisCard title="Recent Activity" subtitle="Latest updates from your CRM">
+                    <div class="space-y-4">
+                        <div
+                            v-for="activity in recentActivity"
+                            :key="activity.id"
+                            class="flex items-start gap-4 p-4 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200"
+                        >
+                            <div class="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+                                <i :class="activity.icon" class="text-primary-400"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-white">{{ activity.title }}</p>
+                                <p class="text-xs text-white/60 mt-1">{{ activity.description }}</p>
+                                <p class="text-xs text-white/40 mt-2">{{ activity.time }}</p>
+                            </div>
+                            <div v-if="activity.status" :class="[
+                                'px-2 py-1 rounded-full text-xs font-medium',
+                                activity.status === 'completed' ? 'bg-success-500/20 text-success-300' :
+                                activity.status === 'pending' ? 'bg-warning-500/20 text-warning-300' :
+                                'bg-error-500/20 text-error-300'
+                            ]">
+                                {{ activity.status }}
+                            </div>
+                        </div>
+                    </div>
+                    <template #footer>
+                        <Link href="/activity" class="text-primary-400 hover:text-primary-300 text-sm">
+                            View all activity →
+                        </Link>
+                    </template>
+                </AxontisCard>
+            </div>
+
+            <!-- Quick Actions -->
+            <div>
+                <AxontisCard title="Quick Actions" subtitle="Common tasks">
+                    <div class="space-y-3">
+                        <AxontisButton
+                            variant="primary"
+                            icon="fas fa-user-plus"
+                            text="Add New Client"
+                            full-width
+                            @click="navigateTo('/clients/create')"
+                        />
+                        <AxontisButton
+                            variant="secondary"
+                            icon="fas fa-file-plus"
+                            text="Create Contract"
+                            full-width
+                            @click="navigateTo('/contracts/create')"
+                        />
+                        <AxontisButton
+                            variant="ghost"
+                            icon="fas fa-chart-bar"
+                            text="Generate Report"
+                            full-width
+                            @click="navigateTo('/reports')"
+                        />
+                        <AxontisButton
+                            variant="ghost"
+                            icon="fas fa-cog"
+                            text="System Settings"
+                            full-width
+                            @click="navigateTo('/settings')"
+                        />
+                    </div>
+                </AxontisCard>
+
+                <!-- System Status -->
+                <AxontisCard title="System Status" class="mt-6">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-white/80">Server Status</span>
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-success-400 rounded-full"></div>
+                                <span class="text-xs text-success-400">Online</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-white/80">Database</span>
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-success-400 rounded-full"></div>
+                                <span class="text-xs text-success-400">Connected</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-white/80">Last Backup</span>
+                            <span class="text-xs text-white/60">2 hours ago</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-white/80">Storage Used</span>
+                            <span class="text-xs text-white/60">68%</span>
+                        </div>
+                    </div>
+                </AxontisCard>
+            </div>
+        </div>
+
+        <!-- Upcoming Tasks -->
+        <AxontisCard title="Upcoming Tasks" subtitle="Tasks requiring your attention">
+            <div class="overflow-x-auto">
+                <table class="axontis-table">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Client</th>
+                            <th>Due Date</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="task in upcomingTasks" :key="task.id">
+                            <td>
+                                <div class="font-medium text-white">{{ task.title }}</div>
+                                <div class="text-xs text-white/60">{{ task.description }}</div>
+                            </td>
+                            <td class="text-white/80">{{ task.client }}</td>
+                            <td class="text-white/80">{{ task.dueDate }}</td>
+                            <td>
+                                <span :class="[
+                                    'axontis-badge',
+                                    task.priority === 'high' ? 'error' :
+                                    task.priority === 'medium' ? 'warning' : 'primary'
+                                ]">
+                                    {{ task.priority }}
+                                </span>
+                            </td>
+                            <td>
+                                <span :class="[
+                                    'axontis-badge',
+                                    task.status === 'completed' ? 'success' :
+                                    task.status === 'in-progress' ? 'warning' : 'primary'
+                                ]">
+                                    {{ task.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <AxontisButton
+                                        variant="icon"
+                                        size="sm"
+                                        icon="fas fa-eye"
+                                        @click="viewTask(task.id)"
+                                    />
+                                    <AxontisButton
+                                        variant="icon"
+                                        size="sm"
+                                        icon="fas fa-edit"
+                                        @click="editTask(task.id)"
+                                    />
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </AxontisCard>
+    </AxontisDashboardLayout>
+</template>
+
+<script setup>
+import { ref, onMounted, nextTick } from 'vue'
+import { Link, router } from '@inertiajs/vue3'
+import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
+import AxontisCard from '@/Components/AxontisCard.vue'
+import AxontisButton from '@/Components/AxontisButton.vue'
+import AxontisStatCard from '@/Components/AxontisStatCard.vue'
+
+// Chart references
+const revenueChart = ref(null)
+const clientChart = ref(null)
+
+// Sample data
+const stats = ref({
+    totalClients: 1247,
+    clientsChange: '+12.5%',
+    activeContracts: 89,
+    contractsChange: '+8.3%',
+    monthlyRevenue: 125430,
+    revenueChange: '+15.2%',
+    pendingOrders: 23,
+    ordersChange: '-5.1%',
+    newClientsThisMonth: 34
+})
+
+const totalRevenue = ref(1504560)
+
+const recentActivity = ref([
+    {
+        id: 1,
+        title: 'New client registration',
+        description: 'John Doe completed the registration process',
+        time: '2 minutes ago',
+        icon: 'fas fa-user-plus',
+        status: 'completed'
+    },
+    {
+        id: 2,
+        title: 'Contract signed',
+        description: 'Contract #1234 has been digitally signed by client',
+        time: '15 minutes ago',
+        icon: 'fas fa-file-signature',
+        status: 'completed'
+    },
+    {
+        id: 3,
+        title: 'Payment received',
+        description: 'Payment of €2,500 received for invoice #INV-001',
+        time: '1 hour ago',
+        icon: 'fas fa-credit-card',
+        status: 'completed'
+    },
+    {
+        id: 4,
+        title: 'Device order placed',
+        description: 'New device order for client ABC Corp',
+        time: '2 hours ago',
+        icon: 'fas fa-mobile-alt',
+        status: 'pending'
+    },
+    {
+        id: 5,
+        title: 'Support ticket created',
+        description: 'Client reported connectivity issue',
+        time: '3 hours ago',
+        icon: 'fas fa-headset',
+        status: 'pending'
+    }
+])
+
+const upcomingTasks = ref([
+    {
+        id: 1,
+        title: 'Contract renewal',
+        description: 'Renew contract for ABC Corp',
+        client: 'ABC Corp',
+        dueDate: 'Tomorrow',
+        priority: 'high',
+        status: 'pending'
+    },
+    {
+        id: 2,
+        title: 'Device installation',
+        description: 'Install new devices at client site',
+        client: 'XYZ Ltd',
+        dueDate: 'Dec 25, 2024',
+        priority: 'medium',
+        status: 'in-progress'
+    },
+    {
+        id: 3,
+        title: 'Monthly report',
+        description: 'Generate monthly performance report',
+        client: 'Internal',
+        dueDate: 'Dec 31, 2024',
+        priority: 'low',
+        status: 'pending'
+    }
+])
+
+// Methods
+const navigateTo = (url) => {
+    router.visit(url)
+}
+
+const viewTask = (taskId) => {
+    router.visit(`/tasks/${taskId}`)
+}
+
+const editTask = (taskId) => {
+    router.visit(`/tasks/${taskId}/edit`)
+}
+
+// Initialize charts
+const initializeCharts = async () => {
+    await nextTick()
+    
+    if (typeof Chart !== 'undefined') {
+        // Revenue Chart
+        if (revenueChart.value) {
+            new Chart(revenueChart.value, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [85000, 92000, 78000, 105000, 98000, 112000, 125000, 118000, 135000, 142000, 128000, 155000],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(245, 158, 11, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(245, 158, 11, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                    }
+                }
+            })
+        }
+
+        // Client Chart
+        if (clientChart.value) {
+            new Chart(clientChart.value, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'New Clients',
+                        data: [12, 19, 15, 25, 22, 30, 28, 35, 32, 38, 29, 34],
+                        backgroundColor: '#f59e0b',
+                        borderColor: '#d97706',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(245, 158, 11, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(245, 158, 11, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                    }
+                }
+            })
+        }
+    }
+}
+
+onMounted(() => {
+    // Load Chart.js if not already loaded
+    if (typeof Chart === 'undefined') {
+        const script = document.createElement('script')
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js'
+        script.onload = initializeCharts
+        document.head.appendChild(script)
+    } else {
+        initializeCharts()
+    }
+})
+</script>

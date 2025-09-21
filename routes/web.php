@@ -32,4 +32,9 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    // Axontis CRM Dashboard
+    Route::get('/crm', function () {
+        return Inertia::render('AxontisDashboard');
+    })->name('crm.dashboard');
 });
