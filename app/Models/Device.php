@@ -114,7 +114,7 @@ class Device extends Model
 
     public function getFullNameAttribute(): string
     {
-        return "{$this->brand} {$this->model}";
+        return "{$this->brand} - {$this->model}";
     }
 
     public function getTotalOrderedQuantityAttribute(): int
