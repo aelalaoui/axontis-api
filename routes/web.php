@@ -43,5 +43,27 @@ Route::middleware([
         Route::resource('suppliers', App\Http\Controllers\SupplierController::class);
         Route::patch('suppliers/{supplier}/toggle-status', [App\Http\Controllers\SupplierController::class, 'toggleStatus'])
             ->name('suppliers.toggle-status');
+
+        // CRM Orders Routes
+        Route::resource('orders', App\Http\Controllers\OrderController::class);
+        Route::patch('orders/{order}/approve', [App\Http\Controllers\OrderController::class, 'approve'])
+            ->name('orders.approve');
+        Route::patch('orders/{order}/mark-as-ordered', [App\Http\Controllers\OrderController::class, 'markAsOrdered'])
+            ->name('orders.mark-as-ordered');
+        Route::patch('orders/{order}/mark-as-completed', [App\Http\Controllers\OrderController::class, 'markAsCompleted'])
+            ->name('orders.mark-as-completed');
+        Route::patch('orders/{order}/cancel', [App\Http\Controllers\OrderController::class, 'cancel'])
+            ->name('orders.cancel');
+
+        // CRM Devices Routes
+        Route::resource('devices', App\Http\Controllers\DeviceController::class);
+        Route::patch('devices/{device}/update-stock', [App\Http\Controllers\DeviceController::class, 'updateStock'])
+            ->name('devices.update-stock');
+
+        // API Routes for autocomplete
+        Route::get('api/suppliers/search', [App\Http\Controllers\OrderController::class, 'searchSuppliers'])
+            ->name('api.suppliers.search');
+        Route::get('api/devices/search', [App\Http\Controllers\DeviceController::class, 'search'])
+            ->name('api.devices.search');
     });
 });
