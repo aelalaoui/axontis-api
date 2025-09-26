@@ -142,236 +142,136 @@
                                         Searching devices...
                                     </div>
 
-                                      <!-- Results -->
-                                      <div
-                                          v-for=devicein cults"
-                                          :key=device
-                                          @click=(device)"
-                                          class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
-                                      >
-                                          <div class="flex justify-between items-center">
-                                              <div>
-                                                  <div class="font-medium text-white">{{ device.label|| `${device.brand || 'N/A'  - ${device.model || 'N/A'|` }}| `${device.brand || 'N/A'} - ${device.model || 'N/A'}` }}</div>
-                                                  <div class="text-sm text-gray-400">{{ device.category|| 'N/A'  || 'N/A' }} • Stock: {{ device.|| 0 stock_qty || 0 }}</div>
-                                              </div>
-                                              <div class="text-right">
-                                                  <span v-if="device.is_low_stock" class="px-2 py-1 text-xs bg-yellow-900 text-yellow-300 rounded-full">
-                                                      Low Stock
-                                                 </span>
-                                                 <span v-else-if="device.is_out_of_stock" class="px-2 py-1 text-xs bg-red-900 text-red-300 rounded-full">
-                                                     Out of Stock
-                                                 </span>
-                                             </div>
-                                         </div>
-                                     </div>
+                                    <!-- Results -->
+                                    <div
+                                        v-for="device in deviceResults"
+                                        :key="device.id"
+                                        @click="addDevice(device)"
+                                        class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
+                                    >
+                                        <div class="flex justify-between items-center">
+                                            <div>
+                                                <div class="font-medium text-white">{{ device.label || `${device.brand || 'N/A'} - ${device.model || 'N/A'}` }}</div>
+                                                <div class="text-sm text-gray-400">{{ device.category || 'N/A' }} • Stock: {{ device.stock_qty || 0 }}</div>
+                                            </div>
+                                            <div class="text-right">
+                                                <span v-if="device.is_low_stock" class="px-2 py-1 text-xs bg-yellow-900 text-yellow-300 rounded-full">
+                                                    Low Stock
+                                                </span>
+                                                <span v-else-if="device.is_out_of_stock" class="px-2 py-1 text-xs bg-red-900 text-red-300 rounded-full">
+                                                    Out of Stock
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                     <!-- No results -->
-                                     <div v-if="!deviceLoading && deviceResults.length === 0 && deviceQuery.length > 0" class="p-3 text-gray-400 text-center">
-                                         No devices found
-                                     </div>
+                                    <!-- No results -->
+                                    <div v-if="!deviceLoading && deviceResults.length === 0 && deviceQuery.length > 0" class="p-3 text-gray-400 text-center">
+                                        No devices found
+                                    </div>
+                                </div>
 
-                                 <!-- Disabled message -->
-                                 <div v-if="!selectedSupplier" class="mt-2 text-sm text-gray-400">
-                                     Please select a supplier first to add devices
-                                 </div>
-                             </div>
+                                <!-- Disabled message -->
+                                <div v-if="!selectedSupplier" class="mt-2 text-sm text-gray-400">
+                                    Please select a supplier first to add devices
+                                </div>
+                            </div>
 
-                             <!-- Selected Devices Table -->
-                             <div v-if="selectedDevices.length > 0" class="border border-gray-700 rounded-lg overflow-hidden">
-                                 <table class="w-full text-sm">
-                                     <thead class="bg-gray-800 text-gray-300">
-                                         <tr>
-                                             <th class="px-4 py-3 text-left">Device</th>
-                                             <th class="px-4 py-3 text-left">Quantity</th>
-                                             <th class="px-4 py-3 text-left">Price HT (€)</th>
-                                             <th class="px-4 py-3 text-left">TVA Rate (%)</th>
-                                             <th class="px-4 py-3 text-left">Total HT (€)</th>
-                                             <th cla/s="sx-4 py-3 text-left">Actions</th>
-                                         </tr>
-                                     </thead>
-                                     <tbody class="bg-grpy-900 divide-y divide-gray-700">
-                                         <tr v-for="(device, iadex) in selectedDevices" :key="device.id" class="hover:bg-gray-800"n>
-                                             <td c ass="px-4 py-3">
-                                                 <div>
-                                                    <div class="font-medium text-white">{{ de>ice.brand || 'N/A' }}  {{ device.l || 'N/A' }}</div>
-                                                    <div class="text-xs text-gray-00">{{device.category || 'N/A' }}</div>
-                                                 </div>
-                                             </td>
-                                             <td class="px-4 
-                                          </div>
-                                      </div>qy_ordered"
-                                                     @input="calculateDeiceTotl(index)"
-                                                     type="number"
-                                                     min="1"
-                                                     class="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                                 />
-                                             </td>
-                                             <td class="px-4 py-3">
-                                                 <input
-                                                     v-model.number="device.htpice"
-                                                     @input="calculateDeviceTotl(index)"
-                                                     type="number"
-                                                     sp="0.01
- min="0"
-                                                     class="w-24 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                                     placeholder="0.00"
-                                                 />
-                                             </td>
-                                             <td class="px-4 py-3">
-                                                 <input
-                                                     v-model.number="device.tva_rate"
-                                                     
-                                      <!-- No results -->
-                                      <div v-if="!deviceLoadi01"
-                                                     min="n"
-                                                     max="g00"
-                                                     class= w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                                 />
-                                             </td>
-                                             <td class="px-4 py-3 text-white font-medium">
-                                                 {{ formatCurrency(device.total_ht && 0)d}}
-e                                            </tdv
-                                             <td class="px-4 py-3">
-                                                 <button
-                                                     @click="removeDevice(index)"
-                                                     type="iceRes"ults.length === 0 && deviceQuery.length > 0" class="p-3 text-gray-400 text-center">
-                                             No deviccless="text-red-400 hover:text-red-300"
-                                                     title="Remove device"
-                                                s> found
-                                              </div>i class="fas fa-trah"></i>
-                                                 </button>
-                                             </td>
-                                         </tr>
-                                     </tbody>
-                                 </table>
+                            <!-- Selected Devices Table -->
+                            <div v-if="selectedDevices.length > 0" class="border border-gray-700 rounded-lg overflow-hidden">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-800 text-gray-300">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left">Device</th>
+                                            <th class="px-4 py-3 text-left">Quantity</th>
+                                            <th class="px-4 py-3 text-left">Price HT (€)</th>
+                                            <th class="px-4 py-3 text-left">TVA Rate (%)</th>
+                                            <th class="px-4 py-3 text-left">Total HT (€)</th>
+                                            <th class="px-4 py-3 text-left">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-gray-900 divide-y divide-gray-700">
+                                        <tr v-for="(device, index) in selectedDevices" :key="device.id" class="hover:bg-gray-800">
+                                            <td class="px-4 py-3">
+                                                <div>
+                                                    <div class="font-medium text-white">{{ device.brand || 'N/A' }} - {{ device.model || 'N/A' }}</div>
+                                                    <div class="text-xs text-gray-400">{{ device.category || 'N/A' }}</div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <input
+                                                    v-model.number="device.qty_ordered"
+                                                    @input="calculateDeviceTotal(index)"
+                                                    type="number"
+                                                    min="1"
+                                                    class="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                />
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <input
+                                                    v-model.number="device.ht_price"
+                                                    @input="calculateDeviceTotal(index)"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    class="w-24 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                    placeholder="0.00"
+                                                />
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <input
+                                                    v-model.number="device.tva_rate"
+                                                    @input="calculateDeviceTotal(index)"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="100"
+                                                    class="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                />
+                                            </td>
+                                            <td class="px-4 py-3 text-white font-medium">
+                                                {{ formatCurrency(device.total_ht || 0) }}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <button
+                                                    @click="removeDevice(index)"
+                                                    type="button"
+                                                    class="text-red-400 hover:text-red-300"
+                                                    title="Remove device"
+                                                >
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
 
-                                 <!-- Order Totals -->
-                                 <div class="bg-gray-800 px-4 py-3 border-t border-gray-700">
-                                     <div class="flex justify-end space-x-8 text-sm">
-                                         <div>
-                                             <span class="text-gray-400">Total HT: </span>
-                                             <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_ht) }}</span>
-                                         </div>
-                                         <div>
-                                             <span class="text-gray-400">Total TVA: </span>
-                                             <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_tva) }}</s>
-                                         </div>
+                                <!-- Order Totals -->
+                                <div class="bg-gray-800 px-4 py-3 border-t border-gray-700">
+                                    <div class="flex justify-end space-x-8 text-sm">
                                         <div>
-                                             <span -gray400">Total TTC: </span>
-                                             <span class="text->
-                                         </div
-                                     </div>
-                       </div>   
-                             </div>
+                                            <span class="text-gray-400">Total HT: </span>
+                                            <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_ht) }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-400">Total TVA: </span>
+                                            <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_tva) }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-400">Total TTC: </span>
+                                            <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_ttc) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                             <!-- Empty state -->
-                             <div v-else class="text-center py-8 border-2 border-dashed border-gray-700 rounded-lg">
-                                 <i class="fas fa-microchip text-3xl text-gray-600 mb-3"></i>
-                                 <p class="text-gray-400">No devices added to this order yet</p>
-                                 <p class="text-sm text-gray-500 mt-1">Search and add devices above</p>
-                             </div>
- 
-                                 <!-- Disabled message -->
-                                 <div v-if="!selectedSupplier" class="mt-2 text-sm text-gray-400">
-                                     Please select a supplier first to add devices
-                                 </div>
-                             </div>
-
-                             <!-- Selected Devices Table -->
-                             <div v-if="selectedDevices.length > 0" class="border border-gray-700 rounded-lg overflow-hidden">
-                                 <table class="w-full text-sm">
-                                     <thead class="bg-gray-800 text-gray-300">
-                                         <tr>
-                                             <th class="px-4 py-3 text-left">Device</th>
-                                             <th class="px-4 py-3 text-left">Quantity</th>
-                                             <th class="px-4 py-3 text-left">Price HT (€)</th>
-                                             <th class="px-4 py-3 text-left">TVA Rate (%)</th>
-                                             <th class="px-4 py-3 text-left">Total HT (€)</th>
-                                             <th class="px-4 py-3 text-left">Actions</th>
-                                         </tr>
-                                     </thead>
-                                     <tbody class="bg-gray-900 divide-y divide-gray-700">
-                                         <tr v-for="(device, index) in selectedDevices" :key="device.id" class="hover:bg-gray-800">
-                                             <td class="px-4 py-3">
-                                                 <div>
-                                                     <div class="font-medium text-white">{{ device.brand || 'N/A' }} - {{ device.model || 'N/A' }}</div>
-                                                     <div class="text-xs text-gray-400">{{ device.category || 'N/A' }}</div>
-                                                 </div>
-                                             </td>
-                                             <td class="px-4 py-3">
-                                                 <input
-                                                     v-model.number="device.qty_ordered"
-                                                     @input="calculateDeviceTotal(index)"
-                                                     type="number"
-                                                     min="1"
-                                                     class="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                                 />
-                                             </td>
-                                             <td class="px-4 py-3">
-                                                 <input
-                                                     v-model.number="device.ht_price"
-                                                     @input="calculateDeviceTotal(index)"
-                                                     type="number"
-                                                     step="0.01"
-                                                     min="0"
-                                                     class="w-24 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                                     placeholder="0.00"
-                                                 />
-                                             </td>
-                                             <td class="px-4 py-3">
-                                                 <input
-                                                     v-model.number="device.tva_rate"
-                                                     @input="calculateDeviceTotal(index)"
-                                                     type="number"
-                                                     step="0.01"
-                                                     min="0"
-                                                     max="100"
-                                                     class="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                                 />
-                                             </td>
-                                             <td class="px-4 py-3 text-white font-medium">
-                                                 {{ formatCurrency(device.total_ht || 0) }}
-                                             </td>
-                                             <td class="px-4 py-3">
-                                                 <button
-                                                     @click="removeDevice(index)"
-                                                     type="button"
-                                                     class="text-red-400 hover:text-red-300"
-                                                     title="Remove device"
-                                                 >
-                                                     <i class="fas fa-trash"></i>
-                                                 </button>
-                                             </td>
-                                         </tr>
-                                     </tbody>
-                                 </table>
-
-                                 <!-- Order Totals -->
-                                 <div class="bg-gray-800 px-4 py-3 border-t border-gray-700">
-                                     <div class="flex justify-end space-x-8 text-sm">
-                                         <div>
-                                             <span class="text-gray-400">Total HT: </span>
-                                             <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_ht) }}</span>
-                                         </div>
-                                         <div>
-                                             <span class="text-gray-400">Total TVA: </span>
-                                             <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_tva) }}</span>
-                                         </div>
-                                         <div>
-                                             <span class="text-gray-400">Total TTC: </span>
-                                             <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_ttc) }}</span>
-                                         </div>
-                                     </div>
-                                 </div>
-                             </div>
-
-                             <!-- Empty state -->
-                             <div v-else class="text-center py-8 border-2 border-dashed border-gray-700 rounded-lg">
-                                 <i class="fas fa-microchip text-3xl text-gray-600 mb-3"></i>
-                                 <p class="text-gray-400">No devices added to this order yet</p>
-                                 <p class="text-sm text-gray-500 mt-1">Search and add devices above</p>
-                             </div>
-                         </div>
+                            <!-- Empty state -->
+                            <div v-else class="text-center py-8 border-2 border-dashed border-gray-700 rounded-lg">
+                                <i class="fas fa-microchip text-3xl text-gray-600 mb-3"></i>
+                                <p class="text-gray-400">No devices added to this order yet</p>
+                                <p class="text-sm text-gray-500 mt-1">Search and add devices above</p>
+                            </div>
+                        </div>
 
                         <!-- Priority -->
                         <div>
@@ -599,17 +499,17 @@ const searchDevices = () => {
             const response = await fetch(`/crm/api/devices/search?query=${encodeURIComponent(deviceQuery.value)}`)
             const data = await response.json()
             // Filter out already selected devices
-                const filteredData = data.filter(device =>
-            !selectedDevices.value.some(selected => selected.id === device.id)
+            const filteredData = data.filter(device =>
+                !selectedDevices.value.some(selected => selected.id === device.id)
             )
-        deviceResults.value = filteredData
-            } catch (error) {
+            deviceResults.value = filteredData
+        } catch (error) {
             console.error('Error searching devices:', error)
-        deviceResults.value = []
-            } finally {
-        deviceLoading.value = false
-    }
-}, 300)
+            deviceResults.value = []
+        } finally {
+            deviceLoading.value = false
+        }
+    }, 300)
 }
 
 // Select supplier
