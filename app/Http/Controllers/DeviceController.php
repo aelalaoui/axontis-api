@@ -179,7 +179,12 @@ class DeviceController extends Controller
      */
     public function search(Request $request)
     {
-        $search = $request->get('q', '');
+        // Accept both 'q' and 'query' parameters
+        $search = $request->get('query', $request->get('q', ''));
+
+        if (empty($search) || strlen(trim($search)) < 2) {
+            return response()->json([]);
+        }
         
         $devices = Device::where(function ($query) use ($search) {
             $query->where('brand', 'like', "%{$search}%")

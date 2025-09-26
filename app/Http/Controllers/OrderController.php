@@ -62,10 +62,8 @@ class OrderController extends Controller
                 'cancelled' => 'Cancelled',
             ],
             'typeOptions' => [
-                'purchase' => 'Purchase',
-                'maintenance' => 'Maintenance',
-                'replacement' => 'Replacement',
-                'upgrade' => 'Upgrade',
+                'locally' => 'Locally',
+                'externally' => 'Externally',
             ],
             'priorityOptions' => [
                 'low' => 'Low',
@@ -106,15 +104,14 @@ class OrderController extends Controller
                 'pending' => 'Pending',
             ],
             'typeOptions' => [
-                'purchase' => 'Purchase',
-                'maintenance' => 'Maintenance',
-                'replacement' => 'Replacement',
-                'upgrade' => 'Upgrade',
+                'locally' => 'Locally',
+                'externally' => 'Externally',
             ],
             'priorityOptions' => [
                 'low' => 'Low',
                 'normal' => 'Normal',
                 'high' => 'High',
+                'urgent' => 'Urgent',
             ],
         ]);
     }
@@ -125,7 +122,7 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|string|in:purchase,maintenance,replacement,upgrade',
+            'type' => 'required|string|in:locally,externally',
             'status' => 'required|string|in:draft,pending',
             'supplier_id' => 'required|exists:suppliers,id',
             'order_date' => 'required|date',
@@ -228,10 +225,8 @@ class OrderController extends Controller
                 'cancelled' => 'Cancelled',
             ],
             'typeOptions' => [
-                'purchase' => 'Purchase',
-                'maintenance' => 'Maintenance',
-                'replacement' => 'Replacement',
-                'upgrade' => 'Upgrade',
+                'locally' => 'Locally',
+                'externally' => 'Externally',
             ],
             'priorityOptions' => [
                 'low' => 'Low',
@@ -247,7 +242,7 @@ class OrderController extends Controller
     public function update(Request $request, Order $order)
     {
         $validated = $request->validate([
-            'type' => 'required|string|in:purchase,maintenance,replacement,upgrade',
+            'type' => 'required|string|in:locally,externally',
             'status' => 'required|string|in:draft,pending,approved,ordered,completed,cancelled',
             'supplier_id' => 'required|exists:suppliers,id',
             'order_date' => 'required|date',
@@ -342,7 +337,11 @@ class OrderController extends Controller
      */
     public function searchSuppliers(Request $request)
     {
-        $query = $request->get('query', '');
+        $query = $request->get('query', $request->get('q', ''));
+    
+        if (empty($query) || strlen(trim($query)) < 2) {
+            return response()->json([]);
+        }
         
         $suppliers = Supplier::active()
             ->where(function ($q) use ($query) {

@@ -373,6 +373,9 @@ const form = useForm({
     expected_delivery_date: '',
     notes: '',
     devices: [], // Array of device objects with quantities and prices
+    total_ht: 0,
+    total_tva: 0,
+    total_ttc: 0,
 })
 
 // Supplier autocomplete
@@ -567,6 +570,21 @@ const handleClickOutside = (event) => {
 
 // Submit form
 const submit = () => {
+    // Mettre à jour toutes les données du form
+    const currentTotals = orderTotals.value
+    
+    form.total_ht = parseFloat(currentTotals.total_ht.toFixed(2))
+    form.total_tva = parseFloat(currentTotals.total_tva.toFixed(2))
+    form.total_ttc = parseFloat(currentTotals.total_ttc.toFixed(2))
+    form.devices = selectedDevices.value.map(device => ({
+        device_id: device.id,
+        qty_ordered: device.qty_ordered || 1,
+        ht_price: device.ht_price || 0,
+        tva_rate: device.tva_rate || 20,
+        notes: device.notes || '',
+    }))
+    
+    console.log('Form final data:', form.data())
     form.post(route('crm.orders.store'))
 }
 
