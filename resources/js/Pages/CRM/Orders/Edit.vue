@@ -1,11 +1,11 @@
 <template>
-    <AxontisDashboardLayout title="Edit Order" subtitle="Update order information">
+    <AxontisDashboardLayout title="Edit Order" subtitle="Modify order details">
         <div class="max-w-4xl mx-auto">
             <!-- Header -->
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h1 class="text-2xl font-bold text-white">Edit Order</h1>
-                    <p class="text-gray-400 mt-1">Update order {{ order.order_number }}</p>
+                    <h1 class="text-2xl font-bold text-white">Edit Order #{{ order.id }}</h1>
+                    <p class="text-gray-400 mt-1">Modify the details of this order</p>
                 </div>
                 <div class="flex items-center space-x-3">
                     <Link :href="route('crm.orders.show', order.id)" class="btn-axontis-secondary">
@@ -23,18 +23,6 @@
             <form @submit.prevent="submit">
                 <AxontisCard>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Order Number (Read-only) -->
-                        <div>
-                            <InputLabel for="order_number" value="Order Number" />
-                            <TextInput
-                                id="order_number"
-                                :model-value="order.order_number"
-                                type="text"
-                                class="mt-1 block w-full bg-gray-900"
-                                readonly
-                            />
-                        </div>
-
                         <!-- Order Type -->
                         <div>
                             <InputLabel for="type" value="Order Type" />
@@ -129,6 +117,168 @@
                             </div>
                         </div>
 
+                        <!-- Devices Section -->
+                        <div class="md:col-span-2">
+                            <div class="mb-4">
+                                <InputLabel value="Order Devices" />
+                                <p class="text-sm text-gray-400 mt-1">Add or modify devices for this order from the selected supplier</p>
+                            </div>
+
+                            <!-- Device Search -->
+                            <div class="relative mb-4">
+                                <input
+                                    v-model="deviceQuery"
+                                    @input="searchDevices"
+                                    @focus="showDeviceDropdown = true"
+                                    type="text"
+                                    placeholder="Search for devices to add..."
+                                    class="block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    autocomplete="off"
+                                    :disabled="!selectedSupplier"
+                                />
+
+                                <!-- Device Dropdown -->
+                                <div
+                                    v-if="showDeviceDropdown && selectedSupplier && (deviceResults && deviceResults.length > 0 || deviceLoading)"
+                                    class="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                                >
+                                    <!-- Loading -->
+                                    <div v-if="deviceLoading" class="p-3 text-gray-400 text-center">
+                                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                                        Searching devices...
+                                    </div>
+
+                                    <!-- Results -->
+                                    <div
+                                        v-for="device in deviceResults"
+                                        :key="device.id"
+                                        @click="addDevice(device)"
+                                        class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
+                                    >
+                                        <div class="flex justify-between items-center">
+                                            <div>
+                                                <div class="font-medium text-white">{{ device.label || `${device.brand || 'N/A'} - ${device.model || 'N/A'}` }}</div>
+                                                <div class="text-sm text-gray-400">{{ device.category || 'N/A' }} • Stock: {{ device.stock_qty || 0 }}</div>
+                                            </div>
+                                            <div class="text-right">
+                                                <span v-if="device.is_low_stock" class="px-2 py-1 text-xs bg-yellow-900 text-yellow-300 rounded-full">
+                                                    Low Stock
+                                                </span>
+                                                <span v-else-if="device.is_out_of_stock" class="px-2 py-1 text-xs bg-red-900 text-red-300 rounded-full">
+                                                    Out of Stock
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- No results -->
+                                    <div v-if="!deviceLoading && deviceResults.length === 0 && deviceQuery.length > 0" class="p-3 text-gray-400 text-center">
+                                        No devices found
+                                    </div>
+                                </div>
+
+                                <!-- Disabled message -->
+                                <div v-if="!selectedSupplier" class="mt-2 text-sm text-gray-400">
+                                    Please select a supplier first to add devices
+                                </div>
+                            </div>
+
+                            <!-- Selected Devices Table -->
+                            <div v-if="selectedDevices.length > 0" class="border border-gray-700 rounded-lg overflow-hidden">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-800 text-gray-300">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left">Device</th>
+                                            <th class="px-4 py-3 text-left">Quantity</th>
+                                            <th class="px-4 py-3 text-left">Price HT (€)</th>
+                                            <th class="px-4 py-3 text-left">TVA Rate (%)</th>
+                                            <th class="px-4 py-3 text-left">Total HT (€)</th>
+                                            <th class="px-4 py-3 text-left">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-gray-900 divide-y divide-gray-700">
+                                        <tr v-for="(device, index) in selectedDevices" :key="device.id" class="hover:bg-gray-800">
+                                            <td class="px-4 py-3">
+                                                <div>
+                                                    <div class="font-medium text-white">{{ device.brand || 'N/A' }} - {{ device.model || 'N/A' }}</div>
+                                                    <div class="text-xs text-gray-400">{{ device.category || 'N/A' }}</div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <input
+                                                    v-model.number="device.qty_ordered"
+                                                    @input="calculateDeviceTotal(index)"
+                                                    type="number"
+                                                    min="1"
+                                                    class="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                />
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <input
+                                                    v-model.number="device.ht_price"
+                                                    @input="calculateDeviceTotal(index)"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    class="w-24 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                    placeholder="0.00"
+                                                />
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <input
+                                                    v-model.number="device.tva_rate"
+                                                    @input="calculateDeviceTotal(index)"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="100"
+                                                    class="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                />
+                                            </td>
+                                            <td class="px-4 py-3 text-white font-medium">
+                                                {{ formatCurrency(device.total_ht || 0) }}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <button
+                                                    @click="removeDevice(index)"
+                                                    type="button"
+                                                    class="text-red-400 hover:text-red-300"
+                                                    title="Remove device"
+                                                >
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <!-- Order Totals -->
+                                <div class="bg-gray-800 px-4 py-3 border-t border-gray-700">
+                                    <div class="flex justify-end space-x-8 text-sm">
+                                        <div>
+                                            <span class="text-gray-400">Total HT: </span>
+                                            <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_ht) }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-400">Total TVA: </span>
+                                            <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_tva) }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-400">Total TTC: </span>
+                                            <span class="text-white font-medium">{{ formatCurrency(orderTotals.total_ttc) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Empty state -->
+                            <div v-else class="text-center py-8 border-2 border-dashed border-gray-700 rounded-lg">
+                                <i class="fas fa-microchip text-3xl text-gray-600 mb-3"></i>
+                                <p class="text-gray-400">No devices added to this order yet</p>
+                                <p class="text-sm text-gray-500 mt-1">Search and add devices above</p>
+                            </div>
+                        </div>
+
                         <!-- Priority -->
                         <div>
                             <InputLabel for="priority" value="Priority" />
@@ -171,49 +321,16 @@
                             <InputError class="mt-2" :message="form.errors.expected_delivery_date" />
                         </div>
 
-                        <!-- Total HT -->
-                        <div>
-                            <InputLabel for="total_ht" value="Total HT (€)" />
+                        <!-- Actual Delivery Date (only show if status is delivered) -->
+                        <div v-if="form.status === 'delivered'">
+                            <InputLabel for="actual_delivery_date" value="Actual Delivery Date" />
                             <TextInput
-                                id="total_ht"
-                                v-model="form.total_ht"
-                                type="number"
-                                step="0.01"
-                                min="0"
+                                id="actual_delivery_date"
+                                v-model="form.actual_delivery_date"
+                                type="date"
                                 class="mt-1 block w-full"
-                                placeholder="0.00"
                             />
-                            <InputError class="mt-2" :message="form.errors.total_ht" />
-                        </div>
-
-                        <!-- Total TVA -->
-                        <div>
-                            <InputLabel for="total_tva" value="Total TVA (€)" />
-                            <TextInput
-                                id="total_tva"
-                                v-model="form.total_tva"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                class="mt-1 block w-full"
-                                placeholder="0.00"
-                            />
-                            <InputError class="mt-2" :message="form.errors.total_tva" />
-                        </div>
-
-                        <!-- Total TTC -->
-                        <div>
-                            <InputLabel for="total_ttc" value="Total TTC (€)" />
-                            <TextInput
-                                id="total_ttc"
-                                v-model="form.total_ttc"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                class="mt-1 block w-full"
-                                placeholder="0.00"
-                            />
-                            <InputError class="mt-2" :message="form.errors.total_ttc" />
+                            <InputError class="mt-2" :message="form.errors.actual_delivery_date" />
                         </div>
 
                         <!-- Notes -->
@@ -247,7 +364,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
@@ -265,27 +382,180 @@ const props = defineProps({
     priorityOptions: Object,
 })
 
-// Form data
+// Helper function to format date for input[type="date"]
+const formatDateForInput = (dateString) => {
+    if (!dateString) return ''
+    
+    try {
+        // Handle different date formats
+        const date = new Date(dateString)
+        if (isNaN(date.getTime())) return ''
+        
+        // Return in YYYY-MM-DD format for date inputs
+        return date.toISOString().split('T')[0]
+    } catch (error) {
+        console.warn('Error formatting date:', dateString, error)
+        return ''
+    }
+}
+
+// Form data - initialize with existing order data
 const form = useForm({
-    type: props.order.type,
-    status: props.order.status,
-    supplier_id: props.order.supplier_id,
-    priority: props.order.priority,
-    order_date: props.order.order_date,
-    expected_delivery_date: props.order.expected_delivery_date,
-    total_ht: props.order.total_ht,
-    total_tva: props.order.total_tva,
-    total_ttc: props.order.total_ttc,
-    notes: props.order.notes,
+    type: props.order.type || '',
+    status: props.order.status || '',
+    supplier_id: props.order.supplier_id || '',
+    priority: props.order.priority || '',
+    order_date: formatDateForInput(props.order.order_date || props.order.ordered_at || props.order.created_at),
+    expected_delivery_date: formatDateForInput(props.order.expected_delivery_date || props.order.expected_delivery || props.order.delivery_date),
+    actual_delivery_date: formatDateForInput(props.order.actual_delivery_date || props.order.delivered_at || props.order.actual_delivery),
+    notes: props.order.notes || '',
+    devices: [], // Will be populated from order devices
+    total_ht: parseFloat(props.order.total_ht || 0),
+    total_tva: parseFloat(props.order.total_tva || 0),
+    total_ttc: parseFloat(props.order.total_ttc || 0),
 })
 
 // Supplier autocomplete
-const supplierQuery = ref(props.order.supplier?.name || '')
+const supplierQuery = ref('')
 const supplierResults = ref([])
-const selectedSupplier = ref(props.order.supplier || null)
+const selectedSupplier = ref(null)
 const showSupplierDropdown = ref(false)
 const supplierLoading = ref(false)
 let searchTimeout = null
+
+// Device autocomplete
+const deviceQuery = ref('')
+const deviceResults = ref([])
+const selectedDevices = ref([])
+const showDeviceDropdown = ref(false)
+const deviceLoading = ref(false)
+let deviceSearchTimeout = null
+
+// Initialize data from existing order
+const initializeData = () => {
+    // Set selected supplier
+    if (props.order.supplier) {
+        selectedSupplier.value = props.order.supplier
+        supplierQuery.value = props.order.supplier.name
+    }
+
+    // Set selected devices
+    if (props.order.devices && props.order.devices.length > 0) {
+        selectedDevices.value = props.order.devices.map(orderDevice => {
+            // Handle different possible data structures
+            const device = orderDevice.device || orderDevice
+            
+            if (!device) {
+                console.warn('Device data is missing for order device:', orderDevice)
+                return null
+            }
+
+            // Try multiple property names for quantity
+            const quantity = orderDevice.qty_ordered || 
+                           orderDevice.quantity || 
+                           orderDevice.pivot?.qty_ordered || 
+                           orderDevice.pivot?.quantity || 
+                           1
+
+            // Try multiple property names for price
+            const price = orderDevice.ht_price || 
+                         orderDevice.price || 
+                         orderDevice.unit_price ||
+                         orderDevice.pivot?.ht_price || 
+                         orderDevice.pivot?.price || 
+                         orderDevice.pivot?.unit_price ||
+                         device.ht_price ||
+                         device.price || 
+                         device.unit_price ||
+                         0
+
+            // Try multiple property names for tax rate
+            const taxRate = orderDevice.tva_rate || 
+                           orderDevice.tax_rate || 
+                           orderDevice.pivot?.tva_rate || 
+                           orderDevice.pivot?.tax_rate ||
+                           20
+
+            const deviceData = {
+                id: device.id,
+                brand: device.brand || '',
+                model: device.model || '',
+                category: device.category || '',
+                label: device.label || `${device.brand || 'N/A'} - ${device.model || 'N/A'}`,
+                stock_qty: Number(device.stock_qty || 0),
+                is_low_stock: Boolean(device.is_low_stock || false),
+                is_out_of_stock: Boolean(device.is_out_of_stock || false),
+                qty_ordered: Number(quantity),
+                ht_price: Number(price),
+                tva_rate: Number(taxRate),
+                total_ht: 0, // Will be calculated
+                notes: orderDevice.notes || orderDevice.pivot?.notes || '',
+            }
+
+            // Calculate total_ht
+            deviceData.total_ht = deviceData.ht_price * deviceData.qty_ordered
+
+            console.log('Processed device:', {
+                original: orderDevice,
+                processed: deviceData
+            })
+
+            return deviceData
+        }).filter(device => device !== null) // Remove any null entries
+    }
+
+    // Debug: Log the structure to understand the data format
+    console.log('Order data structure:', props.order)
+    console.log('Date fields:', {
+        order_date: props.order.order_date,
+        ordered_at: props.order.ordered_at,
+        expected_delivery_date: props.order.expected_delivery_date,
+        expected_delivery: props.order.expected_delivery,
+        delivery_date: props.order.delivery_date,
+        actual_delivery_date: props.order.actual_delivery_date,
+        delivered_at: props.order.delivered_at,
+        created_at: props.order.created_at
+    })
+    if (props.order.devices && props.order.devices.length > 0) {
+        console.log('First device structure:', props.order.devices[0])
+        console.log('Processed devices:', selectedDevices.value)
+    }
+}
+
+// Computed order totals
+const orderTotals = computed(() => {
+    const totals = selectedDevices.value.reduce((acc, device) => {
+        const htTotal = (device.ht_price || 0) * (device.qty_ordered || 0)
+        const tvaAmount = htTotal * ((device.tva_rate || 0) / 100)
+        const ttcTotal = htTotal + tvaAmount
+
+        acc.total_ht += htTotal
+        acc.total_tva += tvaAmount
+        acc.total_ttc += ttcTotal
+
+        return acc
+    }, { total_ht: 0, total_tva: 0, total_ttc: 0 })
+
+    return totals
+})
+
+// Watch order totals and update form
+watch(orderTotals, (newTotals) => {
+    form.total_ht = newTotals.total_ht.toFixed(2)
+    form.total_tva = newTotals.total_tva.toFixed(2)
+    form.total_ttc = newTotals.total_ttc.toFixed(2)
+}, { deep: true })
+
+// Watch selected devices and update form
+watch(selectedDevices, (newDevices) => {
+    form.devices = newDevices.map(device => ({
+        device_id: device.id,
+        qty_ordered: device.qty_ordered || 1,
+        ht_price: device.ht_price || 0,
+        tva_rate: device.tva_rate || 20,
+        notes: device.notes || '',
+    }))
+}, { deep: true })
 
 // Search suppliers function
 const searchSuppliers = () => {
@@ -314,37 +584,145 @@ const searchSuppliers = () => {
     }, 300)
 }
 
+// Add device to order
+const addDevice = (device) => {
+    const orderDevice = {
+        id: device?.id ?? null,
+        brand: device?.brand ?? '',
+        model: device?.model ?? '',
+        category: device?.category ?? '',
+        label: device?.label ?? `${device?.brand ?? 'N/A'} - ${device?.model ?? 'N/A'}`,
+        stock_qty: Number(device?.stock_qty ?? 0) || 0,
+        is_low_stock: Boolean(device?.is_low_stock ?? false),
+        is_out_of_stock: Boolean(device?.is_out_of_stock ?? false),
+        qty_ordered: Number(device?.qty_ordered ?? 1) || 1,
+        ht_price: Number(device?.ht_price ?? device?.price ?? 0) || 0,
+        tva_rate: Number(device?.tva_rate ?? 20) || 20,
+        total_ht: Number(device?.total_ht ?? 0) || 0,
+        notes: device?.notes ?? '',
+    }
+
+    selectedDevices.value.push(orderDevice)
+    deviceQuery.value = ''
+    showDeviceDropdown.value = false
+    deviceResults.value = []
+}
+
+// Search devices function
+const searchDevices = () => {
+    if (deviceSearchTimeout) {
+        clearTimeout(deviceSearchTimeout)
+    }
+
+    if (!deviceQuery.value || String(deviceQuery.value).trim().length < 2) {
+        deviceResults.value = []
+        deviceLoading.value = false
+        return
+    }
+
+    deviceLoading.value = true
+
+    deviceSearchTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`/crm/api/devices/search?query=${encodeURIComponent(deviceQuery.value)}`)
+            const data = await response.json()
+            const filteredData = data.filter(device =>
+                !selectedDevices.value.some(selected => selected.id === device.id)
+            )
+            deviceResults.value = filteredData
+        } catch (error) {
+            console.error('Error searching devices:', error)
+            deviceResults.value = []
+        } finally {
+            deviceLoading.value = false
+        }
+    }, 300)
+}
+
 // Select supplier
 const selectSupplier = (supplier) => {
+    // If changing supplier, confirm with user
+    if (selectedSupplier.value && selectedSupplier.value.id !== supplier.id && selectedDevices.value.length > 0) {
+        if (!confirm('Changing the supplier will remove all selected devices. Continue?')) {
+            return
+        }
+        selectedDevices.value = []
+    }
+
     selectedSupplier.value = supplier
     supplierQuery.value = supplier.name
     form.supplier_id = supplier.id
     showSupplierDropdown.value = false
     supplierResults.value = []
+    deviceQuery.value = ''
 }
 
 // Clear supplier selection
 const clearSupplier = () => {
+    if (selectedDevices.value.length > 0) {
+        if (!confirm('Clearing the supplier will remove all selected devices. Continue?')) {
+            return
+        }
+    }
+
     selectedSupplier.value = null
     supplierQuery.value = ''
     form.supplier_id = ''
     supplierResults.value = []
+    selectedDevices.value = []
+    deviceQuery.value = ''
+}
+
+// Remove device from order
+const removeDevice = (index) => {
+    selectedDevices.value.splice(index, 1)
+}
+
+// Calculate device total
+const calculateDeviceTotal = (index) => {
+    const device = selectedDevices.value[index]
+    device.total_ht = (device.ht_price || 0) * (device.qty_ordered || 0)
+}
+
+// Format currency
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+    }).format(amount || 0)
 }
 
 // Handle clicks outside dropdown
 const handleClickOutside = (event) => {
     if (!event.target.closest('.relative')) {
         showSupplierDropdown.value = false
+        showDeviceDropdown.value = false
     }
 }
 
 // Submit form
 const submit = () => {
+    const currentTotals = orderTotals.value
+    
+    form.total_ht = parseFloat(currentTotals.total_ht.toFixed(2))
+    form.total_tva = parseFloat(currentTotals.total_tva.toFixed(2))
+    form.total_ttc = parseFloat(currentTotals.total_ttc.toFixed(2))
+    form.devices = selectedDevices.value.map(device => ({
+        device_id: device.id,
+        qty_ordered: device.qty_ordered || 1,
+        ht_price: device.ht_price || 0,
+        tva_rate: device.tva_rate || 20,
+        notes: device.notes || '',
+    }))
+    
+    console.log('Form update data:', form.data())
     form.put(route('crm.orders.update', props.order.id))
 }
 
 // Lifecycle
 onMounted(() => {
+    initializeData()
     document.addEventListener('click', handleClickOutside)
 })
 
@@ -352,6 +730,9 @@ onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside)
     if (searchTimeout) {
         clearTimeout(searchTimeout)
+    }
+    if (deviceSearchTimeout) {
+        clearTimeout(deviceSearchTimeout)
     }
 })
 </script>

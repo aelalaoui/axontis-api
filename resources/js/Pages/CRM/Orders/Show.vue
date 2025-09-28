@@ -163,20 +163,114 @@
                                 :key="device.id"
                                 class="bg-gray-800 rounded-lg p-4 border border-gray-700"
                             >
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h4 class="text-white font-medium">{{ device.name }}</h4>
-                                        <p class="text-gray-400 text-sm">{{ device.brand }} - {{ device.model }}</p>
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3 mb-3">
+                                            <div>
+                                                <h4 class="text-white font-medium">{{ device.brand || 'N/A' }} - {{ device.model || 'N/A' }}</h4>
+                                                <p class="text-gray-400 text-sm">{{ device.category || 'N/A' }}</p>
+                                            </div>
+                                            <span :class="getDeviceStatusClass(device.pivot?.status)" class="px-2 py-1 rounded-full text-xs font-medium">
+                                                {{ getDeviceStatusLabel(device.pivot?.status) }}
+                                            </span>
+                                        </div>
+                                        
+                                        <!-- Device Details Grid -->
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                            <div>
+                                                <span class="text-gray-400">Quantity</span>
+                                                <p class="text-white font-medium">{{ device.pivot?.qty_ordered || 0 }}</p>
+                                                <p v-if="device.pivot?.qty_received > 0" class="text-green-400 text-xs">
+                                                    Received: {{ device.pivot.qty_received }}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-400">Unit Price HT</span>
+                                                <p class="text-white font-medium">{{ formatCurrency(device.pivot?.ht_price || 0) }}</p>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-400">TVA Rate</span>
+                                                <p class="text-white font-medium">{{ device.pivot?.tva_rate || 0 }}%</p>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-400">Unit Price TTC</span>
+                                                <p class="text-white font-medium">{{ formatCurrency(device.pivot?.ttc_price || 0) }}</p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Totals Row -->
+                                        <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-700">
+                                            <div class="flex space-x-6 text-sm">
+                                                <div>
+                                                    <span class="text-gray-400">Total HT: </span>
+                                                    <span class="text-white font-medium">
+                                                        {{ formatCurrency((device.pivot?.ht_price || 0) * (device.pivot?.qty_ordered || 0)) }}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-gray-400">Total TVA: </span>
+                                                    <span class="text-white font-medium">
+                                                        {{ formatCurrency((device.pivot?.tva_price || 0) * (device.pivot?.qty_ordered || 0)) }}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-gray-400">Total TTC: </span>
+                                                    <span class="text-white font-bold">
+                                                        {{ formatCurrency((device.pivot?.ttc_price || 0) * (device.pivot?.qty_ordered || 0)) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Notes if present -->
+                                        <div v-if="device.pivot?.notes" class="mt-3 pt-3 border-t border-gray-700">
+                                            <div class="bg-gray-900 rounded-lg p-3">
+                                                <div class="flex items-start space-x-2">
+                                                    <i class="fas fa-sticky-note text-gray-400 text-sm mt-0.5"></i>
+                                                    <div>
+                                                        <span class="text-gray-400 text-sm">Notes:</span>
+                                                        <p class="text-gray-300 text-sm mt-1">{{ device.pivot.notes }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Expected Delivery if present -->
+                                        <div v-if="device.pivot?.expected_delivery_date" class="mt-2">
+                                            <span class="text-gray-400 text-sm">Expected Delivery: </span>
+                                            <span class="text-white text-sm">{{ formatDate(device.pivot.expected_delivery_date) }}</span>
+                                        </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-white font-medium">Qty: {{ device.pivot?.qty_ordered || 'N/A' }}</p>
-                                        <p class="text-gray-400 text-sm">{{ formatCurrency(device.pivot?.ttc_price) }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Order Summary -->
+                            <div class="bg-gray-900 rounded-lg p-4 border border-gray-600">
+                                <div class="flex justify-between items-center">
+                                    <div class="text-gray-400">
+                                        <span class="font-medium">{{ order.devices.length }}</span> device(s) • 
+                                        <span class="font-medium">{{ getTotalQuantity() }}</span> total items
+                                    </div>
+                                    <div class="flex space-x-6 text-sm">
+                                        <div>
+                                            <span class="text-gray-400">Order Total HT: </span>
+                                            <span class="text-white font-medium">{{ formatCurrency(order.total_ht) }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-400">Total TVA: </span>
+                                            <span class="text-white font-medium">{{ formatCurrency(order.total_tva) }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-400">Order Total TTC: </span>
+                                            <span class="text-white font-bold text-lg">{{ formatCurrency(order.total_ttc) }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div v-else class="text-gray-400">
-                            No devices associated with this order
+                        <div v-else class="text-center py-8">
+                            <i class="fas fa-microchip text-3xl text-gray-600 mb-3"></i>
+                            <p class="text-gray-400">No devices associated with this order</p>
                         </div>
                     </AxontisCard>
 
@@ -413,5 +507,35 @@ const deleteOrder = () => {
             router.visit(route('crm.orders.index'))
         }
     })
+}
+
+const getDeviceStatusClass = (status) => {
+    const classes = {
+        pending: 'bg-yellow-600 text-yellow-100',
+        ordered: 'bg-blue-600 text-blue-100',
+        partially_received: 'bg-orange-600 text-orange-100',
+        received: 'bg-green-600 text-green-100',
+        cancelled: 'bg-red-600 text-red-100',
+    }
+    return classes[status] || 'bg-gray-600 text-gray-100'
+}
+
+const getDeviceStatusLabel = (status) => {
+    const labels = {
+        pending: 'Pending',
+        ordered: 'Ordered',
+        partially_received: 'Partially Received', 
+        received: 'Received',
+        cancelled: 'Cancelled',
+    }
+    return labels[status] || status || 'Unknown'
+}
+
+// Calculate total quantity of all devices
+const getTotalQuantity = () => {
+    if (!props.order.devices) return 0
+    return props.order.devices.reduce((total, device) => {
+        return total + (device.pivot?.qty_ordered || 0)
+    }, 0)
 }
 </script>
