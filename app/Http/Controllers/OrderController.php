@@ -236,7 +236,7 @@ class OrderController extends Controller
         ]);
     }
 
-    /**
+/**
      * Update the specified order in storage.
      */
     public function update(Request $request, Order $order)
@@ -247,14 +247,52 @@ class OrderController extends Controller
             'supplier_id' => 'required|exists:suppliers,id',
             'order_date' => 'required|date',
             'expected_delivery_date' => 'nullable|date|after:order_date',
+            'actual_delivery_date' => 'nullable|date',
             'total_ht' => 'nullable|numeric|min:0',
             'total_tva' => 'nullable|numeric|min:0',
             'total_ttc' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
-            'priority' => 'required|string|in:low,normal,high',
+            'priority' => 'required|string|in:low,normal,high,urgent',
+            'devices' => 'nullable|array',
+            'devices.*.device_id' => 'required|exists:devices,id',
+            'devices.*.qty_ordered' => 'required|integer|min:1',
+            'devices.*.ht_price' => 'required|numeric|min:0',
+            'devices.*.tva_rate' => 'required|numeric|min:0|max:100',
+            'devices.*.notes' => 'nullable|string|max:500',
         ]);
 
-        $order->update($validated);
+        // Update order basic fields (exclude devices from the update)
+        $order->update(collect($validated)->except('devices')->toArray());
+
+        // Handle devices update if provided
+        if (isset($validated['devices'])) {
+            // Detach all existing devices
+            $order->devices()->detach();
+            
+            // Attach new devices
+            foreach ($validated['devices'] as $deviceData) {
+                $htPrice = $deviceData['ht_price'];
+                $qtyOrdered = $deviceData['qty_ordered'];
+                $tvaRate = $deviceData['tva_rate'];
+                
+                // Calculate TVA and TTC prices per unit (not total)
+                $tvaPrice = ($htPrice * $tvaRate) / 100;
+                $ttcPrice = $htPrice + $tvaPrice;
+
+                $order->devices()->attach($deviceData['device_id'], [
+                    'supplier_id' => $validated['supplier_id'],
+                    'qty_ordered' => $qtyOrdered,
+                    'ht_price' => $htPrice,
+                    'tva_rate' => $tvaRate,
+                    'tva_price' => $tvaPrice,
+                    'ttc_price' => $ttcPrice,
+                    'status' => 'pending',
+                    'notes' => $deviceData['notes'] ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
 
         return redirect()->route('crm.orders.show', $order)
             ->with('success', 'Order updated successfully.');
