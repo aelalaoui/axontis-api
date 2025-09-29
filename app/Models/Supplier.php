@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Supplier extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuid;
 
     protected $fillable = [
         'name',
@@ -36,12 +36,12 @@ class Supplier extends Model
     // Relationships
     public function orders(): HasMany
     {
-        return $this->hasMany(Order::class);
+        return $this->hasMany(Order::class, 'supplier_id', 'uuid');
     }
 
     public function orderDevices(): HasMany
     {
-        return $this->hasMany(OrderDevice::class);
+        return $this->hasMany(OrderDevice::class, 'supplier_id', 'uuid');
     }
 
     // Scopes

@@ -95,7 +95,7 @@
                     <!-- Address Information -->
                     <div class="border-t border-primary-500/20 pt-6">
                         <h3 class="text-lg font-medium text-white mb-4">Address Information</h3>
-                        
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Address -->
                             <div class="md:col-span-2">
@@ -150,7 +150,7 @@
                     <!-- Additional Information -->
                     <div class="border-t border-primary-500/20 pt-6">
                         <h3 class="text-lg font-medium text-white mb-4">Additional Information</h3>
-                        
+
                         <!-- Notes -->
                         <div>
                             <InputLabel for="notes" value="Notes" />
@@ -228,6 +228,6 @@ const form = useForm({
 
 // Methods
 const submit = () => {
-    form.put(route('crm.suppliers.update', props.supplier.id))
+    form.put(route('crm.suppliers.update', props.supplier.uuid))
 }
 </script>

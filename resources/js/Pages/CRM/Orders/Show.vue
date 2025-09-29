@@ -8,7 +8,7 @@
                     <p class="text-gray-400 mt-1">Created {{ formatDate(order.created_at) }}</p>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <Link :href="route('crm.orders.edit', order.id)" class="btn-axontis-secondary">
+                    <Link :href="route('crm.orders.edit', order.uuid)" class="btn-axontis-secondary">
                         <i class="fas fa-edit mr-2"></i>
                         Edit Order
                     </Link>
@@ -364,22 +364,6 @@
                 </button>
             </template>
         </ConfirmationModal>
-
-        <!-- Delete Confirmation Modal -->
-        <ConfirmationModal v-if="showDeleteModal" @close="showDeleteModal = false">
-            <template #title>Delete Order</template>
-            <template #content>
-                Are you sure you want to delete order <strong>{{ order.order_number }}</strong>? This action cannot be undone.
-            </template>
-            <template #footer>
-                <button @click="showDeleteModal = false" class="btn-axontis-secondary mr-3">
-                    Cancel
-                </button>
-                <button @click="deleteOrder" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
-                    Delete Order
-                </button>
-            </template>
-        </ConfirmationModal>
     </AxontisDashboardLayout>
 </template>
 
@@ -396,14 +380,12 @@ const props = defineProps({
 
 // Modal states
 const showCancelModal = ref(false)
-const showDeleteModal = ref(false)
 
 // Forms
 const approveForm = useForm({})
 const orderForm = useForm({})
 const completeForm = useForm({})
 const cancelForm = useForm({})
-const deleteForm = useForm({})
 
 // Status and priority styling
 const getStatusClass = (status) => {
@@ -434,6 +416,29 @@ const getArrivalStatusClass = (status) => {
         damaged: 'bg-red-600 text-red-100',
     }
     return classes[status] || 'bg-gray-600 text-gray-100'
+}
+
+// Device status functions
+const getDeviceStatusClass = (status) => {
+    const classes = {
+        pending: 'bg-yellow-600 text-yellow-100',
+        ordered: 'bg-blue-600 text-blue-100',
+        partially_received: 'bg-orange-600 text-orange-100',
+        received: 'bg-green-600 text-green-100',
+        cancelled: 'bg-red-600 text-red-100',
+    }
+    return classes[status] || 'bg-gray-600 text-gray-100'
+}
+
+const getDeviceStatusLabel = (status) => {
+    const labels = {
+        pending: 'Pending',
+        ordered: 'Ordered',
+        partially_received: 'Partially Received', 
+        received: 'Received',
+        cancelled: 'Cancelled',
+    }
+    return labels[status] || status || 'Unknown'
 }
 
 // Label functions
@@ -472,17 +477,25 @@ const formatCurrency = (amount) => {
     }).format(amount)
 }
 
+// Calculate total quantity of all devices
+const getTotalQuantity = () => {
+    if (!props.order.devices) return 0
+    return props.order.devices.reduce((total, device) => {
+        return total + (device.pivot?.qty_ordered || 0)
+    }, 0)
+}
+
 // Action functions
 const approveOrder = () => {
-    approveForm.patch(route('crm.orders.approve', props.order.id))
+    approveForm.patch(route('crm.orders.approve', props.order.uuid))
 }
 
 const markAsOrdered = () => {
-    orderForm.patch(route('crm.orders.mark-as-ordered', props.order.id))
+    orderForm.patch(route('crm.orders.mark-as-ordered', props.order.uuid))
 }
 
 const markAsCompleted = () => {
-    completeForm.patch(route('crm.orders.mark-as-completed', props.order.id))
+    completeForm.patch(route('crm.orders.mark-as-completed', props.order.uuid))
 }
 
 const confirmCancel = () => {
@@ -490,52 +503,10 @@ const confirmCancel = () => {
 }
 
 const cancelOrder = () => {
-    cancelForm.patch(route('crm.orders.cancel', props.order.id), {
+    cancelForm.patch(route('crm.orders.cancel', props.order.uuid), {
         onSuccess: () => {
             showCancelModal.value = false
         }
     })
-}
-
-const confirmDelete = () => {
-    showDeleteModal.value = true
-}
-
-const deleteOrder = () => {
-    deleteForm.delete(route('crm.orders.destroy', props.order.id), {
-        onSuccess: () => {
-            router.visit(route('crm.orders.index'))
-        }
-    })
-}
-
-const getDeviceStatusClass = (status) => {
-    const classes = {
-        pending: 'bg-yellow-600 text-yellow-100',
-        ordered: 'bg-blue-600 text-blue-100',
-        partially_received: 'bg-orange-600 text-orange-100',
-        received: 'bg-green-600 text-green-100',
-        cancelled: 'bg-red-600 text-red-100',
-    }
-    return classes[status] || 'bg-gray-600 text-gray-100'
-}
-
-const getDeviceStatusLabel = (status) => {
-    const labels = {
-        pending: 'Pending',
-        ordered: 'Ordered',
-        partially_received: 'Partially Received', 
-        received: 'Received',
-        cancelled: 'Cancelled',
-    }
-    return labels[status] || status || 'Unknown'
-}
-
-// Calculate total quantity of all devices
-const getTotalQuantity = () => {
-    if (!props.order.devices) return 0
-    return props.order.devices.reduce((total, device) => {
-        return total + (device.pivot?.qty_ordered || 0)
-    }, 0)
 }
 </script>

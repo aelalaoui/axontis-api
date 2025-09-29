@@ -4,11 +4,11 @@
             <!-- Header -->
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h1 class="text-2xl font-bold text-white">Edit Order #{{ order.id }}</h1>
+                    <h1 class="text-2xl font-bold text-white">Edit Order #{{ order.order_number }}</h1>
                     <p class="text-gray-400 mt-1">Modify the details of this order</p>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <Link :href="route('crm.orders.show', order.id)" class="btn-axontis-secondary">
+                    <Link :href="route('crm.orders.show', order.uuid)" class="btn-axontis-secondary">
                         <i class="fas fa-eye mr-2"></i>
                         View Order
                     </Link>
@@ -349,7 +349,7 @@
 
                     <!-- Form Actions -->
                     <div class="flex items-center justify-end space-x-4 mt-8 pt-6 border-t border-gray-700">
-                        <Link :href="route('crm.orders.show', order.id)" class="btn-axontis-secondary">
+                        <Link :href="route('crm.orders.show', order.uuid)" class="btn-axontis-secondary">
                             Cancel
                         </Link>
                         <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
@@ -627,7 +627,7 @@ const searchDevices = () => {
             const response = await fetch(`/crm/api/devices/search?query=${encodeURIComponent(deviceQuery.value)}`)
             const data = await response.json()
             const filteredData = data.filter(device =>
-                !selectedDevices.value.some(selected => selected.id === device.id)
+                !selectedDevices.value.some(selected => selected.uuid === device.uuid)
             )
             deviceResults.value = filteredData
         } catch (error) {
@@ -717,7 +717,7 @@ const submit = () => {
     }))
     
     console.log('Form update data:', form.data())
-    form.put(route('crm.orders.update', props.order.id))
+    form.put(route('crm.orders.update', props.order.uuid))
 }
 
 // Lifecycle

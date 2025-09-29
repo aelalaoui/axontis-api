@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Alert extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuid;
 
     protected $fillable = [
         'client_id',
@@ -128,11 +128,11 @@ class Alert extends Model
     }
 
     // Methods
-    public function resolve(User $user = null): bool
+    public function resolve($user = null): bool
     {
         $this->resolved = true;
         $this->resolved_at = now();
-        
+
         if ($user) {
             $this->resolved_by = $user->id;
         }

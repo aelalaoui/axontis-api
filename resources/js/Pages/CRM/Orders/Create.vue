@@ -503,7 +503,7 @@ const searchDevices = () => {
             const data = await response.json()
             // Filter out already selected devices
             const filteredData = data.filter(device =>
-                !selectedDevices.value.some(selected => selected.id === device.id)
+                !selectedDevices.value.some(selected => selected.uuid === device.uuid)
             )
             deviceResults.value = filteredData
         } catch (error) {

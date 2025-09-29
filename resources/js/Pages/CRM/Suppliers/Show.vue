@@ -22,7 +22,7 @@
                     </span>
 
                     <!-- Action Buttons -->
-                    <Link :href="route('crm.suppliers.edit', supplier.id)" class="btn-axontis-primary">
+                    <Link :href="route('crm.suppliers.edit', supplier.uuid)" class="btn-axontis-primary">
                         <i class="fas fa-edit mr-2"></i>
                         Edit Supplier
                     </Link>
@@ -164,7 +164,7 @@
                     <!-- Quick Actions -->
                     <AxontisCard title="Quick Actions">
                         <div class="space-y-3">
-                            <Link :href="route('crm.suppliers.edit', supplier.id)" class="btn-axontis-primary w-full">
+                            <Link :href="route('crm.suppliers.edit', supplier.uuid)" class="btn-axontis-primary w-full">
                                 <i class="fas fa-edit mr-2"></i>
                                 Edit Supplier
                             </Link>
@@ -277,7 +277,7 @@ const getOrderStatusClass = (status) => {
 }
 
 const toggleStatus = () => {
-    router.patch(route('crm.suppliers.toggle-status', props.supplier.id), {}, {
+    router.patch(route('crm.suppliers.toggle-status', props.supplier.uuid), {}, {
         preserveScroll: true,
     })
 }
@@ -287,7 +287,7 @@ const confirmDelete = () => {
 }
 
 const deleteSupplier = () => {
-    deleteForm.delete(route('crm.suppliers.destroy', props.supplier.id), {
+    deleteForm.delete(route('crm.suppliers.destroy', props.supplier.uuid), {
         onSuccess: () => {
             router.visit(route('crm.suppliers.index'))
         },

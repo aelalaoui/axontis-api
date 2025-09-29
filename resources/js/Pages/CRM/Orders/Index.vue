@@ -122,9 +122,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="order in orders.data" :key="order.id" class="border-b border-gray-800 hover:bg-gray-800/50">
+                            <tr v-for="order in orders.data" :key="order.uuid" class="border-b border-gray-800 hover:bg-gray-800/50">
                                 <td class="py-3 px-4">
-                                    <Link :href="route('crm.orders.show', order.id)" class="text-primary-400 hover:text-primary-300 font-medium">
+                                    <Link :href="route('crm.orders.show', order.uuid)" class="text-primary-400 hover:text-primary-300 font-medium">
                                         {{ order.order_number }}
                                     </Link>
                                 </td>
@@ -153,10 +153,10 @@
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="flex items-center space-x-2">
-                                        <Link :href="route('crm.orders.show', order.id)" class="text-blue-400 hover:text-blue-300" title="View">
+                                        <Link :href="route('crm.orders.show', order.uuid)" class="text-blue-400 hover:text-blue-300" title="View">
                                             <i class="fas fa-eye"></i>
                                         </Link>
-                                        <Link :href="route('crm.orders.edit', order.id)" class="text-yellow-400 hover:text-yellow-300" title="Edit">
+                                        <Link :href="route('crm.orders.edit', order.uuid)" class="text-yellow-400 hover:text-yellow-300" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </Link>
                                         <button @click="confirmDelete(order)" class="text-red-400 hover:text-red-300" title="Delete">
@@ -337,7 +337,7 @@ const confirmDelete = (order) => {
 }
 
 const deleteOrder = () => {
-    deleteForm.delete(route('crm.orders.destroy', orderToDelete.value.id), {
+    deleteForm.delete(route('crm.orders.destroy', orderToDelete.value.uuid), {
         onSuccess: () => {
             showDeleteModal.value = false
             orderToDelete.value = null

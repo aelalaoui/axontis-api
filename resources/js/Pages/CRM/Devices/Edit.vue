@@ -8,7 +8,7 @@
                     <p class="text-gray-400 mt-1">Update device information and stock levels</p>
                 </div>
                 <div class="flex space-x-3">
-                    <Link :href="route('crm.devices.show', device.id)" class="btn-secondary">
+                    <Link :href="route('crm.devices.show', device.uuid)" class="btn-secondary">
                         <i class="fas fa-eye mr-2"></i>
                         View Device
                     </Link>
@@ -193,7 +193,7 @@
                         <tbody>
                             <tr v-for="orderDevice in device.order_devices.slice(0, 5)" :key="orderDevice.id" class="bg-gray-900 border-b border-gray-800">
                                 <td class="px-4 py-3">
-                                    <Link :href="route('crm.orders.show', orderDevice.order.id)" class="text-primary-400 hover:text-primary-300">
+                                    <Link :href="route('crm.orders.show', orderDevice.order.uuid)" class="text-primary-400 hover:text-primary-300">
                                         {{ orderDevice.order.order_number }}
                                     </Link>
                                 </td>
@@ -244,6 +244,6 @@ const form = useForm({
 })
 
 const submit = () => {
-    form.patch(route('crm.devices.update', props.device.id))
+    form.patch(route('crm.devices.update', props.device.uuid))
 }
 </script>

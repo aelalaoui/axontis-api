@@ -102,7 +102,7 @@
                                 <div class="flex items-center justify-end gap-2">
                                     <!-- View Button -->
                                     <Link
-                                        :href="route('crm.suppliers.show', supplier.id)"
+                                        :href="route('crm.suppliers.show', supplier.uuid)"
                                         class="btn-axontis-icon text-primary-400 hover:text-primary-300"
                                         title="View Supplier"
                                     >
@@ -111,7 +111,7 @@
 
                                     <!-- Edit Button -->
                                     <Link
-                                        :href="route('crm.suppliers.edit', supplier.id)"
+                                        :href="route('crm.suppliers.edit', supplier.uuid)"
                                         class="btn-axontis-icon text-warning-400 hover:text-warning-300"
                                         title="Edit Supplier"
                                     >
@@ -289,7 +289,7 @@ const getSortIcon = (field) => {
 }
 
 const toggleStatus = (supplier) => {
-    router.patch(route('crm.suppliers.toggle-status', supplier.id), {}, {
+    router.patch(route('crm.suppliers.toggle-status', supplier.uuid), {}, {
         preserveScroll: true,
     })
 }
@@ -300,7 +300,7 @@ const confirmDelete = (supplier) => {
 }
 
 const deleteSupplier = () => {
-    deleteForm.delete(route('crm.suppliers.destroy', supplierToDelete.value.id), {
+    deleteForm.delete(route('crm.suppliers.destroy', supplierToDelete.value.uuid), {
         onSuccess: () => {
             showDeleteModal.value = false
             supplierToDelete.value = null

@@ -129,14 +129,14 @@
                                 <td class="px-6 py-4">
                                     <div class="flex items-center space-x-2">
                                         <Link
-                                            :href="route('crm.devices.show', device.id)"
+                                            :href="route('crm.devices.show', device.uuid)"
                                             class="text-primary-400 hover:text-primary-300"
                                             title="View"
                                         >
                                             <i class="fas fa-eye"></i>
                                         </Link>
                                         <Link
-                                            :href="route('crm.devices.edit', device.id)"
+                                            :href="route('crm.devices.edit', device.uuid)"
                                             class="text-yellow-400 hover:text-yellow-300"
                                             title="Edit"
                                         >
@@ -388,7 +388,7 @@ const closeStockModal = () => {
 }
 
 const updateStock = () => {
-    stockForm.patch(route('crm.devices.update-stock', selectedDevice.value.id), {
+    stockForm.patch(route('crm.devices.update-stock', selectedDevice.value.uuid), {
         onSuccess: () => {
             closeStockModal()
         },
@@ -407,7 +407,7 @@ const closeDeleteModal = () => {
 }
 
 const deleteDevice = () => {
-    deleteForm.delete(route('crm.devices.destroy', deviceToDelete.value.id), {
+    deleteForm.delete(route('crm.devices.destroy', deviceToDelete.value.uuid), {
         onSuccess: () => {
             closeDeleteModal()
         },
