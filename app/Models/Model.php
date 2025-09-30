@@ -9,6 +9,10 @@ class Model extends EloquentModel
 {
     use FromUuid;
 
+    protected $hidden = [
+        'id',
+    ];
+
     /**
      * The primary key for the model.
      *

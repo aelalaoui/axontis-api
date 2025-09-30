@@ -177,7 +177,7 @@ class DeviceController extends Controller
     /**
      * Search devices for autocomplete (API endpoint).
      */
-    public function search(Request $request)
+    public function searchDevices(Request $request)
     {
         // Accept both 'q' and 'query' parameters
         $search = $request->get('query', $request->get('q', ''));
@@ -192,10 +192,10 @@ class DeviceController extends Controller
                   ->orWhere('category', 'like', "%{$search}%");
         })
         ->limit(10)
-        ->get(['id', 'brand', 'model', 'category', 'stock_qty', 'min_stock_level'])
+        ->get(['uuid', 'brand', 'model', 'category', 'stock_qty', 'min_stock_level'])
         ->map(function ($device) {
             return [
-                'id' => $device->id,
+                'uuid' => $device->uuid,
                 'label' => $device->full_name,
                 'brand' => $device->brand,
                 'model' => $device->model,

@@ -46,17 +46,17 @@ class OrderDevice extends Model
     // Relationships
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'order_id', 'uuid');
     }
 
     public function device(): BelongsTo
     {
-        return $this->belongsTo(Device::class);
+        return $this->belongsTo(Device::class, 'device_id', 'uuid');
     }
 
     public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Supplier::class, 'supplier_id', 'uuid');
     }
 
     // Accessors

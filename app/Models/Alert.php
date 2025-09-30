@@ -128,7 +128,7 @@ class Alert extends Model
     }
 
     // Methods
-    public function resolve($user = null): bool
+    public function resolve(User $user = null): bool
     {
         $this->resolved = true;
         $this->resolved_at = now();

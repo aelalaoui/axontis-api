@@ -87,7 +87,7 @@
                                     <!-- Results -->
                                     <div
                                         v-for="supplier in supplierResults"
-                                        :key="supplier.id"
+                                        :key="supplier.uuid"
                                         @click="selectSupplier(supplier)"
                                         class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
                                     >
@@ -151,7 +151,7 @@
                                     <!-- Results -->
                                     <div
                                         v-for="device in deviceResults"
-                                        :key="device.id"
+                                        :key="device.uuid"
                                         @click="addDevice(device)"
                                         class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
                                     >
@@ -197,7 +197,7 @@
                                         </tr>
                                     </thead>
                                     <tbody class="bg-gray-900 divide-y divide-gray-700">
-                                        <tr v-for="(device, index) in selectedDevices" :key="device.id" class="hover:bg-gray-800">
+                                        <tr v-for="(device, index) in selectedDevices" :key="device.uuid" class="hover:bg-gray-800">
                                             <td class="px-4 py-3">
                                                 <div>
                                                     <div class="font-medium text-white">{{ device.brand || 'N/A' }} - {{ device.model || 'N/A' }}</div>
@@ -433,10 +433,20 @@ let deviceSearchTimeout = null
 
 // Initialize data from existing order
 const initializeData = () => {
+    console.log('Full order object:', props.order)
+    console.log('Supplier:', props.order.supplier)
+    console.log('Devices:', props.order.devices)
     // Set selected supplier
     if (props.order.supplier) {
-        selectedSupplier.value = props.order.supplier
+        selectedSupplier.value = {
+            uuid: props.order.supplier.uuid,
+            id: props.order.supplier.uuid, // For compatibility
+            name: props.order.supplier.name,
+            code: props.order.supplier.code,
+            email: props.order.supplier.email,
+        }
         supplierQuery.value = props.order.supplier.name
+        form.supplier_id = props.order.supplier.uuid
     }
 
     // Set selected devices
@@ -477,7 +487,8 @@ const initializeData = () => {
                            20
 
             const deviceData = {
-                id: device.id,
+                id: device.uuid,
+                uuid: device.uuid,
                 brand: device.brand || '',
                 model: device.model || '',
                 category: device.category || '',
@@ -502,23 +513,6 @@ const initializeData = () => {
 
             return deviceData
         }).filter(device => device !== null) // Remove any null entries
-    }
-
-    // Debug: Log the structure to understand the data format
-    console.log('Order data structure:', props.order)
-    console.log('Date fields:', {
-        order_date: props.order.order_date,
-        ordered_at: props.order.ordered_at,
-        expected_delivery_date: props.order.expected_delivery_date,
-        expected_delivery: props.order.expected_delivery,
-        delivery_date: props.order.delivery_date,
-        actual_delivery_date: props.order.actual_delivery_date,
-        delivered_at: props.order.delivered_at,
-        created_at: props.order.created_at
-    })
-    if (props.order.devices && props.order.devices.length > 0) {
-        console.log('First device structure:', props.order.devices[0])
-        console.log('Processed devices:', selectedDevices.value)
     }
 }
 
@@ -549,7 +543,7 @@ watch(orderTotals, (newTotals) => {
 // Watch selected devices and update form
 watch(selectedDevices, (newDevices) => {
     form.devices = newDevices.map(device => ({
-        device_id: device.id,
+        device_id: device.uuid,
         qty_ordered: device.qty_ordered || 1,
         ht_price: device.ht_price || 0,
         tva_rate: device.tva_rate || 20,
@@ -587,7 +581,8 @@ const searchSuppliers = () => {
 // Add device to order
 const addDevice = (device) => {
     const orderDevice = {
-        id: device?.id ?? null,
+        id: device?.uuid ?? null,
+        uuid: device?.uuid ?? null,
         brand: device?.brand ?? '',
         model: device?.model ?? '',
         category: device?.category ?? '',
@@ -642,7 +637,7 @@ const searchDevices = () => {
 // Select supplier
 const selectSupplier = (supplier) => {
     // If changing supplier, confirm with user
-    if (selectedSupplier.value && selectedSupplier.value.id !== supplier.id && selectedDevices.value.length > 0) {
+    if (selectedSupplier.value && selectedSupplier.value.uuid !== supplier.uuid && selectedDevices.value.length > 0) {
         if (!confirm('Changing the supplier will remove all selected devices. Continue?')) {
             return
         }
@@ -651,7 +646,7 @@ const selectSupplier = (supplier) => {
 
     selectedSupplier.value = supplier
     supplierQuery.value = supplier.name
-    form.supplier_id = supplier.id
+    form.supplier_id = supplier.uuid
     showSupplierDropdown.value = false
     supplierResults.value = []
     deviceQuery.value = ''
@@ -709,7 +704,7 @@ const submit = () => {
     form.total_tva = parseFloat(currentTotals.total_tva.toFixed(2))
     form.total_ttc = parseFloat(currentTotals.total_ttc.toFixed(2))
     form.devices = selectedDevices.value.map(device => ({
-        device_id: device.id,
+        device_id: device.uuid,
         qty_ordered: device.qty_ordered || 1,
         ht_price: device.ht_price || 0,
         tva_rate: device.tva_rate || 20,

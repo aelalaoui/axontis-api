@@ -150,6 +150,29 @@ class SupplierController extends Controller
     }
 
     /**
+     * Search suppliers for autocomplete.
+     */
+    public function searchSuppliers(Request $request)
+    {
+        $query = $request->get('query', $request->get('q', ''));
+    
+        if (empty($query) || strlen(trim($query)) < 2) {
+            return response()->json([]);
+        }
+        
+        $suppliers = Supplier::active()
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('code', 'like', "%{$query}%");
+            })
+            ->select('uuid', 'name', 'code', 'email')
+            ->limit(10)
+            ->get();
+
+        return response()->json($suppliers);
+    }
+
+    /**
      * Toggle supplier active status.
      */
     public function toggleStatus(Supplier $supplier)

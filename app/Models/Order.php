@@ -68,7 +68,7 @@ class Order extends Model
 
     public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Supplier::class, 'supplier_id', 'uuid');
     }
 
     public function quotationFile(): BelongsTo
@@ -97,7 +97,7 @@ class Order extends Model
 
     public function arrivals(): HasMany
     {
-        return $this->hasMany(Arrival::class);
+        return $this->hasMany(Arrival::class, 'order_id', 'uuid');
     }
 
     // Scopes
