@@ -61,9 +61,9 @@ Route::middleware([
             ->name('devices.update-stock');
 
         // API Routes for autocomplete
-        Route::get('api/suppliers/search', [App\Http\Controllers\OrderController::class, 'searchSuppliers'])
+        Route::get('api/suppliers/search', [App\Http\Controllers\SupplierController::class, 'searchSuppliers'])
             ->name('api.suppliers.search');
-        Route::get('api/devices/search', [App\Http\Controllers\DeviceController::class, 'search'])
+        Route::get('api/devices/search', [App\Http\Controllers\DeviceController::class, 'searchDevices'])
             ->name('api.devices.search');
     });
 });

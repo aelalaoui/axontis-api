@@ -81,7 +81,7 @@
                                     <!-- Results -->
                                     <div
                                         v-for="supplier in supplierResults"
-                                        :key="supplier.id"
+                                        :key="supplier.uuid"
                                         @click="selectSupplier(supplier)"
                                         class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
                                     >
@@ -145,7 +145,7 @@
                                     <!-- Results -->
                                     <div
                                         v-for="device in deviceResults"
-                                        :key="device.id"
+                                        :key="device.uuid"
                                         @click="addDevice(device)"
                                         class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
                                     >
@@ -191,7 +191,7 @@
                                         </tr>
                                     </thead>
                                     <tbody class="bg-gray-900 divide-y divide-gray-700">
-                                        <tr v-for="(device, index) in selectedDevices" :key="device.id" class="hover:bg-gray-800">
+                                        <tr v-for="(device, index) in selectedDevices" :key="device.uuid" class="hover:bg-gray-800">
                                             <td class="px-4 py-3">
                                                 <div>
                                                     <div class="font-medium text-white">{{ device.brand || 'N/A' }} - {{ device.model || 'N/A' }}</div>
@@ -421,7 +421,7 @@ watch(orderTotals, (newTotals) => {
 // Watch selected devices and update form
 watch(selectedDevices, (newDevices) => {
     form.devices = newDevices.map(device => ({
-        device_id: device.id,
+        device_id: device.uuid,
         qty_ordered: device.qty_ordered || 1,
         ht_price: device.ht_price || 0,
         tva_rate: device.tva_rate || 20,
@@ -459,7 +459,8 @@ const searchSuppliers = () => {
 // Add device to order
 const addDevice = (device) => {
     const orderDevice = {
-        id: device?.id ?? null,
+        id: device?.uuid ?? null,
+        uuid: device?.uuid ?? null,
         brand: device?.brand ?? '',
         model: device?.model ?? '',
         category: device?.category ?? '',
@@ -503,7 +504,7 @@ const searchDevices = () => {
             const data = await response.json()
             // Filter out already selected devices
             const filteredData = data.filter(device =>
-                !selectedDevices.value.some(selected => selected.id === device.id)
+                !selectedDevices.value.some(selected => selected.uuid === device.uuid)
             )
             deviceResults.value = filteredData
         } catch (error) {
@@ -517,9 +518,11 @@ const searchDevices = () => {
 
 // Select supplier
 const selectSupplier = (supplier) => {
+    console.log('Selecting supplier:', supplier)
     selectedSupplier.value = supplier
     supplierQuery.value = supplier.name
-    form.supplier_id = supplier.id
+    form.supplier_id = supplier.uuid
+    console.log('Form supplier_id set to:', form.supplier_id)
     showSupplierDropdown.value = false
     supplierResults.value = []
 
@@ -570,6 +573,10 @@ const handleClickOutside = (event) => {
 
 // Submit form
 const submit = () => {
+    console.log('Before submit - supplier_id:', form.supplier_id)
+    console.log('Before submit - selectedSupplier:', selectedSupplier.value)
+    form.supplier_id = selectedSupplier.value.uuid
+
     // Mettre à jour toutes les données du form
     const currentTotals = orderTotals.value
     
@@ -577,7 +584,7 @@ const submit = () => {
     form.total_tva = parseFloat(currentTotals.total_tva.toFixed(2))
     form.total_ttc = parseFloat(currentTotals.total_ttc.toFixed(2))
     form.devices = selectedDevices.value.map(device => ({
-        device_id: device.id,
+        device_id: device.uuid,
         qty_ordered: device.qty_ordered || 1,
         ht_price: device.ht_price || 0,
         tva_rate: device.tva_rate || 20,

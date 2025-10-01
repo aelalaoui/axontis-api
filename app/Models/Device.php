@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Device extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuid;
 
     protected $fillable = [
         'brand',
@@ -33,7 +33,7 @@ class Device extends Model
     // Relationships
     public function arrivals(): HasMany
     {
-        return $this->hasMany(Arrival::class);
+        return $this->hasMany(Arrival::class, 'device_id', 'uuid');
     }
 
     public function orders(): BelongsToMany
@@ -57,7 +57,7 @@ class Device extends Model
 
     public function orderDevices(): HasMany
     {
-        return $this->hasMany(OrderDevice::class);
+        return $this->hasMany(OrderDevice::class, 'device_id', 'uuid');
     }
 
     public function tasks(): BelongsToMany

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +11,7 @@ use Carbon\Carbon;
 
 class Order extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuid;
 
     protected $fillable = [
         'order_number',
@@ -68,7 +68,7 @@ class Order extends Model
 
     public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Supplier::class, 'supplier_id', 'uuid');
     }
 
     public function quotationFile(): BelongsTo
@@ -97,7 +97,7 @@ class Order extends Model
 
     public function arrivals(): HasMany
     {
-        return $this->hasMany(Arrival::class);
+        return $this->hasMany(Arrival::class, 'order_id', 'uuid');
     }
 
     // Scopes

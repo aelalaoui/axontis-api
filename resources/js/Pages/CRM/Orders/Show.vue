@@ -8,7 +8,7 @@
                     <p class="text-gray-400 mt-1">Created {{ formatDate(order.created_at) }}</p>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <Link :href="route('crm.orders.edit', order.id)" class="btn-axontis-secondary">
+                    <Link :href="route('crm.orders.edit', order.uuid)" class="btn-axontis-secondary">
                         <i class="fas fa-edit mr-2"></i>
                         Edit Order
                     </Link>
@@ -80,6 +80,7 @@
                             Cancel Order
                         </button>
                         <button
+                            v-if="order.status === 'cancelled'"
                             @click="confirmDelete"
                             class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm"
                         >
@@ -350,34 +351,54 @@
         </div>
 
         <!-- Cancel Confirmation Modal -->
-        <ConfirmationModal v-if="showCancelModal" @close="showCancelModal = false">
-            <template #title>Cancel Order</template>
+        <ConfirmationModal :show="showCancelModal" @close="showCancelModal = false">
+            <template #title>
+                Cancel Order
+            </template>
+
             <template #content>
                 Are you sure you want to cancel order <strong>{{ order.order_number }}</strong>? This action cannot be undone.
             </template>
+
             <template #footer>
-                <button @click="showCancelModal = false" class="btn-axontis-secondary mr-3">
+                <SecondaryButton @click="showCancelModal = false">
                     Cancel
-                </button>
-                <button @click="cancelOrder" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+                </SecondaryButton>
+
+                <DangerButton
+                    class="ml-3"
+                    :class="{ 'opacity-25': cancelForm.processing }"
+                    :disabled="cancelForm.processing"
+                    @click="cancelOrder"
+                >
                     Cancel Order
-                </button>
+                </DangerButton>
             </template>
         </ConfirmationModal>
 
         <!-- Delete Confirmation Modal -->
-        <ConfirmationModal v-if="showDeleteModal" @close="showDeleteModal = false">
-            <template #title>Delete Order</template>
-            <template #content>
-                Are you sure you want to delete order <strong>{{ order.order_number }}</strong>? This action cannot be undone.
+        <ConfirmationModal :show="showDeleteModal" @close="showDeleteModal = false">
+            <template #title>
+                Delete Order
             </template>
+
+            <template #content>
+                Are you sure you want to delete order <strong>{{ order.order_number }}</strong>? This action cannot be undone and will permanently remove all associated data.
+            </template>
+
             <template #footer>
-                <button @click="showDeleteModal = false" class="btn-axontis-secondary mr-3">
+                <SecondaryButton @click="showDeleteModal = false">
                     Cancel
-                </button>
-                <button @click="deleteOrder" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+                </SecondaryButton>
+
+                <DangerButton
+                    class="ml-3"
+                    :class="{ 'opacity-25': deleteForm.processing }"
+                    :disabled="deleteForm.processing"
+                    @click="deleteOrder"
+                >
                     Delete Order
-                </button>
+                </DangerButton>
             </template>
         </ConfirmationModal>
     </AxontisDashboardLayout>
@@ -389,6 +410,8 @@ import { Link, useForm, router } from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 import ConfirmationModal from '@/Components/ConfirmationModal.vue'
+import SecondaryButton from '@/Components/SecondaryButton.vue'
+import DangerButton from '@/Components/DangerButton.vue'
 
 const props = defineProps({
     order: Object,
@@ -436,6 +459,29 @@ const getArrivalStatusClass = (status) => {
     return classes[status] || 'bg-gray-600 text-gray-100'
 }
 
+// Device status functions
+const getDeviceStatusClass = (status) => {
+    const classes = {
+        pending: 'bg-yellow-600 text-yellow-100',
+        ordered: 'bg-blue-600 text-blue-100',
+        partially_received: 'bg-orange-600 text-orange-100',
+        received: 'bg-green-600 text-green-100',
+        cancelled: 'bg-red-600 text-red-100',
+    }
+    return classes[status] || 'bg-gray-600 text-gray-100'
+}
+
+const getDeviceStatusLabel = (status) => {
+    const labels = {
+        pending: 'Pending',
+        ordered: 'Ordered',
+        partially_received: 'Partially Received', 
+        received: 'Received',
+        cancelled: 'Cancelled',
+    }
+    return labels[status] || status || 'Unknown'
+}
+
 // Label functions
 const getStatusLabel = (status) => {
     const labels = {
@@ -472,17 +518,25 @@ const formatCurrency = (amount) => {
     }).format(amount)
 }
 
+// Calculate total quantity of all devices
+const getTotalQuantity = () => {
+    if (!props.order.devices) return 0
+    return props.order.devices.reduce((total, device) => {
+        return total + (device.pivot?.qty_ordered || 0)
+    }, 0)
+}
+
 // Action functions
 const approveOrder = () => {
-    approveForm.patch(route('crm.orders.approve', props.order.id))
+    approveForm.patch(route('crm.orders.approve', props.order.uuid))
 }
 
 const markAsOrdered = () => {
-    orderForm.patch(route('crm.orders.mark-as-ordered', props.order.id))
+    orderForm.patch(route('crm.orders.mark-as-ordered', props.order.uuid))
 }
 
 const markAsCompleted = () => {
-    completeForm.patch(route('crm.orders.mark-as-completed', props.order.id))
+    completeForm.patch(route('crm.orders.mark-as-completed', props.order.uuid))
 }
 
 const confirmCancel = () => {
@@ -490,7 +544,7 @@ const confirmCancel = () => {
 }
 
 const cancelOrder = () => {
-    cancelForm.patch(route('crm.orders.cancel', props.order.id), {
+    cancelForm.patch(route('crm.orders.cancel', props.order.uuid), {
         onSuccess: () => {
             showCancelModal.value = false
         }
@@ -502,40 +556,10 @@ const confirmDelete = () => {
 }
 
 const deleteOrder = () => {
-    deleteForm.delete(route('crm.orders.destroy', props.order.id), {
+    deleteForm.delete(route('crm.orders.destroy', props.order.uuid), {
         onSuccess: () => {
-            router.visit(route('crm.orders.index'))
+            showDeleteModal.value = false
         }
     })
-}
-
-const getDeviceStatusClass = (status) => {
-    const classes = {
-        pending: 'bg-yellow-600 text-yellow-100',
-        ordered: 'bg-blue-600 text-blue-100',
-        partially_received: 'bg-orange-600 text-orange-100',
-        received: 'bg-green-600 text-green-100',
-        cancelled: 'bg-red-600 text-red-100',
-    }
-    return classes[status] || 'bg-gray-600 text-gray-100'
-}
-
-const getDeviceStatusLabel = (status) => {
-    const labels = {
-        pending: 'Pending',
-        ordered: 'Ordered',
-        partially_received: 'Partially Received', 
-        received: 'Received',
-        cancelled: 'Cancelled',
-    }
-    return labels[status] || status || 'Unknown'
-}
-
-// Calculate total quantity of all devices
-const getTotalQuantity = () => {
-    if (!props.order.devices) return 0
-    return props.order.devices.reduce((total, device) => {
-        return total + (device.pivot?.qty_ordered || 0)
-    }, 0)
 }
 </script>

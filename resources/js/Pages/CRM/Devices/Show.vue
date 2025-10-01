@@ -8,7 +8,7 @@
                     <p class="text-gray-400 mt-1">Device details and order history</p>
                 </div>
                 <div class="flex space-x-3">
-                    <Link :href="route('crm.devices.edit', device.id)" class="btn-axontis">
+                    <Link :href="route('crm.devices.edit', device.uuid)" class="btn-axontis">
                         <i class="fas fa-edit mr-2"></i>
                         Edit Device
                     </Link>
@@ -160,7 +160,7 @@
                         <tbody>
                             <tr v-for="orderDevice in device.order_devices" :key="orderDevice.id" class="bg-gray-900 border-b border-gray-800 hover:bg-gray-800">
                                 <td class="px-6 py-4">
-                                    <Link :href="route('crm.orders.show', orderDevice.order.id)" class="text-primary-400 hover:text-primary-300 font-medium">
+                                    <Link :href="route('crm.orders.show', orderDevice.order.uuid)" class="text-primary-400 hover:text-primary-300 font-medium">
                                         {{ orderDevice.order.order_number }}
                                     </Link>
                                 </td>
@@ -197,7 +197,7 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <Link
-                                        :href="route('crm.orders.show', orderDevice.order.id)"
+                                        :href="route('crm.orders.show', orderDevice.order.uuid)"
                                         class="text-primary-400 hover:text-primary-300"
                                         title="View Order"
                                     >
@@ -306,7 +306,7 @@ const closeStockModal = () => {
 }
 
 const updateStock = () => {
-    stockForm.patch(route('crm.devices.update-stock', props.device.id), {
+    stockForm.patch(route('crm.devices.update-stock', props.device.uuid), {
         onSuccess: () => {
             closeStockModal()
         },

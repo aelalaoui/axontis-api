@@ -79,17 +79,17 @@ class OrderController extends Controller
     public function create()
     {
         $suppliers = Supplier::active()
-            ->select('id', 'name', 'code')
+            ->select('uuid', 'name', 'code')
             ->orderBy('name')
             ->get();
 
-        $devices = Device::select('id', 'brand', 'model')
+        $devices = Device::select('uuid', 'brand', 'model')
             ->orderBy('brand')
             ->orderBy('model')
             ->get()
             ->map(function ($device) {
                 return [
-                    'id' => $device->id,
+                    'uuid' => $device->uuid,
                     'name' => $device->full_name, // Using the accessor for "brand - model"
                     'brand' => $device->brand,
                     'model' => $device->model,
@@ -124,16 +124,16 @@ class OrderController extends Controller
         $validated = $request->validate([
             'type' => 'required|string|in:locally,externally',
             'status' => 'required|string|in:draft,pending',
-            'supplier_id' => 'required|exists:suppliers,id',
+            'supplier_id' => 'required|exists:suppliers,uuid',
             'order_date' => 'required|date',
             'expected_delivery_date' => 'nullable|date|after:order_date',
             'total_ht' => 'nullable|numeric|min:0',
             'total_tva' => 'nullable|numeric|min:0',
             'total_ttc' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
-            'priority' => 'required|string|in:low,normal,high',
+            'priority' => 'required|string|in:low,normal,high,urgent',
             'devices' => 'nullable|array',
-            'devices.*.device_id' => 'required|exists:devices,id',
+            'devices.*.device_id' => 'required|exists:devices,uuid',
             'devices.*.qty_ordered' => 'required|integer|min:1',
             'devices.*.ht_price' => 'required|numeric|min:0',
             'devices.*.tva_rate' => 'required|numeric|min:0|max:100',
@@ -192,20 +192,28 @@ class OrderController extends Controller
      */
     public function edit(Order $order)
     {
-        $order->load(['supplier', 'devices']);
+        $order->load([
+            'supplier' => function ($query) {
+                $query->select('uuid', 'name', 'code', 'email');
+            },
+            'devices' => function ($query) {
+                $query->select('devices.uuid', 'devices.brand', 'devices.model', 'devices.category', 'devices.stock_qty');
+            }
+        ]);
 
         $suppliers = Supplier::active()
-            ->select('id', 'name', 'code')
+            ->select('uuid', 'name', 'code')
             ->orderBy('name')
             ->get();
 
-        $devices = Device::select('id', 'brand', 'model')
+        $devices = Device::select('uuid', 'brand', 'model')
             ->orderBy('brand')
             ->orderBy('model')
             ->get()
             ->map(function ($device) {
                 return [
-                    'id' => $device->id,
+                    'id' => $device->uuid,
+                    'uuid' => $device->uuid,
                     'name' => $device->full_name, // Using the accessor for "brand - model"
                     'brand' => $device->brand,
                     'model' => $device->model,
@@ -244,7 +252,7 @@ class OrderController extends Controller
         $validated = $request->validate([
             'type' => 'required|string|in:locally,externally',
             'status' => 'required|string|in:draft,pending,approved,ordered,completed,cancelled',
-            'supplier_id' => 'required|exists:suppliers,id',
+            'supplier_id' => 'required|exists:suppliers,uuid',
             'order_date' => 'required|date',
             'expected_delivery_date' => 'nullable|date|after:order_date',
             'actual_delivery_date' => 'nullable|date',
@@ -254,7 +262,7 @@ class OrderController extends Controller
             'notes' => 'nullable|string|max:1000',
             'priority' => 'required|string|in:low,normal,high,urgent',
             'devices' => 'nullable|array',
-            'devices.*.device_id' => 'required|exists:devices,id',
+            'devices.*.device_id' => 'required|exists:devices,uuid',
             'devices.*.qty_ordered' => 'required|integer|min:1',
             'devices.*.ht_price' => 'required|numeric|min:0',
             'devices.*.tva_rate' => 'required|numeric|min:0|max:100',
@@ -303,9 +311,12 @@ class OrderController extends Controller
      */
     public function destroy(Order $order)
     {
-        // Check if order has related arrivals or devices
-        if ($order->arrivals()->count() > 0 || $order->devices()->count() > 0) {
-            return back()->with('error', 'Cannot delete order with related arrivals or devices.');
+        // Detach all devices (removes pivot table entries)
+        $order->devices()->detach();
+        
+        // Check if order has related arrivals
+        if ($order->arrivals()->count() > 0) {
+            return back()->with('error', 'Cannot delete order with related arrivals. Please remove arrivals first.');
         }
 
         $order->delete();
@@ -368,28 +379,5 @@ class OrderController extends Controller
         $order->cancel();
 
         return back()->with('success', 'Order cancelled successfully.');
-    }
-
-    /**
-     * Search suppliers for autocomplete.
-     */
-    public function searchSuppliers(Request $request)
-    {
-        $query = $request->get('query', $request->get('q', ''));
-    
-        if (empty($query) || strlen(trim($query)) < 2) {
-            return response()->json([]);
-        }
-        
-        $suppliers = Supplier::active()
-            ->where(function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                  ->orWhere('code', 'like', "%{$query}%");
-            })
-            ->select('id', 'name', 'code', 'email')
-            ->limit(10)
-            ->get();
-
-        return response()->json($suppliers);
     }
 }
