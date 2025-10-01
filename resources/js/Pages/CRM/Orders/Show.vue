@@ -80,6 +80,7 @@
                             Cancel Order
                         </button>
                         <button
+                            v-if="order.status === 'cancelled'"
                             @click="confirmDelete"
                             class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm"
                         >
@@ -350,18 +351,54 @@
         </div>
 
         <!-- Cancel Confirmation Modal -->
-        <ConfirmationModal v-if="showCancelModal" @close="showCancelModal = false">
-            <template #title>Cancel Order</template>
+        <ConfirmationModal :show="showCancelModal" @close="showCancelModal = false">
+            <template #title>
+                Cancel Order
+            </template>
+
             <template #content>
                 Are you sure you want to cancel order <strong>{{ order.order_number }}</strong>? This action cannot be undone.
             </template>
+
             <template #footer>
-                <button @click="showCancelModal = false" class="btn-axontis-secondary mr-3">
+                <SecondaryButton @click="showCancelModal = false">
                     Cancel
-                </button>
-                <button @click="cancelOrder" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+                </SecondaryButton>
+
+                <DangerButton
+                    class="ml-3"
+                    :class="{ 'opacity-25': cancelForm.processing }"
+                    :disabled="cancelForm.processing"
+                    @click="cancelOrder"
+                >
                     Cancel Order
-                </button>
+                </DangerButton>
+            </template>
+        </ConfirmationModal>
+
+        <!-- Delete Confirmation Modal -->
+        <ConfirmationModal :show="showDeleteModal" @close="showDeleteModal = false">
+            <template #title>
+                Delete Order
+            </template>
+
+            <template #content>
+                Are you sure you want to delete order <strong>{{ order.order_number }}</strong>? This action cannot be undone and will permanently remove all associated data.
+            </template>
+
+            <template #footer>
+                <SecondaryButton @click="showDeleteModal = false">
+                    Cancel
+                </SecondaryButton>
+
+                <DangerButton
+                    class="ml-3"
+                    :class="{ 'opacity-25': deleteForm.processing }"
+                    :disabled="deleteForm.processing"
+                    @click="deleteOrder"
+                >
+                    Delete Order
+                </DangerButton>
             </template>
         </ConfirmationModal>
     </AxontisDashboardLayout>
@@ -373,6 +410,8 @@ import { Link, useForm, router } from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 import ConfirmationModal from '@/Components/ConfirmationModal.vue'
+import SecondaryButton from '@/Components/SecondaryButton.vue'
+import DangerButton from '@/Components/DangerButton.vue'
 
 const props = defineProps({
     order: Object,
@@ -380,12 +419,14 @@ const props = defineProps({
 
 // Modal states
 const showCancelModal = ref(false)
+const showDeleteModal = ref(false)
 
 // Forms
 const approveForm = useForm({})
 const orderForm = useForm({})
 const completeForm = useForm({})
 const cancelForm = useForm({})
+const deleteForm = useForm({})
 
 // Status and priority styling
 const getStatusClass = (status) => {
@@ -506,6 +547,18 @@ const cancelOrder = () => {
     cancelForm.patch(route('crm.orders.cancel', props.order.uuid), {
         onSuccess: () => {
             showCancelModal.value = false
+        }
+    })
+}
+
+const confirmDelete = () => {
+    showDeleteModal.value = true
+}
+
+const deleteOrder = () => {
+    deleteForm.delete(route('crm.orders.destroy', props.order.uuid), {
+        onSuccess: () => {
+            showDeleteModal.value = false
         }
     })
 }

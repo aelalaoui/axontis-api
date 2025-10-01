@@ -156,12 +156,14 @@
                                         <Link :href="route('crm.orders.show', order.uuid)" class="text-blue-400 hover:text-blue-300" title="View">
                                             <i class="fas fa-eye"></i>
                                         </Link>
-                                        <Link :href="route('crm.orders.edit', order.uuid)" class="text-yellow-400 hover:text-yellow-300" title="Edit">
+                                        <Link
+                                            v-if="order.status === 'draft'"
+                                            :href="route('crm.orders.edit', { uuid: order.uuid })"
+                                            class="text-yellow-400 hover:text-yellow-300"
+                                            title="Edit"
+                                        >
                                             <i class="fas fa-edit"></i>
                                         </Link>
-                                        <button @click="confirmDelete(order)" class="text-red-400 hover:text-red-300" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -204,22 +206,6 @@
                 </div>
             </AxontisCard>
         </div>
-
-        <!-- Delete Confirmation Modal -->
-        <ConfirmationModal v-if="showDeleteModal" @close="showDeleteModal = false">
-            <template #title>Delete Order</template>
-            <template #content>
-                Are you sure you want to delete order <strong>{{ orderToDelete?.order_number }}</strong>? This action cannot be undone.
-            </template>
-            <template #footer>
-                <button @click="showDeleteModal = false" class="btn-axontis-secondary mr-3">
-                    Cancel
-                </button>
-                <button @click="deleteOrder" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
-                    Delete Order
-                </button>
-            </template>
-        </ConfirmationModal>
     </AxontisDashboardLayout>
 </template>
 
@@ -243,11 +229,6 @@ const searchQuery = ref(props.filters.search || '')
 const statusFilter = ref(props.filters.status || '')
 const typeFilter = ref(props.filters.type || '')
 const priorityFilter = ref(props.filters.priority || '')
-
-// Delete modal
-const showDeleteModal = ref(false)
-const orderToDelete = ref(null)
-const deleteForm = useForm({})
 
 // Search and filter functions
 const handleSearch = () => {
@@ -328,20 +309,5 @@ const formatCurrency = (amount) => {
         style: 'currency',
         currency: 'EUR'
     }).format(amount)
-}
-
-// Delete functions
-const confirmDelete = (order) => {
-    orderToDelete.value = order
-    showDeleteModal.value = true
-}
-
-const deleteOrder = () => {
-    deleteForm.delete(route('crm.orders.destroy', orderToDelete.value.uuid), {
-        onSuccess: () => {
-            showDeleteModal.value = false
-            orderToDelete.value = null
-        }
-    })
 }
 </script>

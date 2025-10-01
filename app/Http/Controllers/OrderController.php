@@ -311,9 +311,12 @@ class OrderController extends Controller
      */
     public function destroy(Order $order)
     {
-        // Check if order has related arrivals or devices
-        if ($order->arrivals()->count() > 0 || $order->devices()->count() > 0) {
-            return back()->with('error', 'Cannot delete order with related arrivals or devices.');
+        // Detach all devices (removes pivot table entries)
+        $order->devices()->detach();
+        
+        // Check if order has related arrivals
+        if ($order->arrivals()->count() > 0) {
+            return back()->with('error', 'Cannot delete order with related arrivals. Please remove arrivals first.');
         }
 
         $order->delete();
