@@ -1,27 +1,32 @@
 <template>
-    <AxontisDashboardLayout title="Add Supplier" subtitle="Create a new supplier record">
+    <AxontisDashboardLayout title="Create Supplier" subtitle="Add a new supplier to the system">
         <div class="max-w-4xl mx-auto">
-            <!-- Back Button -->
-            <div class="mb-6">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-2xl font-bold text-white">Create New Supplier</h1>
+                    <p class="text-gray-400 mt-1">Fill in the details to create a new supplier</p>
+                </div>
                 <Link :href="route('crm.suppliers.index')" class="btn-axontis-secondary">
                     <i class="fas fa-arrow-left mr-2"></i>
                     Back to Suppliers
                 </Link>
             </div>
 
-            <!-- Form Card -->
-            <AxontisCard title="Supplier Information" subtitle="Enter the details for the new supplier">
-                <form @submit.prevent="submit" class="space-y-6">
-                    <!-- Basic Information -->
+            <!-- Form -->
+            <form @submit.prevent="submit">
+                <AxontisCard>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Name -->
                         <div>
-                            <InputLabel for="name" value="Supplier Name *" />
-                            <TextInput
+                            <label for="name" class="block text-sm font-medium text-gray-300 mb-2">
+                                Supplier Name <span class="text-red-400">*</span>
+                            </label>
+                            <input
                                 id="name"
                                 v-model="form.name"
                                 type="text"
-                                class="mt-1 block w-full"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 required
                                 autofocus
                             />
@@ -30,12 +35,14 @@
 
                         <!-- Code -->
                         <div>
-                            <InputLabel for="code" value="Supplier Code *" />
-                            <TextInput
+                            <label for="code" class="block text-sm font-medium text-gray-300 mb-2">
+                                Supplier Code <span class="text-red-400">*</span>
+                            </label>
+                            <input
                                 id="code"
                                 v-model="form.code"
                                 type="text"
-                                class="mt-1 block w-full"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 required
                                 placeholder="e.g., SUP001"
                             />
@@ -44,166 +51,176 @@
 
                         <!-- Email -->
                         <div>
-                            <InputLabel for="email" value="Email" />
-                            <TextInput
+                            <label for="email" class="block text-sm font-medium text-gray-300 mb-2">
+                                Email
+                            </label>
+                            <input
                                 id="email"
                                 v-model="form.email"
                                 type="email"
-                                class="mt-1 block w-full"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
                             <InputError class="mt-2" :message="form.errors.email" />
                         </div>
 
                         <!-- Phone -->
                         <div>
-                            <InputLabel for="phone" value="Phone" />
-                            <TextInput
+                            <label for="phone" class="block text-sm font-medium text-gray-300 mb-2">
+                                Phone
+                            </label>
+                            <input
                                 id="phone"
                                 v-model="form.phone"
                                 type="text"
-                                class="mt-1 block w-full"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
                             <InputError class="mt-2" :message="form.errors.phone" />
                         </div>
 
                         <!-- Contact Person -->
                         <div>
-                            <InputLabel for="contact_person" value="Contact Person" />
-                            <TextInput
+                            <label for="contact_person" class="block text-sm font-medium text-gray-300 mb-2">
+                                Contact Person
+                            </label>
+                            <input
                                 id="contact_person"
                                 v-model="form.contact_person"
                                 type="text"
-                                class="mt-1 block w-full"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
                             <InputError class="mt-2" :message="form.errors.contact_person" />
                         </div>
 
                         <!-- Website -->
                         <div>
-                            <InputLabel for="website" value="Website" />
-                            <TextInput
+                            <label for="website" class="block text-sm font-medium text-gray-300 mb-2">
+                                Website
+                            </label>
+                            <input
                                 id="website"
                                 v-model="form.website"
                                 type="url"
-                                class="mt-1 block w-full"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 placeholder="https://example.com"
                             />
                             <InputError class="mt-2" :message="form.errors.website" />
                         </div>
-                    </div>
 
-                    <!-- Address Information -->
-                    <div class="border-t border-primary-500/20 pt-6">
-                        <h3 class="text-lg font-medium text-white mb-4">Address Information</h3>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Address -->
-                            <div class="md:col-span-2">
-                                <InputLabel for="address" value="Address" />
-                                <TextInput
-                                    id="address"
-                                    v-model="form.address"
-                                    type="text"
-                                    class="mt-1 block w-full"
-                                />
-                                <InputError class="mt-2" :message="form.errors.address" />
-                            </div>
-
-                            <!-- City -->
-                            <div>
-                                <InputLabel for="city" value="City" />
-                                <TextInput
-                                    id="city"
-                                    v-model="form.city"
-                                    type="text"
-                                    class="mt-1 block w-full"
-                                />
-                                <InputError class="mt-2" :message="form.errors.city" />
-                            </div>
-
-                            <!-- Postal Code -->
-                            <div>
-                                <InputLabel for="postal_code" value="Postal Code" />
-                                <TextInput
-                                    id="postal_code"
-                                    v-model="form.postal_code"
-                                    type="text"
-                                    class="mt-1 block w-full"
-                                />
-                                <InputError class="mt-2" :message="form.errors.postal_code" />
-                            </div>
-
-                            <!-- Country -->
-                            <div class="md:col-span-2">
-                                <InputLabel for="country" value="Country" />
-                                <TextInput
-                                    id="country"
-                                    v-model="form.country"
-                                    type="text"
-                                    class="mt-1 block w-full"
-                                />
-                                <InputError class="mt-2" :message="form.errors.country" />
-                            </div>
+                        <!-- Address -->
+                        <div class="md:col-span-2">
+                            <label for="address" class="block text-sm font-medium text-gray-300 mb-2">
+                                Address
+                            </label>
+                            <input
+                                id="address"
+                                v-model="form.address"
+                                type="text"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
+                            <InputError class="mt-2" :message="form.errors.address" />
                         </div>
-                    </div>
 
-                    <!-- Additional Information -->
-                    <div class="border-t border-primary-500/20 pt-6">
-                        <h3 class="text-lg font-medium text-white mb-4">Additional Information</h3>
-                        
-                        <!-- Notes -->
+                        <!-- City -->
                         <div>
-                            <InputLabel for="notes" value="Notes" />
+                            <label for="city" class="block text-sm font-medium text-gray-300 mb-2">
+                                City
+                            </label>
+                            <input
+                                id="city"
+                                v-model="form.city"
+                                type="text"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
+                            <InputError class="mt-2" :message="form.errors.city" />
+                        </div>
+
+                        <!-- Postal Code -->
+                        <div>
+                            <label for="postal_code" class="block text-sm font-medium text-gray-300 mb-2">
+                                Postal Code
+                            </label>
+                            <input
+                                id="postal_code"
+                                v-model="form.postal_code"
+                                type="text"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
+                            <InputError class="mt-2" :message="form.errors.postal_code" />
+                        </div>
+
+                        <!-- Country -->
+                        <div class="md:col-span-2">
+                            <label for="country" class="block text-sm font-medium text-gray-300 mb-2">
+                                Country
+                            </label>
+                            <input
+                                id="country"
+                                v-model="form.country"
+                                type="text"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
+                            <InputError class="mt-2" :message="form.errors.country" />
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="md:col-span-2">
+                            <label for="notes" class="block text-sm font-medium text-gray-300 mb-2">
+                                Notes
+                            </label>
                             <textarea
                                 id="notes"
                                 v-model="form.notes"
                                 rows="4"
-                                class="axontis-input mt-1 block w-full"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                                 placeholder="Any additional notes about this supplier..."
                             ></textarea>
                             <InputError class="mt-2" :message="form.errors.notes" />
                         </div>
 
                         <!-- Status -->
-                        <div class="mt-6">
+                        <div class="md:col-span-2">
                             <label class="flex items-center">
                                 <Checkbox
                                     v-model:checked="form.is_active"
                                     name="is_active"
                                 />
-                                <span class="ml-2 text-sm text-white">Active Supplier</span>
+                                <span class="ml-2 text-sm text-gray-300">Active Supplier</span>
                             </label>
                             <InputError class="mt-2" :message="form.errors.is_active" />
                         </div>
                     </div>
 
                     <!-- Form Actions -->
-                    <div class="flex items-center justify-end gap-4 pt-6 border-t border-primary-500/20">
-                        <Link :href="route('crm.suppliers.index')" class="btn-axontis-secondary">
+                    <div class="flex items-center justify-end space-x-4 mt-8 pt-6 border-t border-gray-700">
+                        <Link
+                            :href="route('crm.suppliers.index')"
+                            class="btn-axontis-secondary"
+                        >
                             Cancel
                         </Link>
-                        <PrimaryButton
-                            :class="{ 'opacity-25': form.processing }"
+                        <button
+                            type="submit"
                             :disabled="form.processing"
+                            class="btn-axontis"
+                            :class="{ 'opacity-50 cursor-not-allowed': form.processing }"
                         >
-                            <i class="fas fa-save mr-2"></i>
-                            Create Supplier
-                        </PrimaryButton>
+                            <i v-if="form.processing" class="fas fa-spinner fa-spin mr-2"></i>
+                            <i v-else class="fas fa-save mr-2"></i>
+                            {{ form.processing ? 'Creating...' : 'Create Supplier' }}
+                        </button>
                     </div>
-                </form>
-            </AxontisCard>
+                </AxontisCard>
+            </form>
         </div>
     </AxontisDashboardLayout>
 </template>
 
 <script setup>
-import { useForm, Link } from '@inertiajs/vue3'
+import {useForm, Link} from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 import InputError from '@/Components/InputError.vue'
-import InputLabel from '@/Components/InputLabel.vue'
 import PrimaryButton from '@/Components/PrimaryButton.vue'
-import TextInput from '@/Components/TextInput.vue'
 import Checkbox from '@/Components/Checkbox.vue'
 
 // Form
