@@ -90,7 +90,7 @@ class SupplierController extends Controller
     public function show(Supplier $supplier)
     {
         $supplier->load(['orders', 'orderDevices']);
-        
+
         return Inertia::render('CRM/Suppliers/Show', [
             'supplier' => $supplier,
         ]);
@@ -155,11 +155,11 @@ class SupplierController extends Controller
     public function searchSuppliers(Request $request)
     {
         $query = $request->get('query', $request->get('q', ''));
-    
+
         if (empty($query) || strlen(trim($query)) < 2) {
             return response()->json([]);
         }
-        
+
         $suppliers = Supplier::active()
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")

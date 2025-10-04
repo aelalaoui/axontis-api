@@ -19,7 +19,9 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Order Type -->
                         <div>
-                            <InputLabel for="type" value="Order Type" />
+                            <label for="type" class="block text-sm font-medium text-gray-300 mb-2">
+                                Order Type <span class="text-red-400">*</span>
+                            </label>
                             <select
                                 id="type"
                                 v-model="form.type"
@@ -36,7 +38,9 @@
 
                         <!-- Status -->
                         <div>
-                            <InputLabel for="status" value="Status" />
+                            <label for="status" class="block text-sm font-medium text-gray-300 mb-2">
+                                Status <span class="text-red-400">*</span>
+                            </label>
                             <select
                                 id="status"
                                 v-model="form.status"
@@ -53,7 +57,9 @@
 
                         <!-- Supplier Autocomplete -->
                         <div class="md:col-span-2">
-                            <InputLabel for="supplier" value="Supplier" />
+                            <label for="supplier" class="block text-sm font-medium text-gray-300 mb-2">
+                                Supplier <span class="text-red-400">*</span>
+                            </label>
                             <div class="relative">
                                 <input
                                     id="supplier"
@@ -66,7 +72,7 @@
                                     autocomplete="off"
                                     required
                                 />
-                                
+
                                 <!-- Supplier Dropdown -->
                                 <div
                                     v-if="showSupplierDropdown && (supplierResults.length > 0 || supplierLoading)"
@@ -77,7 +83,7 @@
                                         <i class="fas fa-spinner fa-spin mr-2"></i>
                                         Searching suppliers...
                                     </div>
-                                    
+
                                     <!-- Results -->
                                     <div
                                         v-for="supplier in supplierResults"
@@ -88,7 +94,7 @@
                                         <div class="font-medium text-white">{{ supplier.name }}</div>
                                         <div class="text-sm text-gray-400">{{ supplier.code }} • {{ supplier.email }}</div>
                                     </div>
-                                    
+
                                     <!-- No results -->
                                     <div v-if="!supplierLoading && supplierResults.length === 0 && supplierQuery.length > 0" class="p-3 text-gray-400 text-center">
                                         No suppliers found
@@ -96,7 +102,7 @@
                                 </div>
                             </div>
                             <InputError class="mt-2" :message="form.errors.supplier_id" />
-                            
+
                             <!-- Selected Supplier Display -->
                             <div v-if="selectedSupplier" class="mt-2 p-3 bg-gray-800 rounded-lg border border-gray-700">
                                 <div class="flex items-center justify-between">
@@ -114,7 +120,9 @@
                         <!-- Devices Section -->
                         <div class="md:col-span-2">
                             <div class="mb-4">
-                                <InputLabel value="Order Devices" />
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Order Devices <span class="text-red-400">*</span>
+                                </label>
                                 <p class="text-sm text-gray-400 mt-1">Add devices to this order from the selected supplier</p>
                             </div>
 
@@ -275,7 +283,9 @@
 
                         <!-- Priority -->
                         <div>
-                            <InputLabel for="priority" value="Priority" />
+                            <label for="priority" class="block text-sm font-medium text-gray-300 mb-2">
+                                Priority <span class="text-red-400">*</span>
+                            </label>
                             <select
                                 id="priority"
                                 v-model="form.priority"
@@ -292,7 +302,9 @@
 
                         <!-- Order Date -->
                         <div>
-                            <InputLabel for="order_date" value="Order Date" />
+                            <label for="order_date" class="block text-sm font-medium text-gray-300 mb-2">
+                                Order Date <span class="text-red-400">*</span>
+                            </label>
                             <TextInput
                                 id="order_date"
                                 v-model="form.order_date"
@@ -305,7 +317,9 @@
 
                         <!-- Expected Delivery Date -->
                         <div>
-                            <InputLabel for="expected_delivery_date" value="Expected Delivery Date" />
+                            <label for="expected_delivery_date" class="block text-sm font-medium text-gray-300 mb-2">
+                                Expected Delivery Date <span class="text-red-400">*</span>
+                            </label>
                             <TextInput
                                 id="expected_delivery_date"
                                 v-model="form.expected_delivery_date"
@@ -317,7 +331,9 @@
 
                         <!-- Notes -->
                         <div class="md:col-span-2">
-                            <InputLabel for="notes" value="Notes" />
+                            <label for="notes" class="block text-sm font-medium text-gray-300 mb-2">
+                                Notes
+                            </label>
                             <textarea
                                 id="notes"
                                 v-model="form.notes"
@@ -331,13 +347,22 @@
 
                     <!-- Form Actions -->
                     <div class="flex items-center justify-end space-x-4 mt-8 pt-6 border-t border-gray-700">
-                        <Link :href="route('crm.orders.index')" class="btn-axontis-secondary">
+                        <Link
+                            :href="route('crm.orders.index')"
+                            class="btn-axontis-secondary"
+                        >
                             Cancel
                         </Link>
-                        <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                            <i class="fas fa-save mr-2"></i>
-                            Create Order
-                        </PrimaryButton>
+                        <button
+                            type="submit"
+                            :disabled="form.processing"
+                            class="btn-axontis"
+                            :class="{ 'opacity-50 cursor-not-allowed': form.processing }"
+                        >
+                            <i v-if="form.processing" class="fas fa-spinner fa-spin mr-2"></i>
+                            <i v-else class="fas fa-save mr-2"></i>
+                            {{ form.processing ? 'Creating...' : 'Create Order' }}
+                        </button>
                     </div>
                 </AxontisCard>
             </form>
@@ -579,7 +604,7 @@ const submit = () => {
 
     // Mettre à jour toutes les données du form
     const currentTotals = orderTotals.value
-    
+
     form.total_ht = parseFloat(currentTotals.total_ht.toFixed(2))
     form.total_tva = parseFloat(currentTotals.total_tva.toFixed(2))
     form.total_ttc = parseFloat(currentTotals.total_ttc.toFixed(2))
@@ -590,7 +615,7 @@ const submit = () => {
         tva_rate: device.tva_rate || 20,
         notes: device.notes || '',
     }))
-    
+
     console.log('Form final data:', form.data())
     form.post(route('crm.orders.store'))
 }

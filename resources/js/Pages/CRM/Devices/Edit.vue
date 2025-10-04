@@ -154,7 +154,7 @@
                     <div class="flex justify-end space-x-3 pt-6 border-t border-gray-700">
                         <Link
                             :href="route('crm.devices.index')"
-                            class="px-4 py-2 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-colors"
+                            class="btn-axontis-secondary"
                         >
                             Cancel
                         </Link>
