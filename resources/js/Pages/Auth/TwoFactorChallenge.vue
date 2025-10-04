@@ -1,12 +1,6 @@
 <script setup>
 import { nextTick, ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 
 const recovery = ref(false);
 
@@ -38,67 +32,131 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Two-factor Confirmation" />
+    <Head title="Authentification à deux facteurs" />
 
-    <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
-
-        <div class="mb-4 text-sm text-gray-600">
-            <template v-if="! recovery">
-                Please confirm access to your account by entering the authentication code provided by your authenticator application.
-            </template>
-
-            <template v-else>
-                Please confirm access to your account by entering one of your emergency recovery codes.
-            </template>
+    <div class="auth-wrapper">
+        <div class="auth-background">
+            <div class="auth-orb auth-orb-1"></div>
+            <div class="auth-orb auth-orb-2"></div>
+            <div class="auth-orb auth-orb-3"></div>
         </div>
 
-        <form @submit.prevent="submit">
-            <div v-if="! recovery">
-                <InputLabel for="code" value="Code" />
-                <TextInput
-                    id="code"
-                    ref="codeInput"
-                    v-model="form.code"
-                    type="text"
-                    inputmode="numeric"
-                    class="mt-1 block w-full"
-                    autofocus
-                    autocomplete="one-time-code"
-                />
-                <InputError class="mt-2" :message="form.errors.code" />
+        <div class="auth-container">
+            <div class="auth-logo">
+                <div class="auth-logo-circle">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
             </div>
 
-            <div v-else>
-                <InputLabel for="recovery_code" value="Recovery Code" />
-                <TextInput
-                    id="recovery_code"
-                    ref="recoveryCodeInput"
-                    v-model="form.recovery_code"
-                    type="text"
-                    class="mt-1 block w-full"
-                    autocomplete="one-time-code"
-                />
-                <InputError class="mt-2" :message="form.errors.recovery_code" />
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h1 class="auth-title">Authentification 2FA</h1>
+                    <p class="auth-subtitle">Sécurisez votre connexion</p>
+                </div>
+
+                <div class="auth-info-message">
+                    <div class="auth-info-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </div>
+                    <p class="auth-info-text">
+                        <template v-if="! recovery">
+                            Veuillez confirmer l'accès à votre compte en entrant le code d'authentification fourni par votre application d'authentification.
+                        </template>
+                        <template v-else>
+                            Veuillez confirmer l'accès à votre compte en entrant l'un de vos codes de récupération d'urgence.
+                        </template>
+                    </p>
+                </div>
+
+                <form @submit.prevent="submit" class="auth-form">
+                    <div v-if="! recovery" class="auth-form-group">
+                        <label for="code" class="auth-label">Code d'authentification</label>
+                        <div class="auth-input-wrapper">
+                            <span class="auth-input-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                                </svg>
+                            </span>
+                            <input
+                                id="code"
+                                ref="codeInput"
+                                v-model="form.code"
+                                type="text"
+                                inputmode="numeric"
+                                class="auth-input auth-input-code"
+                                autofocus
+                                autocomplete="one-time-code"
+                                placeholder="000000"
+                            />
+                        </div>
+                        <div v-if="form.errors.code" class="auth-error">{{ form.errors.code }}</div>
+                    </div>
+
+                    <div v-else class="auth-form-group">
+                        <label for="recovery_code" class="auth-label">Code de récupération</label>
+                        <div class="auth-input-wrapper">
+                            <span class="auth-input-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                                </svg>
+                            </span>
+                            <input
+                                id="recovery_code"
+                                ref="recoveryCodeInput"
+                                v-model="form.recovery_code"
+                                type="text"
+                                class="auth-input"
+                                autocomplete="one-time-code"
+                                placeholder="abcd-efgh-ijkl"
+                            />
+                        </div>
+                        <div v-if="form.errors.recovery_code" class="auth-error">{{ form.errors.recovery_code }}</div>
+                    </div>
+
+                    <div class="auth-2fa-toggle">
+                        <button type="button" class="auth-toggle-link" @click.prevent="toggleRecovery">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="1 4 1 10 7 10"></polyline>
+                                <polyline points="23 20 23 14 17 14"></polyline>
+                                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                            </svg>
+                            <template v-if="! recovery">
+                                Utiliser un code de récupération
+                            </template>
+                            <template v-else>
+                                Utiliser un code d'authentification
+                            </template>
+                        </button>
+                    </div>
+
+                    <button 
+                        type="submit"
+                        class="auth-submit-btn" 
+                        :class="{ 'auth-submit-loading': form.processing }" 
+                        :disabled="form.processing"
+                    >
+                        <span v-if="!form.processing">Se connecter</span>
+                        <span v-else class="auth-submit-loader">
+                            <svg class="auth-spinner" viewBox="0 0 24 24">
+                                <circle class="auth-spinner-circle" cx="12" cy="12" r="10"></circle>
+                            </svg>
+                            Connexion en cours...
+                        </span>
+                    </button>
+                </form>
             </div>
 
-            <div class="flex items-center justify-end mt-4">
-                <button type="button" class="text-sm text-gray-600 hover:text-gray-900 underline cursor-pointer" @click.prevent="toggleRecovery">
-                    <template v-if="! recovery">
-                        Use a recovery code
-                    </template>
-
-                    <template v-else>
-                        Use an authentication code
-                    </template>
-                </button>
-
-                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Log in
-                </PrimaryButton>
+            <div class="auth-security-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Connexion sécurisée SSL</span>
             </div>
-        </form>
-    </AuthenticationCard>
+        </div>
+    </div>
 </template>
