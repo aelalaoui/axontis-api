@@ -37,12 +37,12 @@ onMounted(() => {
                 Dashboard
             </Link>
             <template v-else>
-                <Link :href="route('login')" class="axontis-nav-link">
-                    Log in
-                </Link>
-                <Link v-if="canRegister" :href="route('register')" class="axontis-nav-link ms-4">
-                    Register
-                </Link>
+                <!--<Link :href="route('login')" class="axontis-nav-link">-->
+                <!--    Log in-->
+                <!--</Link>-->
+                <!--<Link v-if="canRegister" :href="route('register')" class="axontis-nav-link ms-4">-->
+                <!--    Register-->
+                <!--</Link>-->
             </template>
         </div>
 
