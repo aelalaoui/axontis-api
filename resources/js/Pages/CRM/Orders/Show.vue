@@ -64,14 +64,6 @@
                             Mark as Ordered
                         </button>
                         <button
-                            v-if="order.status === 'ordered'"
-                            @click="markAsCompleted"
-                            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm"
-                        >
-                            <i class="fas fa-check-circle mr-2"></i>
-                            Mark as Completed
-                        </button>
-                        <button
                             v-if="!['completed', 'cancelled'].includes(order.status)"
                             @click="confirmCancel"
                             class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm"
@@ -175,7 +167,7 @@
                                                 {{ getDeviceStatusLabel(device.pivot?.status) }}
                                             </span>
                                         </div>
-                                        
+
                                         <!-- Device Details Grid -->
                                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                             <div>
@@ -249,7 +241,7 @@
                             <div class="bg-gray-900 rounded-lg p-4 border border-gray-600">
                                 <div class="flex justify-between items-center">
                                     <div class="text-gray-400">
-                                        <span class="font-medium">{{ order.devices.length }}</span> device(s) • 
+                                        <span class="font-medium">{{ order.devices.length }}</span> device(s) •
                                         <span class="font-medium">{{ getTotalQuantity() }}</span> total items
                                     </div>
                                     <div class="flex space-x-6 text-sm">
@@ -275,31 +267,9 @@
                         </div>
                     </AxontisCard>
 
-                    <!-- Arrivals -->
-                    <AxontisCard title="Arrivals">
-                        <div v-if="order.arrivals && order.arrivals.length > 0" class="space-y-4">
-                            <div
-                                v-for="arrival in order.arrivals"
-                                :key="arrival.id"
-                                class="bg-gray-800 rounded-lg p-4 border border-gray-700"
-                            >
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h4 class="text-white font-medium">{{ arrival.device?.name || 'Unknown Device' }}</h4>
-                                        <p class="text-gray-400 text-sm">Arrived: {{ formatDate(arrival.arrival_date) }}</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-white font-medium">Qty: {{ arrival.quantity_received }}</p>
-                                        <span :class="getArrivalStatusClass(arrival.status)" class="px-2 py-1 rounded-full text-xs font-medium">
-                                            {{ arrival.status }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-else class="text-gray-400">
-                            No arrivals recorded for this order
-                        </div>
+                    <!-- Arrivals Management -->
+                    <AxontisCard title="Arrivals Management">
+                        <ArrivalManagement :order="order" />
                     </AxontisCard>
                 </div>
 
@@ -412,6 +382,7 @@ import AxontisCard from '@/Components/AxontisCard.vue'
 import ConfirmationModal from '@/Components/ConfirmationModal.vue'
 import SecondaryButton from '@/Components/SecondaryButton.vue'
 import DangerButton from '@/Components/DangerButton.vue'
+import ArrivalManagement from '@/Components/CRM/Orders/ArrivalManagement.vue'
 
 const props = defineProps({
     order: Object,
@@ -475,7 +446,7 @@ const getDeviceStatusLabel = (status) => {
     const labels = {
         pending: 'Pending',
         ordered: 'Ordered',
-        partially_received: 'Partially Received', 
+        partially_received: 'Partially Received',
         received: 'Received',
         cancelled: 'Cancelled',
     }
@@ -535,9 +506,6 @@ const markAsOrdered = () => {
     orderForm.patch(route('crm.orders.mark-as-ordered', props.order.uuid))
 }
 
-const markAsCompleted = () => {
-    completeForm.patch(route('crm.orders.mark-as-completed', props.order.uuid))
-}
 
 const confirmCancel = () => {
     showCancelModal.value = true

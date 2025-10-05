@@ -14,7 +14,7 @@ const progressWidth = ref('0%');
 onMounted(() => {
     // Animate progress bar on load
     setTimeout(() => {
-        progressWidth.value = '75%';
+        progressWidth.value = '20%';
     }, 1000);
 });
 </script>
@@ -82,8 +82,8 @@ onMounted(() => {
                         <span>75%</span>
                     </div>
                     <div class="axontis-progress">
-                        <div 
-                            class="axontis-progress-bar transition-all duration-2000 ease-out" 
+                        <div
+                            class="axontis-progress-bar transition-all duration-2000 ease-out"
                             :style="{ width: progressWidth }"
                         ></div>
                     </div>
@@ -99,7 +99,7 @@ onMounted(() => {
                     <h3 class="text-lg font-semibold text-white mb-2">Fast Performance</h3>
                     <p class="text-white/70 text-sm">Lightning-fast loading and smooth interactions</p>
                 </div>
-                
+
                 <div class="axontis-feature-card p-6 text-center transition-all duration-300 hover:transform hover:-translate-y-2">
                     <div class="axontis-feature-icon mx-auto">
                         <i class="fas fa-shield-alt"></i>
@@ -107,7 +107,7 @@ onMounted(() => {
                     <h3 class="text-lg font-semibold text-white mb-2">Secure & Reliable</h3>
                     <p class="text-white/70 text-sm">Enterprise-grade security and reliability</p>
                 </div>
-                
+
                 <div class="axontis-feature-card p-6 text-center transition-all duration-300 hover:transform hover:-translate-y-2">
                     <div class="axontis-feature-icon mx-auto">
                         <i class="fas fa-mobile-alt"></i>

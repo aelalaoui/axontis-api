@@ -50,10 +50,14 @@ Route::middleware([
             ->name('orders.approve');
         Route::patch('orders/{order}/mark-as-ordered', [App\Http\Controllers\OrderController::class, 'markAsOrdered'])
             ->name('orders.mark-as-ordered');
-        Route::patch('orders/{order}/mark-as-completed', [App\Http\Controllers\OrderController::class, 'markAsCompleted'])
-            ->name('orders.mark-as-completed');
         Route::patch('orders/{order}/cancel', [App\Http\Controllers\OrderController::class, 'cancel'])
             ->name('orders.cancel');
+
+        // Order Arrivals Routes
+        Route::post('orders/{order}/arrivals/process', [App\Http\Controllers\CRM\OrderArrivalController::class, 'processArrival'])
+            ->name('orders.arrivals.process');
+        Route::get('orders/{order}/arrivals/data', [App\Http\Controllers\CRM\OrderArrivalController::class, 'getArrivalData'])
+            ->name('orders.arrivals.data');
 
         // CRM Devices Routes
         Route::resource('devices', App\Http\Controllers\DeviceController::class);

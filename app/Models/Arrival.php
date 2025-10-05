@@ -41,12 +41,12 @@ class Arrival extends Model
     // Relationships
     public function device(): BelongsTo
     {
-        return $this->belongsTo(Device::class);
+        return $this->belongsTo(Device::class, 'device_id', 'uuid');
     }
 
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'order_id', 'uuid');
     }
 
     // Scopes
@@ -100,18 +100,6 @@ class Arrival extends Model
     public function markAsReceived(): bool
     {
         $this->status = 'received';
-        
-        // Update the corresponding order device quantity if linked to an order
-        if ($this->order_id && $this->device_id) {
-            $orderDevice = OrderDevice::where('order_id', $this->order_id)
-                                    ->where('device_id', $this->device_id)
-                                    ->first();
-            
-            if ($orderDevice) {
-                $orderDevice->receiveQuantity($this->qty);
-            }
-        }
-        
         return $this->save();
     }
 
@@ -124,13 +112,68 @@ class Arrival extends Model
     public function markAsStocked(): bool
     {
         $this->status = 'stocked';
-        
+
         // Update device stock quantity
         if ($this->device) {
             $this->device->addStock($this->qty);
         }
-        
+
         return $this->save();
+    }
+
+    /**
+     * Update order device received quantity
+     */
+    public function updateOrderDeviceQuantity(): bool
+    {
+        if ($this->order_id && $this->device_id) {
+            $orderDevice = OrderDevice::where('order_uuid', $this->order_id)
+                                    ->where('device_uuid', $this->device_id)
+                                    ->first();
+
+            if ($orderDevice) {
+                return $orderDevice->receiveQuantity($this->qty);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if this arrival completes the order device
+     */
+    public function completesOrderDevice(): bool
+    {
+        if ($this->order_id && $this->device_id) {
+            $orderDevice = OrderDevice::where('order_uuid', $this->order_id)
+                                    ->where('device_uuid', $this->device_id)
+                                    ->first();
+
+            if ($orderDevice) {
+                $totalReceived = $orderDevice->qty_received + $this->qty;
+                return $totalReceived >= $orderDevice->qty_ordered;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get remaining quantity to receive for this device in the order
+     */
+    public function getRemainingQuantityToReceive(): int
+    {
+        if ($this->order_id && $this->device_id) {
+            $orderDevice = OrderDevice::where('order_uuid', $this->order_id)
+                                    ->where('device_uuid', $this->device_id)
+                                    ->first();
+
+            if ($orderDevice) {
+                return $orderDevice->qty_pending;
+            }
+        }
+
+        return 0;
     }
 
     public function createFromOrder(Order $order, Device $device, int $quantity, array $additionalData = []): self
@@ -138,11 +181,11 @@ class Arrival extends Model
         $orderDevice = OrderDevice::where('order_id', $order->id)
                                  ->where('device_id', $device->id)
                                  ->first();
-        
+
         if (!$orderDevice) {
             throw new \Exception('Order device not found');
         }
-        
+
         return self::create(array_merge([
             'device_id' => $device->id,
             'order_id' => $order->id,
