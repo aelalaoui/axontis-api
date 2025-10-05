@@ -79,7 +79,7 @@ onMounted(() => {
                 <div class="max-w-md mx-auto">
                     <div class="flex justify-between text-sm text-white/70 mb-2">
                         <span>Progress</span>
-                        <span>75%</span>
+                        <span>20%</span>
                     </div>
                     <div class="axontis-progress">
                         <div
