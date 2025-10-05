@@ -57,7 +57,7 @@ class Device extends Model
 
     public function orderDevices(): HasMany
     {
-        return $this->hasMany(OrderDevice::class, 'device_id', 'uuid');
+        return $this->hasMany(OrderDevice::class, 'device_uuid', 'uuid');
     }
 
     public function tasks(): BelongsToMany
@@ -67,7 +67,7 @@ class Device extends Model
                     ->withPivot([
                         'id',
                         'ht_price',
-                        'tva_price', 
+                        'tva_price',
                         'ttc_price',
                         'serial_number',
                         'inventory_number',

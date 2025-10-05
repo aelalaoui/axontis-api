@@ -13,8 +13,8 @@ class OrderDevice extends Model
     protected $table = 'order_device';
 
     protected $fillable = [
-        'order_id',
-        'device_id',
+        'order_uuid',
+        'device_uuid',
         'supplier_id',
         'ht_price',
         'tva_rate',
@@ -46,12 +46,12 @@ class OrderDevice extends Model
     // Relationships
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Order::class, 'order_id', 'uuid');
+        return $this->belongsTo(Order::class, 'order_uuid', 'uuid');
     }
 
     public function device(): BelongsTo
     {
-        return $this->belongsTo(Device::class, 'device_id', 'uuid');
+        return $this->belongsTo(Device::class, 'device_uuid', 'uuid');
     }
 
     public function supplier(): BelongsTo
@@ -95,19 +95,49 @@ class OrderDevice extends Model
 
     public function receiveQuantity(int $quantity): bool
     {
+        // Log détaillé pour debug
+        \Log::info('OrderDevice::receiveQuantity called', [
+            'order_device_id' => $this->id,
+            'order_uuid' => $this->order_uuid,
+            'device_uuid' => $this->device_uuid,
+            'current_qty_received' => $this->qty_received,
+            'qty_ordered' => $this->qty_ordered,
+            'quantity_to_receive' => $quantity,
+            'before_update' => $this->toArray()
+        ]);
+
         if ($this->qty_received + $quantity <= $this->qty_ordered) {
+            $oldQtyReceived = $this->qty_received;
             $this->qty_received += $quantity;
-            
+
             // Update status based on received quantity
             if ($this->qty_received >= $this->qty_ordered) {
                 $this->status = 'received';
             } else {
                 $this->status = 'partially_received';
             }
-            
-            return $this->save();
+
+            $result = $this->save();
+
+            // Log après la mise à jour
+            \Log::info('OrderDevice updated successfully', [
+                'order_device_id' => $this->id,
+                'old_qty_received' => $oldQtyReceived,
+                'new_qty_received' => $this->qty_received,
+                'new_status' => $this->status,
+                'after_update' => $this->fresh()->toArray()
+            ]);
+
+            return $result;
         }
-        
+
+        \Log::warning('OrderDevice::receiveQuantity failed - quantity exceeds ordered', [
+            'order_device_id' => $this->id,
+            'qty_received' => $this->qty_received,
+            'qty_ordered' => $this->qty_ordered,
+            'quantity_to_receive' => $quantity
+        ]);
+
         return false;
     }
 
