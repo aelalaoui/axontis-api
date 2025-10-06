@@ -105,4 +105,72 @@ class ClientController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Store client criterias as properties
+     */
+    public function storeCriterias(Request $request, string $uuid): JsonResponse
+    {
+        // Validation des données
+        $validator = Validator::make($request->all(), [
+            'criterias' => 'required|array',
+            'timestamp' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Trouver le client par UUID
+            $client = Client::where('uuid', $uuid)->first();
+
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client not found'
+                ], 404);
+            }
+
+            $criterias = $request->input('criterias');
+            $timestamp = $request->input('timestamp', now()->toISOString());
+
+            // Stocker chaque critère comme une propriété
+            $storedProperties = [];
+            foreach ($criterias as $key => $value) {
+                $propertyName = "criteria_{$key}";
+                $storedProperty = $client->setProperty($propertyName, $value);
+                $storedProperties[] = [
+                    'property' => $propertyName,
+                    'value' => $value,
+                    'type' => $storedProperty->type
+                ];
+            }
+
+            // Stocker également le timestamp comme propriété
+            $client->setProperty('criterias_updated_at', $timestamp, 'date');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Criterias stored successfully',
+                'data' => [
+                    'client_uuid' => $client->uuid,
+                    'stored_criterias' => $storedProperties,
+                    'criterias_count' => count($storedProperties),
+                    'timestamp' => $timestamp
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to store criterias',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
