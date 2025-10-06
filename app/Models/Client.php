@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasUuid;
+use App\Traits\HasProperties;
 use App\Enums\ClientStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Client extends Model
 {
-    use HasFactory, HasUuid;
+    use HasFactory, HasUuid, HasProperties;
 
     protected $fillable = [
         'user_id',
