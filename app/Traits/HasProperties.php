@@ -19,33 +19,33 @@ trait HasProperties
     /**
      * Set an extended property
      */
-    public function setProperty(string $property, $value, ?string $type = null): Property
+    public function setProperty(string $propertyName, $value, ?string $type = null): Property
     {
-        $property = $this->properties()
-            ->where('property', $property)
+        $existingProperty = $this->properties()
+            ->where('property', $propertyName)
             ->first();
 
-        if (!$property) {
-            $property = new Property([
-                'property' => $property,
+        if (!$existingProperty) {
+            $existingProperty = new Property([
+                'property' => $propertyName,
                 'extendable_type' => $this->getMorphClass(),
                 'extendable_id' => $this->uuid,
             ]);
         }
 
-        $property->setTypedValue($value, $type);
-        $property->save();
+        $existingProperty->setTypedValue($value, $type);
+        $existingProperty->save();
 
-        return $property;
+        return $existingProperty;
     }
 
     /**
      * Get an extended property value
      */
-    public function getProperty(string $property, $default = null)
+    public function getProperty(string $propertyName, $default = null)
     {
         $property = $this->properties()
-            ->where('property', $property)
+            ->where('property', $propertyName)
             ->first();
 
         return $property ? $property->typed_value : $default;
@@ -54,10 +54,10 @@ trait HasProperties
     /**
      * Get an extended property raw value (as string)
      */
-    public function getPropertyRaw(string $property, $default = null): ?string
+    public function getPropertyRaw(string $propertyName, $default = null): ?string
     {
         $property = $this->properties()
-            ->where('property', $property)
+            ->where('property', $propertyName)
             ->first();
 
         return $property ? $property->value : $default;
@@ -66,10 +66,10 @@ trait HasProperties
     /**
      * Get an extended property type
      */
-    public function getPropertyType(string $property): ?string
+    public function getPropertyType(string $propertyName): ?string
     {
         $property = $this->properties()
-            ->where('property', $property)
+            ->where('property', $propertyName)
             ->first();
 
         return $property?->type;
@@ -78,20 +78,20 @@ trait HasProperties
     /**
      * Check if an extended property exists
      */
-    public function hasProperty(string $property): bool
+    public function hasProperty(string $propertyName): bool
     {
         return $this->properties()
-            ->where('property', $property)
+            ->where('property', $propertyName)
             ->exists();
     }
 
     /**
      * Remove an extended property
      */
-    public function removeProperty(string $property): bool
+    public function removeProperty(string $propertyName): bool
     {
         return $this->properties()
-            ->where('property', $property)
+            ->where('property', $propertyName)
             ->delete() > 0;
     }
 
@@ -132,7 +132,7 @@ trait HasProperties
     {
         $results = collect();
 
-        foreach ($properties as $property => $value) {
+        foreach ($properties as $propertyName => $value) {
             $type = null;
 
             // Allow passing type with value: ['property' => ['value' => 'val', 'type' => 'string']]
@@ -141,7 +141,7 @@ trait HasProperties
                 $value = $value['value'];
             }
 
-            $results->push($this->setProperty($property, $value, $type));
+            $results->push($this->setProperty($propertyName, $value, $type));
         }
 
         return $results;
