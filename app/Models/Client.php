@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasUuid;
+use App\Enums\ClientStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -28,12 +29,12 @@ class Client extends Model
 
     protected $casts = [
         'type' => 'string',
-        'status' => 'string',
+        'status' => ClientStatus::class,
     ];
 
     protected $attributes = [
         'country' => 'Morocco',
-        'status' => 'prospect',
+        'status' => 'email_step',
     ];
 
     // Relationships
@@ -83,7 +84,7 @@ class Client extends Model
         if ($this->type === 'business') {
             return $this->company_name ?? '';
         }
-        
+
         return trim($this->first_name . ' ' . $this->last_name);
     }
 
