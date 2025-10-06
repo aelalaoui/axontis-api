@@ -142,7 +142,7 @@ class ClientController extends Controller
             // Stocker chaque critère comme une propriété
             $storedProperties = [];
             foreach ($criterias as $key => $value) {
-                $propertyName = "criteria_{$key}";
+                $propertyName = "{$key}";
                 $storedProperty = $client->setProperty($propertyName, $value);
                 $storedProperties[] = [
                     'property' => $propertyName,
