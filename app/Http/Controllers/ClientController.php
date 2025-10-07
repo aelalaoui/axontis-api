@@ -113,7 +113,6 @@ class ClientController extends Controller
         // Validation des données
         $validator = Validator::make($request->all(), [
             'criterias' => 'required|array',
-            'timestamp' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -136,7 +135,6 @@ class ClientController extends Controller
             }
 
             $criterias = $request->input('criterias');
-            $timestamp = $request->input('timestamp', now()->toISOString());
 
             // Stocker chaque critère comme une propriété
             $storedProperties = [];
@@ -150,9 +148,6 @@ class ClientController extends Controller
                 ];
             }
 
-            // Stocker également le timestamp comme propriété
-            $client->setProperty('criterias_updated_at', $timestamp, 'date');
-
             return response()->json([
                 'success' => true,
                 'message' => 'Criterias stored successfully',
@@ -160,7 +155,7 @@ class ClientController extends Controller
                     'client_uuid' => $client->uuid,
                     'stored_criterias' => $storedProperties,
                     'criterias_count' => count($storedProperties),
-                    'timestamp' => $timestamp
+                    'timestamp' => now()->toDateTimeString()
                 ]
             ], 200);
 
