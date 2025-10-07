@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\CRM;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\Order;
 use App\Models\Supplier;

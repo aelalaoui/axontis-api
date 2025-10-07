@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\CRM;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Services\ArrivalService;
 use Exception;
 use Illuminate\Http\JsonResponse;
