@@ -125,6 +125,7 @@ class ClientController extends Controller
 
         try {
             // Trouver le client par UUID
+            /** @var Client $client */
             $client = Client::where('uuid', $uuid)->first();
 
             if (!$client) {
@@ -139,6 +140,9 @@ class ClientController extends Controller
             // Stocker chaque critère comme une propriété
             $storedProperties = [];
             foreach ($criterias as $key => $value) {
+                if ($key === 'email') {
+                    continue; // Ignorer email
+                }
                 $propertyName = "{$key}";
                 $storedProperty = $client->setProperty($propertyName, $value);
                 $storedProperties[] = [
@@ -147,6 +151,9 @@ class ClientController extends Controller
                     'type' => $storedProperty->type
                 ];
             }
+
+            $client->type = $client->getProperty('customerType', 'unknown');
+            $client->save();
 
             return response()->json([
                 'success' => true,
