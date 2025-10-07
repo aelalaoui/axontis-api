@@ -115,7 +115,7 @@ class Property extends Model
     private function detectStringType(string $value): string
     {
         // Valeur vide ou null
-        if (empty($value) || $value === 'null') {
+        if ($value === '' || $value === null || strtolower($value) === 'null')  {
             return 'string';
         }
 

@@ -1,18 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\CRM;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\ArrivalService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class OrderArrivalController extends Controller
 {
     protected ArrivalService $arrivalService;
-
     public function __construct(ArrivalService $arrivalService)
     {
         $this->arrivalService = $arrivalService;

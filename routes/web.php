@@ -40,34 +40,34 @@ Route::middleware([
 
     // CRM Suppliers Routes
     Route::prefix('crm')->name('crm.')->group(function () {
-        Route::resource('suppliers', \App\Http\Controllers\CRM\SupplierController::class);
-        Route::patch('suppliers/{supplier}/toggle-status', [\App\Http\Controllers\CRM\SupplierController::class, 'toggleStatus'])
+        Route::resource('suppliers', \App\Http\Controllers\SupplierController::class);
+        Route::patch('suppliers/{supplier}/toggle-status', [\App\Http\Controllers\SupplierController::class, 'toggleStatus'])
             ->name('suppliers.toggle-status');
 
         // CRM Orders Routes
-        Route::resource('orders', \App\Http\Controllers\CRM\OrderController::class);
-        Route::patch('orders/{order}/approve', [\App\Http\Controllers\CRM\OrderController::class, 'approve'])
+        Route::resource('orders', \App\Http\Controllers\OrderController::class);
+        Route::patch('orders/{order}/approve', [\App\Http\Controllers\OrderController::class, 'approve'])
             ->name('orders.approve');
-        Route::patch('orders/{order}/mark-as-ordered', [\App\Http\Controllers\CRM\OrderController::class, 'markAsOrdered'])
+        Route::patch('orders/{order}/mark-as-ordered', [\App\Http\Controllers\OrderController::class, 'markAsOrdered'])
             ->name('orders.mark-as-ordered');
-        Route::patch('orders/{order}/cancel', [\App\Http\Controllers\CRM\OrderController::class, 'cancel'])
+        Route::patch('orders/{order}/cancel', [\App\Http\Controllers\OrderController::class, 'cancel'])
             ->name('orders.cancel');
 
         // Order Arrivals Routes
-        Route::post('orders/{order}/arrivals/process', [App\Http\Controllers\CRM\OrderArrivalController::class, 'processArrival'])
+        Route::post('orders/{order}/arrivals/process', [\App\Http\Controllers\OrderArrivalController::class, 'processArrival'])
             ->name('orders.arrivals.process');
-        Route::get('orders/{order}/arrivals/data', [App\Http\Controllers\CRM\OrderArrivalController::class, 'getArrivalData'])
+        Route::get('orders/{order}/arrivals/data', [\App\Http\Controllers\OrderArrivalController::class, 'getArrivalData'])
             ->name('orders.arrivals.data');
 
         // CRM Devices Routes
-        Route::resource('devices', \App\Http\Controllers\CRM\DeviceController::class);
-        Route::patch('devices/{device}/update-stock', [\App\Http\Controllers\CRM\DeviceController::class, 'updateStock'])
+        Route::resource('devices', \App\Http\Controllers\DeviceController::class);
+        Route::patch('devices/{device}/update-stock', [\App\Http\Controllers\DeviceController::class, 'updateStock'])
             ->name('devices.update-stock');
 
         // API Routes for autocomplete
-        Route::get('api/suppliers/search', [\App\Http\Controllers\CRM\SupplierController::class, 'searchSuppliers'])
+        Route::get('api/suppliers/search', [\App\Http\Controllers\SupplierController::class, 'searchSuppliers'])
             ->name('api.suppliers.search');
-        Route::get('api/devices/search', [\App\Http\Controllers\CRM\DeviceController::class, 'searchDevices'])
+        Route::get('api/devices/search', [\App\Http\Controllers\DeviceController::class, 'searchDevices'])
             ->name('api.devices.search');
     });
 });
