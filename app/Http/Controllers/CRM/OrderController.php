@@ -1,15 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\CRM;
 
+use App\Http\Controllers\Controller;
+use App\Models\Device;
 use App\Models\Order;
 use App\Models\Supplier;
-use App\Models\Device;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class OrderController extends Controller
 {
@@ -276,13 +275,13 @@ class OrderController extends Controller
         if (isset($validated['devices'])) {
             // Detach all existing devices
             $order->devices()->detach();
-            
+
             // Attach new devices
             foreach ($validated['devices'] as $deviceData) {
                 $htPrice = $deviceData['ht_price'];
                 $qtyOrdered = $deviceData['qty_ordered'];
                 $tvaRate = $deviceData['tva_rate'];
-                
+
                 // Calculate TVA and TTC prices per unit (not total)
                 $tvaPrice = ($htPrice * $tvaRate) / 100;
                 $ttcPrice = $htPrice + $tvaPrice;
@@ -313,7 +312,7 @@ class OrderController extends Controller
     {
         // Detach all devices (removes pivot table entries)
         $order->devices()->detach();
-        
+
         // Check if order has related arrivals
         if ($order->arrivals()->count() > 0) {
             return back()->with('error', 'Cannot delete order with related arrivals. Please remove arrivals first.');
