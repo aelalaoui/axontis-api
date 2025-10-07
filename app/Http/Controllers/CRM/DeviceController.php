@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\CRM;
 
+use App\Http\Controllers\Controller;
 use App\Models\Device;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Validation\Rule;
 
 class DeviceController extends Controller
 {
@@ -185,7 +185,7 @@ class DeviceController extends Controller
         if (empty($search) || strlen(trim($search)) < 2) {
             return response()->json([]);
         }
-        
+
         $devices = Device::where(function ($query) use ($search) {
             $query->where('brand', 'like', "%{$search}%")
                   ->orWhere('model', 'like', "%{$search}%")

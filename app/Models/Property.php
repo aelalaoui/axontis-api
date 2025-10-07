@@ -59,10 +59,10 @@ class Property extends Model
         $lowercaseValue = strtolower(trim((string) $value));
 
         // Valeurs considérées comme true
-        $trueValues = ['true', 'vrai', 'oui', 'yes', '1', 'on', 'enabled', 'actif'];
+        $trueValues = ['true', 'vrai', 'oui', 'yes', 'on', 'enabled', 'actif'];
 
         // Valeurs considérées comme false
-        $falseValues = ['false', 'faux', 'non', 'no', '0', 'off', 'disabled', 'inactif'];
+        $falseValues = ['false', 'faux', 'non', 'no', 'off', 'disabled', 'inactif'];
 
         if (in_array($lowercaseValue, $trueValues)) {
             return true;
@@ -121,12 +121,12 @@ class Property extends Model
 
         // Booléens en français et anglais
         $lowercaseValue = strtolower(trim($value));
-        if (in_array($lowercaseValue, ['true', 'false', 'vrai', 'faux', 'oui', 'non', 'yes', 'no', '1', '0'])) {
+        if (in_array($lowercaseValue, ['true', 'false', 'vrai', 'faux', 'oui', 'non', 'yes', 'no'])) {
             return 'boolean';
         }
 
         // Nombres entiers (y compris négatifs)
-        if (preg_match('/^-?\d+$/', $value)) {
+        if (preg_match('/^\s*[+-]?\d+\s*$/', (string)$value)) {
             return 'integer';
         }
 
