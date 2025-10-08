@@ -226,6 +226,7 @@ const appName = computed(() => usePage().props.appName || 'Axontis CRM')
      { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-home' },
      { name: 'Clients', href: '/clients', icon: 'fas fa-users', badge: '12' },
      { name: 'Contracts', href: '/contracts', icon: 'fas fa-file-contract' },
+     { name: 'Products', href: '/crm/products', icon: 'fas fa-box' },
      { name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart', badge: '3' },
      { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
      { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
@@ -273,7 +274,7 @@ const logout = () => {
 const addToast = (toast) => {
     const id = Date.now()
     toasts.value.push({ ...toast, id })
-    
+
     // Auto remove after 5 seconds
     setTimeout(() => {
         removeToast(id)
