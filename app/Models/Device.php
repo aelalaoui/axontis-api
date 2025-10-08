@@ -39,20 +39,20 @@ class Device extends Model
     public function orders(): BelongsToMany
     {
         return $this->belongsToMany(Order::class, 'order_device')
-                    ->withPivot([
-                        'id',
-                        'supplier_id',
-                        'ht_price',
-                        'tva_rate',
-                        'tva_price',
-                        'ttc_price',
-                        'qty_ordered',
-                        'qty_received',
-                        'status',
-                        'expected_delivery_date',
-                        'notes'
-                    ])
-                    ->withTimestamps();
+            ->withPivot([
+                'id',
+                'supplier_id',
+                'ht_price',
+                'tva_rate',
+                'tva_price',
+                'ttc_price',
+                'qty_ordered',
+                'qty_received',
+                'status',
+                'expected_delivery_date',
+                'notes'
+            ])
+            ->withTimestamps();
     }
 
     public function orderDevices(): HasMany
@@ -63,26 +63,36 @@ class Device extends Model
     public function tasks(): BelongsToMany
     {
         return $this->belongsToMany(Task::class, 'task_devices')
-                    ->using(TaskDevice::class)
-                    ->withPivot([
-                        'id',
-                        'ht_price',
-                        'tva_price',
-                        'ttc_price',
-                        'serial_number',
-                        'inventory_number',
-                        'status',
-                        'assigned_date',
-                        'installation_date',
-                        'return_date',
-                        'notes'
-                    ])
-                    ->withTimestamps();
+            ->using(TaskDevice::class)
+            ->withPivot([
+                'id',
+                'ht_price',
+                'tva_price',
+                'ttc_price',
+                'serial_number',
+                'inventory_number',
+                'status',
+                'assigned_date',
+                'installation_date',
+                'return_date',
+                'notes'
+            ])
+            ->withTimestamps();
     }
 
     public function taskDevices(): HasMany
     {
         return $this->hasMany(TaskDevice::class);
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class, 'device_uuid', 'uuid');
+    }
+
+    public function devicePrices(): HasMany
+    {
+        return $this->hasMany(DevicePrice::class, 'device_uuid', 'uuid');
     }
 
     // Scopes
