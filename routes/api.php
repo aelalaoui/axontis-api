@@ -22,3 +22,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->post('/client/new', [ClientController::class, 'create']);
 Route::middleware('auth:sanctum')->put('/client/{uuid}/step/{step}', [ClientController::class, 'updateStep']);
 Route::middleware('auth:sanctum')->post('/client/{uuid}/store-criterias', [ClientController::class, 'storeCriterias']);
+Route::middleware('auth:sanctum')->get('/client/{uuid}/property/{property}/value/{value}/offer', [ClientController::class, 'calculateOffer']);
