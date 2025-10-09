@@ -95,13 +95,24 @@
                         >
                             <div class="flex justify-between items-start mb-4">
                                 <h4 class="text-lg font-medium text-white">Sub-Product #{{ index + 1 }}</h4>
-                                <button
-                                    @click="removeSubProduct(index)"
-                                    type="button"
-                                    class="text-red-400 hover:text-red-300 transition-colors duration-200"
-                                >
-                                    <i class="fas fa-times"></i>
-                                </button>
+                                <div class="flex space-x-2">
+                                    <button
+                                        @click="duplicateSubProduct(index)"
+                                        type="button"
+                                        class="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+                                        title="Duplicate sub-product"
+                                    >
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button
+                                        @click="removeSubProduct(index)"
+                                        type="button"
+                                        class="text-red-400 hover:text-red-300 transition-colors duration-200"
+                                        title="Remove sub-product"
+                                    >
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -391,6 +402,21 @@ const removeDevice = (index) => {
     form.sub_products[index].selected_device = null
     form.sub_products[index].device_search = ''
     form.sub_products[index].device_uuid = null
+}
+
+const duplicateSubProduct = (index) => {
+    const subProductToDuplicate = form.sub_products[index]
+    const duplicatedSubProduct = {
+        ...subProductToDuplicate,
+        id: null, // Clear ID for new sub-product
+        name: `${subProductToDuplicate.name} - Copy`,
+        // Keep device information from original
+        device_uuid: subProductToDuplicate.device_uuid,
+        device_search: subProductToDuplicate.device_search,
+        selected_device: subProductToDuplicate.selected_device
+    }
+
+    form.sub_products.splice(index + 1, 0, duplicatedSubProduct)
 }
 
 // Hide search results when clicking outside

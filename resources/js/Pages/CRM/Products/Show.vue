@@ -11,13 +11,13 @@
                     </p>
                 </div>
                 <div class="flex space-x-3">
-                    <Link :href="route('crm.products.index')" class="btn-secondary">
-                        <i class="fas fa-arrow-left mr-2"></i>
-                        Back to Products
-                    </Link>
-                    <Link :href="route('crm.products.edit', product.id)" class="btn-axontis">
+                    <Link :href="route('crm.products.edit', product.id)" class="btn-axontis-secondary">
                         <i class="fas fa-edit mr-2"></i>
                         Edit Product
+                    </Link>
+                    <Link :href="route('crm.products.index')" class="btn-axontis">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Products
                     </Link>
                 </div>
             </div>
