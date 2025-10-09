@@ -65,7 +65,7 @@ Route::middleware([
             ->name('devices.update-stock');
 
         // CRM Products Routes
-        Route::resource('products', \App\Http\Controllers\CRM\ProductController::class);
+        Route::resource('products', \App\Http\Controllers\ProductController::class);
 
         // API Routes for autocomplete
         Route::get('api/suppliers/search', [\App\Http\Controllers\SupplierController::class, 'searchSuppliers'])

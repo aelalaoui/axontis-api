@@ -309,7 +309,7 @@
                                 id="order_date"
                                 v-model="form.order_date"
                                 type="date"
-                                class="mt-1 block w-full"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 required
                             />
                             <InputError class="mt-2" :message="form.errors.order_date" />
@@ -324,7 +324,7 @@
                                 id="expected_delivery_date"
                                 v-model="form.expected_delivery_date"
                                 type="date"
-                                class="mt-1 block w-full"
+                                class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
                             <InputError class="mt-2" :message="form.errors.expected_delivery_date" />
                         </div>

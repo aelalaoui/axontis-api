@@ -1,13 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\CRM;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Product;
 use App\Models\Device;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
@@ -264,6 +262,12 @@ class ProductController extends Controller
     {
         $childrenCount = $product->children()->count();
 
+        // Delete all children products first
+        if ($childrenCount > 0) {
+            $product->children()->delete();
+        }
+
+        // Then delete the parent product
         $product->delete();
 
         $message = $childrenCount > 0

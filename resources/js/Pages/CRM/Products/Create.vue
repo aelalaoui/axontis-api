@@ -8,39 +8,32 @@
                     <p class="text-gray-400 mt-1">Configure product details, sub-products and device associations</p>
                 </div>
                 <div class="flex space-x-3">
-                    <Link :href="route('crm.products.index')" class="btn-secondary">
-                        <i class="fas fa-times mr-2"></i>
-                        Cancel
+                    <Link :href="route('crm.products.index')" class="btn-axontis-secondary">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Products
                     </Link>
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="btn-axontis"
-                    >
-                        <i class="fas fa-save mr-2"></i>
-                        {{ form.processing ? 'Saving...' : 'Save Product' }}
-                    </button>
                 </div>
             </div>
 
             <!-- Main Product Information -->
             <AxontisCard title="Product Information">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Product Name -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Product Name <span class="text-red-400">*</span>
-                        </label>
-                        <input
-                            v-model="form.name"
-                            type="text"
-                            required
-                            class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            placeholder="Enter product name"
-                        />
-                        <div v-if="form.errors.name" class="text-red-400 text-sm mt-1">{{ form.errors.name }}</div>
-                    </div>
+                <!-- Product Name - Full Width -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                        Product Name <span class="text-red-400">*</span>
+                    </label>
+                    <input
+                        v-model="form.name"
+                        type="text"
+                        required
+                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        placeholder="Enter product name"
+                    />
+                    <div v-if="form.errors.name" class="text-red-400 text-sm mt-1">{{ form.errors.name }}</div>
+                </div>
 
+                <!-- Property Name and Default Value - Same Line -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Property Name -->
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -56,7 +49,7 @@
                     </div>
 
                     <!-- Default Value -->
-                    <div class="md:col-span-2">
+                    <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">
                             Default Value
                         </label>
@@ -68,44 +61,6 @@
                         />
                         <p class="text-xs text-gray-400 mt-1">Optional default value for the property</p>
                         <div v-if="form.errors.default_value" class="text-red-400 text-sm mt-1">{{ form.errors.default_value }}</div>
-                    </div>
-                </div>
-
-                <!-- Formulas -->
-                <div class="mt-6">
-                    <h3 class="text-lg font-medium text-white mb-4">Default Prices</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Caution Price -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">
-                                Caution Price
-                            </label>
-                            <input
-                                v-model="form.caution_price"
-                                type="number"
-                                step="0.01"
-                                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                placeholder="Enter caution price (e.g., 99.99)"
-                            />
-                            <p class="text-xs text-gray-400 mt-1">Enter the caution price amount</p>
-                            <div v-if="form.errors.caution_price" class="text-red-400 text-sm mt-1">{{ form.errors.caution_price }}</div>
-                        </div>
-
-                        <!-- Subscription Price -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">
-                                Subscription Price
-                            </label>
-                            <input
-                                v-model="form.subscription_price"
-                                type="number"
-                                step="0.01"
-                                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                placeholder="Enter subscription price (e.g., 29.99)"
-                            />
-                            <p class="text-xs text-gray-400 mt-1">Enter the monthly subscription price</p>
-                            <div v-if="form.errors.subscription_price" class="text-red-400 text-sm mt-1">{{ form.errors.subscription_price }}</div>
-                        </div>
                     </div>
                 </div>
             </AxontisCard>
@@ -276,6 +231,25 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <!-- Form Actions -->
+                <div class="flex items-center justify-end space-x-4 mt-8 pt-6 border-t border-gray-700">
+                    <Link
+                        :href="route('crm.products.index')"
+                        class="btn-axontis-secondary"
+                    >
+                        Cancel
+                    </Link>
+                    <button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="btn-axontis"
+                        :class="{ 'opacity-50 cursor-not-allowed': form.processing }"
+                    >
+                        <i v-if="form.processing" class="fas fa-spinner fa-spin mr-2"></i>
+                        <i v-else class="fas fa-save mr-2"></i>
+                        {{ form.processing ? 'Saving...' : 'Save Product' }}
+                    </button>
                 </div>
             </AxontisCard>
         </form>

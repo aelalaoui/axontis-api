@@ -203,50 +203,45 @@
         </div>
 
         <!-- Delete Confirmation Modal -->
-        <AxontisModal :show="showDeleteModal" @close="showDeleteModal = false">
-            <div class="p-6">
-                <div class="flex items-center mb-4">
-                    <div class="w-12 h-12 bg-red-900 rounded-full flex items-center justify-center mr-4">
-                        <i class="fas fa-exclamation-triangle text-red-300 text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-medium text-white">Delete Product</h3>
-                        <p class="text-gray-400">This action cannot be undone.</p>
-                    </div>
-                </div>
+        <ConfirmationModal :show="showDeleteModal" @close="showDeleteModal = false">
+            <template #title>
+                Delete Product
+            </template>
 
-                <p class="text-gray-300 mb-6">
-                    Are you sure you want to delete "<strong>{{ productToDelete?.name }}</strong>"?
-                    <span v-if="!productToDelete?.id_parent && productToDelete?.children_count > 0" class="text-yellow-400">
-                        This will also delete {{ productToDelete.children_count }} sub-products.
-                    </span>
-                </p>
+            <template #content>
+                Are you sure you want to delete <strong>{{ productToDelete?.name }}</strong>?
+                <span v-if="!productToDelete?.id_parent && productToDelete?.children_count > 0" class="block mt-2 text-yellow-400">
+                    This will also delete {{ productToDelete.children_count }} sub-products.
+                </span>
+                This action cannot be undone.
+            </template>
 
-                <div class="flex justify-end space-x-3">
-                    <button
-                        @click="showDeleteModal = false"
-                        class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors duration-200"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        @click="deleteProduct"
-                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
-                    >
-                        Delete
-                    </button>
-                </div>
-            </div>
-        </AxontisModal>
+            <template #footer>
+                <SecondaryButton @click="showDeleteModal = false">
+                    Cancel
+                </SecondaryButton>
+
+                <DangerButton
+                    class="ml-3"
+                    :class="{ 'opacity-25': deleteForm.processing }"
+                    :disabled="deleteForm.processing"
+                    @click="deleteProduct"
+                >
+                    Delete Product
+                </DangerButton>
+            </template>
+        </ConfirmationModal>
     </AxontisDashboardLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
-import AxontisModal from '@/Components/AxontisModal.vue'
+import ConfirmationModal from '@/Components/ConfirmationModal.vue'
+import SecondaryButton from '@/Components/SecondaryButton.vue'
+import DangerButton from '@/Components/DangerButton.vue'
 
 const props = defineProps({
     products: Object,
@@ -259,6 +254,9 @@ const typeFilter = ref(props.filters.type || '')
 const deviceStatusFilter = ref(props.filters.device_status || '')
 const showDeleteModal = ref(false)
 const productToDelete = ref(null)
+
+// Forms
+const deleteForm = useForm({})
 
 // Methods
 const handleSearch = () => {
@@ -289,7 +287,7 @@ const confirmDelete = (product) => {
 }
 
 const deleteProduct = () => {
-    router.delete(route('crm.products.destroy', productToDelete.value.id), {
+    deleteForm.delete(route('crm.products.destroy', productToDelete.value.id), {
         onSuccess: () => {
             showDeleteModal.value = false
             productToDelete.value = null
