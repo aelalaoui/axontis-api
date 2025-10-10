@@ -231,7 +231,7 @@ const appName = computed(() => usePage().props.appName || 'Axontis CRM')
      { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
      { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
      { name: 'Communications', href: '/communications', icon: 'fas fa-comments' },
-     { name: 'Files', href: '/files', icon: 'fas fa-folder' },
+     { name: 'Files', href: '/crm/files', icon: 'fas fa-folder' },
      { name: 'Reports', href: '/reports', icon: 'fas fa-chart-bar' },
  ])
 
