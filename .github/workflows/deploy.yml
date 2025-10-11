@@ -93,7 +93,7 @@ jobs:
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}'; /bin/bash" << 'EOF'
+          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}' CLOUDFLARE_R2_ACCESS_KEY_ID='${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}' CLOUDFLARE_R2_SECRET_ACCESS_KEY='${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}' CLOUDFLARE_R2_BUCKET='${{ secrets.CLOUDFLARE_R2_BUCKET }}' CLOUDFLARE_R2_ENDPOINT='${{ secrets.CLOUDFLARE_R2_ENDPOINT }}' CLOUDFLARE_R2_URL='${{ secrets.CLOUDFLARE_R2_URL }}'; /bin/bash" << 'EOF'
           set -e
 
           # Debug environment
@@ -102,11 +102,11 @@ jobs:
           echo "Current user: $(whoami)"
           echo "Home directory: $HOME"
           echo "Hostinger User ID: $HOSTINGER_USER_ID"
-          
+
           # Check if the hostinger path exists
           HOSTINGER_PATH="/home/${HOSTINGER_USER_ID}"
           echo "Checking Hostinger path: $HOSTINGER_PATH"
-          
+
           if [ -d "$HOSTINGER_PATH" ]; then
             echo "✅ Hostinger path exists"
             BASE_PATH="$HOSTINGER_PATH"
@@ -114,11 +114,11 @@ jobs:
             echo "❌ Hostinger path doesn't exist, using HOME: $HOME"
             BASE_PATH="$HOME"
           fi
-          
+
           # Use relative paths from base directory
           APP_DIR="domains/axontis.net/apps/axontis"
           WEB_DIR="domains/axontis.net/public_html"
-          
+
           # Get absolute paths
           APP_PATH="$BASE_PATH/$APP_DIR"
           WEB_PATH="$BASE_PATH/$WEB_DIR"
@@ -126,14 +126,14 @@ jobs:
           echo "BASE_PATH: $BASE_PATH"
           echo "APP_PATH: $APP_PATH"
           echo "WEB_PATH: $WEB_PATH"
-          
+
           # Create directories in both locations if needed
           mkdir -p "$HOME/$APP_DIR" "$HOME/$WEB_DIR"
           if [ "$BASE_PATH" != "$HOME" ]; then
             mkdir -p "$APP_PATH" "$WEB_PATH"
           fi
           echo "✅ Created directories"
-          
+
           # Change to app directory (use HOME path for operations)
           cd "$HOME/$APP_DIR"
           echo "Changed to directory: $(pwd)"
@@ -167,6 +167,16 @@ jobs:
           sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" .env
           echo "✅ Database configuration updated"
 
+          # Configure Cloudflare R2 storage
+          echo "=== CLOUDFLARE R2 CONFIGURATION ==="
+          sed -i 's/FILESYSTEM_DISK=.*/FILESYSTEM_DISK=r2/' .env
+          sed -i "s/CLOUDFLARE_R2_ACCESS_KEY_ID=.*/CLOUDFLARE_R2_ACCESS_KEY_ID=$CLOUDFLARE_R2_ACCESS_KEY_ID/" .env
+          sed -i "s/CLOUDFLARE_R2_SECRET_ACCESS_KEY=.*/CLOUDFLARE_R2_SECRET_ACCESS_KEY=$CLOUDFLARE_R2_SECRET_ACCESS_KEY/" .env
+          sed -i "s/CLOUDFLARE_R2_BUCKET=.*/CLOUDFLARE_R2_BUCKET=$CLOUDFLARE_R2_BUCKET/" .env
+          sed -i "s|CLOUDFLARE_R2_ENDPOINT=.*|CLOUDFLARE_R2_ENDPOINT=$CLOUDFLARE_R2_ENDPOINT|" .env
+          sed -i "s|CLOUDFLARE_R2_URL=.*|CLOUDFLARE_R2_URL=$CLOUDFLARE_R2_URL|" .env
+          echo "✅ Cloudflare R2 configuration updated"
+
           # Migrations
           echo "=== RUNNING MIGRATIONS ==="
           php artisan migrate --force || echo "⚠️ Migration failed or no migrations to run"
@@ -190,21 +200,21 @@ jobs:
 
           # Go back to home directory for web operations
           cd $HOME
-          
+
           # Copy Laravel public files to web root (use HOME path)
           echo "=== COPYING PUBLIC FILES ==="
-          
+
           # Copy .htaccess
           if [ -f "$HOME/$APP_DIR/public/.htaccess" ]; then
             cp "$HOME/$APP_DIR/public/.htaccess" "$HOME/$WEB_DIR/" && echo "✅ .htaccess copied" || echo "❌ Failed to copy .htaccess"
           fi
-          
+
           # Copy build assets
           if [ -d "$HOME/$APP_DIR/public/build" ]; then
             mkdir -p "$HOME/$WEB_DIR/build"
             cp -r "$HOME/$APP_DIR/public/build"/* "$HOME/$WEB_DIR/build/" && echo "✅ Build assets copied" || echo "❌ Failed to copy build assets"
           fi
-          
+
           # Copy other public assets
           for dir in css js images; do
             if [ -d "$HOME/$APP_DIR/public/$dir" ]; then
@@ -249,7 +259,7 @@ jobs:
           # Create debug files using the Hostinger path
           echo "=== CREATING DEBUG FILES ==="
           echo "<?php phpinfo(); ?>" > "$HOME/$WEB_DIR/info.php"
-          
+
           echo '<?php' > "$HOME/$WEB_DIR/test-laravel.php"
           echo 'error_reporting(E_ALL);' >> "$HOME/$WEB_DIR/test-laravel.php"
           echo 'ini_set("display_errors", 1);' >> "$HOME/$WEB_DIR/test-laravel.php"
@@ -280,12 +290,12 @@ jobs:
           echo "=== FINAL VERIFICATION ==="
           echo "Files in HOME web directory:"
           ls -la "$HOME/$WEB_DIR/"
-          
+
           if [ "$BASE_PATH" != "$HOME" ]; then
             echo "Files in Hostinger web directory:"
             ls -la "$WEB_PATH/" || echo "❌ Cannot access Hostinger web directory"
           fi
-          
+
           echo "Content of index.php:"
           cat "$HOME/$WEB_DIR/index.php"
 
