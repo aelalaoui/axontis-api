@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Application Name
@@ -170,6 +169,7 @@ return [
         App\Providers\RouteServiceProvider::class,
         App\Providers\FortifyServiceProvider::class,
         App\Providers\JetstreamServiceProvider::class,
+        App\Providers\FileRouteServiceProvider::class,
     ])->toArray(),
 
     /*

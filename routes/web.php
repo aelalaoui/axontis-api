@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 /*
@@ -14,6 +15,9 @@ use Inertia\Inertia;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+// Register route macros for file management
+require_once app_path('Http/Middleware/RegisterRouteMacros.php');
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -38,29 +42,21 @@ Route::middleware([
         return Inertia::render('AxontisDashboard');
     })->name('crm.dashboard');
 
-    // CRM Suppliers Routes
+    // CRM Routes
     Route::prefix('crm')->name('crm.')->group(function () {
-        // Files Routes - moved to CRM
-        Route::prefix('files')->name('files.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\FileController::class, 'index'])->name('index');
-            Route::get('/create', [\App\Http\Controllers\FileController::class, 'create'])->name('create');
-            Route::post('/', [\App\Http\Controllers\FileController::class, 'store'])->name('store');
-            Route::get('/{file}', [\App\Http\Controllers\FileController::class, 'show'])->name('show');
-            Route::get('/{file}/edit', [\App\Http\Controllers\FileController::class, 'edit'])->name('edit');
-            Route::put('/{file}', [\App\Http\Controllers\FileController::class, 'update'])->name('update');
-            Route::delete('/{file}', [\App\Http\Controllers\FileController::class, 'destroy'])->name('destroy');
-            Route::get('/{file}/download', [\App\Http\Controllers\FileController::class, 'download'])->name('download');
-            Route::get('/{file}/view', [\App\Http\Controllers\FileController::class, 'view'])->name('view');
-            Route::post('/upload-multiple', [\App\Http\Controllers\FileController::class, 'uploadMultiple'])->name('upload-multiple');
-        });
+        // Generic Files Routes - Central file management
+        Route::resource('files', \App\Http\Controllers\FileController::class);
+        Route::get('files/{file}/download', [\App\Http\Controllers\FileController::class, 'download'])->name('files.download');
+        Route::get('files/{file}/view', [\App\Http\Controllers\FileController::class, 'view'])->name('files.view');
+        Route::post('files/upload-multiple', [\App\Http\Controllers\FileController::class, 'uploadMultiple'])->name('files.upload-multiple');
 
-        // CRM Suppliers Routes
-        Route::resource('suppliers', \App\Http\Controllers\SupplierController::class);
+        // CRM Suppliers Routes with file management
+        Route::resourceWithFiles('suppliers', \App\Http\Controllers\SupplierController::class);
         Route::patch('suppliers/{supplier}/toggle-status', [\App\Http\Controllers\SupplierController::class, 'toggleStatus'])
             ->name('suppliers.toggle-status');
 
-        // CRM Orders Routes
-        Route::resource('orders', \App\Http\Controllers\OrderController::class);
+        // CRM Orders Routes with file management
+        Route::resourceWithFiles('orders', \App\Http\Controllers\OrderController::class);
         Route::patch('orders/{order}/approve', [\App\Http\Controllers\OrderController::class, 'approve'])
             ->name('orders.approve');
         Route::patch('orders/{order}/mark-as-ordered', [\App\Http\Controllers\OrderController::class, 'markAsOrdered'])
@@ -74,24 +70,26 @@ Route::middleware([
         Route::get('orders/{order}/arrivals/data', [\App\Http\Controllers\OrderArrivalController::class, 'getArrivalData'])
             ->name('orders.arrivals.data');
 
-        // CRM Devices Routes
-        Route::resource('devices', \App\Http\Controllers\DeviceController::class);
+        // CRM Devices Routes with file management
+        Route::resourceWithFiles('devices', \App\Http\Controllers\DeviceController::class);
         Route::patch('devices/{device}/update-stock', [\App\Http\Controllers\DeviceController::class, 'updateStock'])
             ->name('devices.update-stock');
-        Route::delete('devices/{device}/documents/{file}', [\App\Http\Controllers\DeviceController::class, 'deleteDocument'])
-            ->name('devices.documents.delete');
-        Route::patch('devices/{device}/documents/{file}/rename', [\App\Http\Controllers\DeviceController::class, 'renameDocument'])
-            ->name('devices.documents.rename');
-        Route::post('devices/{device}/documents/upload', [\App\Http\Controllers\DeviceController::class, 'uploadDocument'])
-            ->name('devices.documents.upload');
 
-        // CRM Products Routes
-        Route::resource('products', \App\Http\Controllers\ProductController::class);
+        // CRM Products Routes with file management
+        Route::resourceWithFiles('products', \App\Http\Controllers\ProductController::class);
 
-        // API Routes for autocomplete
-        Route::get('api/suppliers/search', [\App\Http\Controllers\SupplierController::class, 'searchSuppliers'])
-            ->name('api.suppliers.search');
-        Route::get('api/devices/search', [\App\Http\Controllers\DeviceController::class, 'searchDevices'])
-            ->name('api.devices.search');
+        // API Routes for autocomplete and search
+        Route::prefix('api')->name('api.')->group(function () {
+            Route::get('suppliers/search', [\App\Http\Controllers\SupplierController::class, 'searchSuppliers'])
+                ->name('suppliers.search');
+            Route::get('devices/search', [\App\Http\Controllers\DeviceController::class, 'searchDevices'])
+                ->name('devices.search');
+
+            // Generic API file routes
+            Route::apiFileRoutes('suppliers', \App\Http\Controllers\SupplierController::class);
+            Route::apiFileRoutes('devices', \App\Http\Controllers\DeviceController::class);
+            Route::apiFileRoutes('products', \App\Http\Controllers\ProductController::class);
+            Route::apiFileRoutes('orders', \App\Http\Controllers\OrderController::class);
+        });
     });
 });

@@ -15,27 +15,27 @@
                 </div>
             </div>
 
-            <!-- Main Product Information -->
-            <AxontisCard title="Product Information">
-                <!-- Product Name - Full Width -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-300 mb-2">
-                        Product Name <span class="text-red-400">*</span>
-                    </label>
-                    <input
-                        v-model="form.name"
-                        type="text"
-                        required
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="Enter product name"
-                    />
-                    <div v-if="form.errors.name" class="text-red-400 text-sm mt-1">{{ form.errors.name }}</div>
-                </div>
+            <!-- Main Product Information and Documents - Side by Side -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Product Information -->
+                <AxontisCard title="Product Information">
+                    <!-- Product Name - Full Width -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Product Name <span class="text-red-400">*</span>
+                        </label>
+                        <input
+                            v-model="form.name"
+                            type="text"
+                            required
+                            class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="Enter product name"
+                        />
+                        <div v-if="form.errors.name" class="text-red-400 text-sm mt-1">{{ form.errors.name }}</div>
+                    </div>
 
-                <!-- Property Name and Default Value - Same Line -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Property Name -->
-                    <div>
+                    <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-300 mb-2">
                             Property Name
                         </label>
@@ -62,8 +62,62 @@
                         <p class="text-xs text-gray-400 mt-1">Optional default value for the property</p>
                         <div v-if="form.errors.default_value" class="text-red-400 text-sm mt-1">{{ form.errors.default_value }}</div>
                     </div>
-                </div>
-            </AxontisCard>
+                </AxontisCard>
+
+                <!-- Documents Upload Section -->
+                <AxontisCard title="Documents">
+                    <div class="space-y-4">
+                        <p class="text-gray-400 text-sm">Upload documents related to this product (PDF, DOC, XLS, etc.)</p>
+
+                        <!-- File Upload Area -->
+                        <div class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-gray-500 transition-colors">
+                            <input
+                                ref="fileInput"
+                                type="file"
+                                multiple
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.ppt,.pptx"
+                                @change="handleFileUpload"
+                                class="hidden"
+                            />
+                            <div @click="$refs.fileInput.click()" class="cursor-pointer">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-500 mb-4"></i>
+                                <p class="text-white font-medium mb-2">Cliquez pour sélectionner des documents</p>
+                                <p class="text-gray-400 text-sm">Ou glissez-déposez vos fichiers ici</p>
+                                <p class="text-gray-500 text-xs mt-2">
+                                    Formats supportés: PDF, DOC, DOCX, XLS, XLSX, TXT, CSV, PPT, PPTX (max 10MB par fichier)
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Selected Files List -->
+                        <div v-if="selectedFiles.length > 0" class="space-y-2">
+                            <h4 class="text-sm font-medium text-gray-300">Fichiers sélectionnés:</h4>
+                            <div class="space-y-2">
+                                <div
+                                    v-for="(file, index) in selectedFiles"
+                                    :key="index"
+                                    class="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700"
+                                >
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-file text-blue-400"></i>
+                                        <div>
+                                            <p class="text-white text-sm font-medium">{{ file.name }}</p>
+                                            <p class="text-gray-400 text-xs">{{ formatFileSize(file.size) }}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        @click="removeFile(index)"
+                                        type="button"
+                                        class="text-red-400 hover:text-red-300 transition-colors"
+                                    >
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </AxontisCard>
+            </div>
 
             <!-- Sub-Products Configuration -->
             <AxontisCard title="Sub-Products Configuration">
@@ -283,6 +337,7 @@ const showDeviceResults = ref({})
 const deviceSearchResults = ref({})
 const searchTimeout = ref(null)
 const activeSearchIndex = ref(null)
+const selectedFiles = ref([])
 
 // Form data
 const form = useForm({
@@ -291,6 +346,7 @@ const form = useForm({
     default_value: '',
     caution_price: null,
     subscription_price: null,
+    documents: [],
     sub_products: []
 })
 
@@ -433,5 +489,45 @@ const handleClickOutside = (event) => {
             activeSearchIndex.value = null
         }, 150)
     }
+}
+
+// File upload methods
+const handleFileUpload = (event) => {
+    const files = Array.from(event.target.files)
+
+    files.forEach(file => {
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            alert(`Le fichier ${file.name} est trop volumineux. Taille maximum: 10MB`)
+            return
+        }
+
+        // Check if file already exists
+        const exists = selectedFiles.value.some(f => f.name === file.name && f.size === file.size)
+        if (!exists) {
+            selectedFiles.value.push(file)
+        }
+    })
+
+    // Update form data
+    form.documents = selectedFiles.value
+
+    // Reset input
+    event.target.value = ''
+}
+
+const removeFile = (index) => {
+    selectedFiles.value.splice(index, 1)
+    form.documents = selectedFiles.value
+}
+
+const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes'
+
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 </script>

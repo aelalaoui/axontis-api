@@ -22,69 +22,101 @@
                 </div>
             </div>
 
-            <!-- Product Information -->
-            <AxontisCard title="Product Information">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Product Name</label>
-                        <p class="text-white text-lg font-medium">{{ product.name }}</p>
-                    </div>
+            <!-- Product Information and Documents -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Product Information -->
+                <div class="lg:col-span-2">
+                    <AxontisCard title="Product Information">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Product Name</label>
+                                <p class="text-white text-lg font-medium">{{ product.name }}</p>
+                            </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Product Type</label>
-                        <span
-                            :class="{
-                                'bg-blue-900 text-blue-300': !product.id_parent,
-                                'bg-green-900 text-green-300': product.id_parent
-                            }"
-                            class="px-3 py-1 text-sm font-medium rounded-full"
-                        >
-                            {{ product.id_parent ? 'Sub-Product' : 'Parent Product' }}
-                        </span>
-                    </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Product Type</label>
+                                <span
+                                    :class="{
+                                        'bg-blue-900 text-blue-300': !product.id_parent,
+                                        'bg-green-900 text-green-300': product.id_parent
+                                    }"
+                                    class="px-3 py-1 text-sm font-medium rounded-full"
+                                >
+                                    {{ product.id_parent ? 'Sub-Product' : 'Parent Product' }}
+                                </span>
+                            </div>
 
-                    <div v-if="product.property_name">
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Property Name</label>
-                        <p class="text-white">{{ product.property_name }}</p>
-                    </div>
+                            <div v-if="product.property_name">
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Property Name</label>
+                                <p class="text-white">{{ product.property_name }}</p>
+                            </div>
 
-                    <div v-if="product.default_value">
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Default Value</label>
-                        <p class="text-white">{{ product.default_value }}</p>
-                        <p class="text-xs text-gray-500 mt-1">Default value for this property</p>
-                    </div>
+                            <div v-if="product.default_value">
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Default Value</label>
+                                <p class="text-white">{{ product.default_value }}</p>
+                                <p class="text-xs text-gray-500 mt-1">Default value for this property</p>
+                            </div>
 
-                    <div v-if="product.parent">
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Parent Product</label>
-                        <Link
-                            :href="route('crm.products.show', product.parent.id)"
-                            class="text-primary-400 hover:text-primary-300 transition-colors duration-200"
-                        >
-                            {{ product.parent.name }}
-                        </Link>
-                    </div>
-                </div>
-
-                <!-- Formulas -->
-                <div class="mt-8">
-                    <h3 class="text-lg font-medium text-white mb-4">Price Configuration</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-gray-800 p-4 rounded-lg">
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Caution Price</label>
-                            <div class="text-primary-300 bg-gray-900 px-3 py-1 rounded text-sm">
-                                {{ product.caution_price ? `€${product.caution_price.toFixed(2)}` : 'Not set' }}
+                            <div v-if="product.parent">
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Parent Product</label>
+                                <Link
+                                    :href="route('crm.products.show', product.parent.id)"
+                                    class="text-primary-400 hover:text-primary-300 transition-colors duration-200"
+                                >
+                                    {{ product.parent.name }}
+                                </Link>
                             </div>
                         </div>
 
-                        <div class="bg-gray-800 p-4 rounded-lg">
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Subscription Price</label>
-                            <div class="text-primary-300 bg-gray-900 px-3 py-1 rounded text-sm">
-                                {{ product.subscription_price ? `€${product.subscription_price.toFixed(2)}` : 'Not set' }}
+                        <!-- Price Configuration -->
+                        <div class="mt-8">
+                            <h3 class="text-lg font-medium text-white mb-4">Price Configuration</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Caution Price</label>
+                                    <div class="text-primary-300 bg-gray-900 px-3 py-1 rounded text-sm">
+                                        {{ product.caution_price ? `€${product.caution_price.toFixed(2)}` : 'Not set' }}
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Subscription Price</label>
+                                    <div class="text-primary-300 bg-gray-900 px-3 py-1 rounded text-sm">
+                                        {{ product.subscription_price ? `€${product.subscription_price.toFixed(2)}` : 'Not set' }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+
+                        <!-- Timestamps -->
+                        <div class="mt-6 pt-6 border-t border-gray-700">
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Created</label>
+                                    <p class="text-gray-300">{{ formatDate(product.created_at) }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Last Updated</label>
+                                    <p class="text-gray-300">{{ formatDate(product.updated_at) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </AxontisCard>
                 </div>
-            </AxontisCard>
+
+                <!-- Documents Section -->
+                <div class="space-y-6">
+                    <DocumentsSection
+                        :documents="product.documents || []"
+                        entity-type="product"
+                        :entity-id="product.uuid"
+                        empty-state-message="Commencez par ajouter des documents techniques, manuels ou certificats pour ce produit."
+                        @upload-document="handleUploadDocument"
+                        @delete-document="handleDeleteDocument"
+                        @rename-document="handleRenameDocument"
+                    />
+                </div>
+            </div>
 
             <!-- Associated Device -->
             <AxontisCard v-if="product.device" title="Associated Device">
@@ -198,35 +230,118 @@
                     </Link>
                 </div>
             </AxontisCard>
-
-            <!-- Timestamps -->
-            <AxontisCard title="Timestamps">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Created</label>
-                        <p class="text-white">{{ formatDate(product.created_at) }}</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Last Updated</label>
-                        <p class="text-white">{{ formatDate(product.updated_at) }}</p>
-                    </div>
-                </div>
-            </AxontisCard>
         </div>
+
+        <!-- Delete Document Confirmation Modal -->
+        <ConfirmationModal :show="showingDeleteDocumentModal" @close="closeDeleteDocumentModal">
+            <template #title>
+                Delete Document
+            </template>
+
+            <template #content>
+                Are you sure you want to delete this document? This action cannot be undone.
+            </template>
+
+            <template #footer>
+                <SecondaryButton @click="closeDeleteDocumentModal">
+                    Cancel
+                </SecondaryButton>
+
+                <DangerButton
+                    class="ml-3"
+                    :class="{ 'opacity-25': deleteDocumentForm.processing }"
+                    :disabled="deleteDocumentForm.processing"
+                    @click="confirmDeleteDocument"
+                >
+                    Delete Document
+                </DangerButton>
+            </template>
+        </ConfirmationModal>
     </AxontisDashboardLayout>
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3'
+import { ref } from 'vue'
+import { Link, useForm } from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
+import DocumentsSection from '@/Components/DocumentsSection.vue'
+import ConfirmationModal from '@/Components/ConfirmationModal.vue'
+import SecondaryButton from '@/Components/SecondaryButton.vue'
+import DangerButton from '@/Components/DangerButton.vue'
 
 const props = defineProps({
     product: Object
 })
 
+// Delete document modal
+const showingDeleteDocumentModal = ref(false)
+const deleteDocumentForm = useForm({})
+const fileToDelete = ref(null)
+
+const closeDeleteDocumentModal = () => {
+    showingDeleteDocumentModal.value = false
+    deleteDocumentForm.reset()
+    fileToDelete.value = null
+}
+
+const deleteDocument = (file) => {
+    // Store the file to delete
+    fileToDelete.value = file
+    // Open the confirmation modal
+    showingDeleteDocumentModal.value = true
+}
+
+const confirmDeleteDocument = () => {
+    if (fileToDelete.value) {
+        deleteDocumentForm.delete(route('crm.products.documents.delete', [props.product.id, fileToDelete.value.uuid]), {
+            onSuccess: () => {
+                closeDeleteDocumentModal()
+            },
+        })
+    }
+}
+
+// Document handlers for the DocumentsSection component
+const handleUploadDocument = ({ file, onSuccess, onError }) => {
+    const uploadForm = useForm({
+        document: file,
+    })
+
+    uploadForm.post(route('crm.products.documents.upload', props.product.id), {
+        onSuccess: () => {
+            onSuccess()
+            // Page will reload automatically with new document
+        },
+        onError: (errors) => {
+            onError(errors.document || 'Une erreur est survenue lors de l\'upload.')
+        }
+    })
+}
+
+const handleDeleteDocument = (file) => {
+    fileToDelete.value = file
+    showingDeleteDocumentModal.value = true
+}
+
+const handleRenameDocument = ({ file, newName, onSuccess, onError }) => {
+    const renameForm = useForm({
+        title: newName,
+    })
+
+    renameForm.patch(route('crm.products.documents.rename', [props.product.id, file.uuid]), {
+        onSuccess: () => {
+            onSuccess()
+        },
+        onError: (errors) => {
+            onError(errors.title || 'Une erreur est survenue lors du renommage.')
+        }
+    })
+}
+
 // Helper methods
 const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('fr-FR', {
         year: 'numeric',
         month: 'long',
