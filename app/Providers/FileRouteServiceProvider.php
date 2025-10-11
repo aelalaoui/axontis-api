@@ -13,7 +13,7 @@ class FileRouteServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->registerFileMacros();
     }
 
     /**
@@ -21,7 +21,7 @@ class FileRouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->registerFileMacros();
+        //
     }
 
     /**
