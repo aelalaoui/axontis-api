@@ -8,13 +8,9 @@
                     <p class="text-gray-400 mt-1">Update device information and stock levels</p>
                 </div>
                 <div class="flex space-x-3">
-                    <Link :href="route('crm.devices.show', device.uuid)" class="btn-secondary">
+                    <Link :href="route('crm.devices.show', device.uuid)" class="btn-axontis-secondary">
                         <i class="fas fa-eye mr-2"></i>
                         View Device
-                    </Link>
-                    <Link :href="route('crm.devices.index')" class="btn-secondary">
-                        <i class="fas fa-arrow-left mr-2"></i>
-                        Back to Devices
                     </Link>
                 </div>
             </div>
@@ -150,6 +146,54 @@
                         </div>
                     </div>
 
+                    <!-- Document Upload -->
+                    <div>
+                        <label for="document" class="block text-sm font-medium text-gray-300 mb-2">
+                            Add Document
+                        </label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-700 border-dashed rounded-lg hover:border-gray-600 transition-colors">
+                            <div class="space-y-1 text-center">
+                                <div v-if="!selectedFile">
+                                    <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
+                                    <div class="flex text-sm text-gray-400">
+                                        <label for="document" class="relative cursor-pointer bg-transparent rounded-md font-medium text-primary-400 hover:text-primary-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
+                                            <span>Upload a file</span>
+                                            <input
+                                                id="document"
+                                                name="document"
+                                                type="file"
+                                                class="sr-only"
+                                                @change="handleFileUpload"
+                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif"
+                                            />
+                                        </label>
+                                        <p class="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p class="text-xs text-gray-400">
+                                        PDF, DOC, XLS, PPT, images up to 10MB
+                                    </p>
+                                </div>
+                                <div v-else class="text-sm text-gray-300">
+                                    <i class="fas fa-file text-primary-400 mr-2"></i>
+                                    {{ selectedFile.name }}
+                                    <button
+                                        @click="removeFile"
+                                        type="button"
+                                        class="ml-2 text-red-400 hover:text-red-300"
+                                    >
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="form.errors.document" class="mt-1 text-sm text-red-400">
+                            {{ form.errors.document }}
+                        </div>
+                        <p class="mt-2 text-xs text-gray-400">
+                            Ajouter un nouveau document (optionnel)
+                        </p>
+                    </div>
+
                     <!-- Form Actions -->
                     <div class="flex justify-end space-x-3 pt-6 border-t border-gray-700">
                         <Link
@@ -226,6 +270,7 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3'
 import { Link } from '@inertiajs/vue3'
+import { ref } from 'vue'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 
@@ -234,6 +279,8 @@ const props = defineProps({
     categories: Array,
 })
 
+const selectedFile = ref(null)
+
 const form = useForm({
     brand: props.device.brand,
     model: props.device.model,
@@ -241,9 +288,30 @@ const form = useForm({
     description: props.device.description,
     stock_qty: props.device.stock_qty,
     min_stock_level: props.device.min_stock_level,
+    document: null,
+    _method: 'PATCH',
 })
 
+const handleFileUpload = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+        selectedFile.value = file
+        form.document = file
+    }
+}
+
+const removeFile = () => {
+    selectedFile.value = null
+    form.document = null
+    // Reset the file input
+    const fileInput = document.getElementById('document')
+    if (fileInput) {
+        fileInput.value = ''
+    }
+}
+
 const submit = () => {
-    form.patch(route('crm.devices.update', props.device.uuid))
+    // Use POST with _method PATCH to handle file uploads properly
+    form.post(route('crm.devices.update', props.device.uuid))
 }
 </script>

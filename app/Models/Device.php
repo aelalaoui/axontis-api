@@ -6,6 +6,7 @@ use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Device extends Model
 {
@@ -93,6 +94,11 @@ class Device extends Model
     public function devicePrices(): HasMany
     {
         return $this->hasMany(DevicePrice::class, 'device_uuid', 'uuid');
+    }
+
+    public function files(): MorphMany
+    {
+        return $this->morphMany(File::class, 'fileable', 'fileable_type', 'fileable_id', 'uuid');
     }
 
     // Scopes

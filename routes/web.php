@@ -78,6 +78,12 @@ Route::middleware([
         Route::resource('devices', \App\Http\Controllers\DeviceController::class);
         Route::patch('devices/{device}/update-stock', [\App\Http\Controllers\DeviceController::class, 'updateStock'])
             ->name('devices.update-stock');
+        Route::delete('devices/{device}/documents/{file}', [\App\Http\Controllers\DeviceController::class, 'deleteDocument'])
+            ->name('devices.documents.delete');
+        Route::patch('devices/{device}/documents/{file}/rename', [\App\Http\Controllers\DeviceController::class, 'renameDocument'])
+            ->name('devices.documents.rename');
+        Route::post('devices/{device}/documents/upload', [\App\Http\Controllers\DeviceController::class, 'uploadDocument'])
+            ->name('devices.documents.upload');
 
         // CRM Products Routes
         Route::resource('products', \App\Http\Controllers\ProductController::class);
