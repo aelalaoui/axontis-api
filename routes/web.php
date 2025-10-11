@@ -16,9 +16,6 @@ use Inertia\Inertia;
 |
 */
 
-// Register route macros for file management
-require_once app_path('Http/Middleware/RegisterRouteMacros.php');
-
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
