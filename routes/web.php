@@ -40,6 +40,21 @@ Route::middleware([
 
     // CRM Suppliers Routes
     Route::prefix('crm')->name('crm.')->group(function () {
+        // Files Routes - moved to CRM
+        Route::prefix('files')->name('files.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\FileController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\FileController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\FileController::class, 'store'])->name('store');
+            Route::get('/{file}', [\App\Http\Controllers\FileController::class, 'show'])->name('show');
+            Route::get('/{file}/edit', [\App\Http\Controllers\FileController::class, 'edit'])->name('edit');
+            Route::put('/{file}', [\App\Http\Controllers\FileController::class, 'update'])->name('update');
+            Route::delete('/{file}', [\App\Http\Controllers\FileController::class, 'destroy'])->name('destroy');
+            Route::get('/{file}/download', [\App\Http\Controllers\FileController::class, 'download'])->name('download');
+            Route::get('/{file}/view', [\App\Http\Controllers\FileController::class, 'view'])->name('view');
+            Route::post('/upload-multiple', [\App\Http\Controllers\FileController::class, 'uploadMultiple'])->name('upload-multiple');
+        });
+
+        // CRM Suppliers Routes
         Route::resource('suppliers', \App\Http\Controllers\SupplierController::class);
         Route::patch('suppliers/{supplier}/toggle-status', [\App\Http\Controllers\SupplierController::class, 'toggleStatus'])
             ->name('suppliers.toggle-status');
