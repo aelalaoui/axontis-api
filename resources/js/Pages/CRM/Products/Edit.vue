@@ -15,27 +15,28 @@
                 </div>
             </div>
 
-            <!-- Main Product Information -->
-            <AxontisCard title="Product Information">
-                <!-- Product Name - Full Width -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-300 mb-2">
-                        Product Name <span class="text-red-400">*</span>
-                    </label>
-                    <input
-                        v-model="form.name"
-                        type="text"
-                        required
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="Enter product name"
-                    />
-                    <div v-if="form.errors.name" class="text-red-400 text-sm mt-1">{{ form.errors.name }}</div>
-                </div>
+            <!-- Main Product Information and Documents - Side by Side -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Product Information -->
+                <AxontisCard title="Product Information">
+                    <!-- Product Name - Full Width -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Product Name <span class="text-red-400">*</span>
+                        </label>
+                        <input
+                            v-model="form.name"
+                            type="text"
+                            required
+                            class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="Enter product name"
+                        />
+                        <!-- Only show form errors, not persistent Inertia errors -->
+                        <div v-if="form.errors.name && form.isDirty" class="text-red-400 text-sm mt-1">{{ form.errors.name }}</div>
+                    </div>
 
-                <!-- Property Name and Default Value - Same Line -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Property Name -->
-                    <div>
+                    <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-300 mb-2">
                             Property Name
                         </label>
@@ -62,8 +63,116 @@
                         <p class="text-xs text-gray-400 mt-1">Optional default value for the property</p>
                         <div v-if="form.errors.default_value" class="text-red-400 text-sm mt-1">{{ form.errors.default_value }}</div>
                     </div>
-                </div>
-            </AxontisCard>
+                </AxontisCard>
+
+                <!-- Documents Management Section -->
+                <AxontisCard title="Documents">
+                    <div class="space-y-4">
+                        <p class="text-gray-400 text-sm">Gérer les documents liés à ce produit (PDF, DOC, XLS, etc.)</p>
+
+                        <!-- Existing Documents -->
+                        <div v-if="product.documents && product.documents.length > 0" class="space-y-2">
+                            <h4 class="text-sm font-medium text-gray-300">Documents existants:</h4>
+                            <div class="space-y-2">
+                                <div
+                                    v-for="document in product.documents"
+                                    :key="document.uuid"
+                                    class="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700"
+                                >
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-file text-green-400"></i>
+                                        <div>
+                                            <p class="text-white text-sm font-medium">{{ document.title || document.file_name }}</p>
+                                            <p class="text-gray-400 text-xs">{{ document.formatted_size }} - {{ new Date(document.created_at).toLocaleDateString('fr-FR') }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <a
+                                            :href="document.url"
+                                            target="_blank"
+                                            class="text-blue-400 hover:text-blue-300 transition-colors"
+                                            title="Voir le document"
+                                        >
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a
+                                            :href="document.download_url"
+                                            class="text-green-400 hover:text-green-300 transition-colors"
+                                            title="Télécharger"
+                                        >
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <button
+                                            @click="markDocumentForDeletion(document.uuid)"
+                                            type="button"
+                                            class="text-red-400 hover:text-red-300 transition-colors"
+                                            title="Supprimer"
+                                            :class="{ 'opacity-50': documentsToDelete.includes(document.uuid) }"
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Documents marked for deletion -->
+                            <div v-if="documentsToDelete.length > 0" class="mt-2 p-2 bg-red-900/20 rounded-lg border border-red-500/30">
+                                <p class="text-red-400 text-sm">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    {{ documentsToDelete.length }} document(s) seront supprimés lors de la sauvegarde
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- File Upload Area -->
+                        <div class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-gray-500 transition-colors">
+                            <input
+                                ref="fileInput"
+                                type="file"
+                                multiple
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.ppt,.pptx"
+                                @change="handleFileUpload"
+                                class="hidden"
+                            />
+                            <div @click="$refs.fileInput.click()" class="cursor-pointer">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-500 mb-4"></i>
+                                <p class="text-white font-medium mb-2">Cliquez pour ajouter de nouveaux documents</p>
+                                <p class="text-gray-400 text-sm">Ou glissez-déposez vos fichiers ici</p>
+                                <p class="text-gray-500 text-xs mt-2">
+                                    Formats supportés: PDF, DOC, DOCX, XLS, XLSX, TXT, CSV, PPT, PPTX (max 10MB par fichier)
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- New Files List -->
+                        <div v-if="selectedFiles.length > 0" class="space-y-2">
+                            <h4 class="text-sm font-medium text-gray-300">Nouveaux fichiers à ajouter:</h4>
+                            <div class="space-y-2">
+                                <div
+                                    v-for="(file, index) in selectedFiles"
+                                    :key="index"
+                                    class="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700"
+                                >
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-file text-blue-400"></i>
+                                        <div>
+                                            <p class="text-white text-sm font-medium">{{ file.name }}</p>
+                                            <p class="text-gray-400 text-xs">{{ formatFileSize(file.size) }}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        @click="removeFile(index)"
+                                        type="button"
+                                        class="text-red-400 hover:text-red-300 transition-colors"
+                                    >
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </AxontisCard>
+            </div>
 
             <!-- Sub-Products Configuration -->
             <AxontisCard title="Sub-Products Configuration">
@@ -268,8 +377,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import { Link, useForm, router } from '@inertiajs/vue3'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { Link, useForm } from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 
@@ -283,6 +392,8 @@ const showDeviceResults = ref({})
 const deviceSearchResults = ref({})
 const searchTimeout = ref(null)
 const activeSearchIndex = ref(null)
+const selectedFiles = ref([])
+const documentsToDelete = ref([])
 
 // Form data
 const form = useForm({
@@ -291,21 +402,38 @@ const form = useForm({
     default_value: '',
     caution_price: null,
     subscription_price: null,
+    documents: [],
+    documents_to_delete: [],
     sub_products: []
 })
 
-// Initialize sub-products for editing
-onMounted(() => {
-    // Initialize form with product data if editing
-    if (props.product) {
-        form.name = props.product.name || ''
-        form.property_name = props.product.property_name || ''
-        form.default_value = props.product.default_value || ''
-        form.caution_price = props.product.caution_price || null
-        form.subscription_price = props.product.subscription_price || null
-    }
+// Initialize form data method
+const initializeFormData = () => {
+    if (!props.product) return
 
-    if (props.product?.children) {
+    console.log('Initializing form with product:', props.product) // Debug log
+
+    // Clear any existing errors first - both form and Inertia errors
+    form.clearErrors()
+
+    // Reset the form completely to ensure clean state
+    form.reset()
+
+    // Set form values
+    form.name = props.product.name || ''
+    form.property_name = props.product.property_name || ''
+    form.default_value = props.product.default_value || ''
+    form.caution_price = props.product.caution_price || null
+    form.subscription_price = props.product.subscription_price || null
+
+    // Reset documents arrays
+    form.documents = []
+    form.documents_to_delete = []
+    selectedFiles.value = []
+    documentsToDelete.value = []
+
+    // Initialize sub-products
+    if (props.product.children && props.product.children.length > 0) {
         form.sub_products = props.product.children.map(child => ({
             id: child.id,
             name: child.name,
@@ -317,25 +445,68 @@ onMounted(() => {
             selected_device: child.device,
             device_search: child.device?.full_name || ''
         }))
+    } else {
+        form.sub_products = []
     }
 
+    // Force clear any persistent Inertia errors
+    if (typeof window !== 'undefined' && window.$inertia) {
+        window.$inertia.clearErrors()
+    }
+
+    console.log('Form initialized with name:', form.name) // Debug log
+}
+
+// Initialize sub-products for editing
+onMounted(() => {
     // Add click outside listener
     document.addEventListener('click', handleClickOutside)
+
+    // Initialize form data immediately if product exists
+    initializeFormData()
 })
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside)
 })
 
+// Watch for product changes and initialize form data
+watch(
+    () => props.product,
+    (newProduct) => {
+        if (newProduct) {
+            // Add a small delay to ensure Inertia has finished loading
+            setTimeout(() => {
+                initializeFormData()
+            }, 50)
+        }
+    },
+    { immediate: true }
+)
+
 // Methods
 const submit = () => {
+    // Debug: Log form state before submission
+    console.log('Form submission - Debug info:', {
+        form_name: form.name,
+        form_documents_count: form.documents?.length || 0,
+        form_documents_to_delete_count: form.documents_to_delete?.length || 0,
+        selectedFiles_count: selectedFiles.value?.length || 0,
+        documentsToDelete_count: documentsToDelete.value?.length || 0,
+        form_documents: form.documents,
+        selectedFiles: selectedFiles.value
+    });
+
     // Prepare the data with correctly mapped sub_products
     const submissionData = {
+        _method: 'PUT', // Use method spoofing for file uploads
         name: form.name,
         property_name: form.property_name,
         default_value: form.default_value,
         caution_price: form.caution_price,
         subscription_price: form.subscription_price,
+        documents: form.documents,
+        documents_to_delete: form.documents_to_delete,
         sub_products: form.sub_products.map(sub => ({
             id: sub.id || null,
             name: sub.name,
@@ -347,9 +518,13 @@ const submit = () => {
         }))
     }
 
+    console.log('Submission data prepared:', submissionData);
+
     if (props.product?.id) {
-        // Update existing product
-        form.transform(() => submissionData).put(route('crm.products.update', props.product.id))
+        // Update existing product - Use POST with method spoofing for file uploads
+        form.transform(() => submissionData).post(route('crm.products.update', props.product.id), {
+            forceFormData: true, // Force multipart/form-data for file uploads
+        })
     } else {
         // Create new product
         form.transform(() => submissionData).post(route('crm.products.store'))
@@ -455,5 +630,59 @@ const handleClickOutside = (event) => {
             activeSearchIndex.value = null
         }, 150)
     }
+}
+
+// Document management methods
+const handleFileUpload = (event) => {
+    const files = Array.from(event.target.files)
+
+    files.forEach(file => {
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            alert(`Le fichier ${file.name} est trop volumineux. Taille maximum: 10MB`)
+            return
+        }
+
+        // Check if file already exists
+        const exists = selectedFiles.value.some(f => f.name === file.name && f.size === file.size)
+        if (!exists) {
+            selectedFiles.value.push(file)
+        }
+    })
+
+    // Update form data
+    form.documents = selectedFiles.value
+
+    // Reset input
+    event.target.value = ''
+}
+
+const removeFile = (index) => {
+    selectedFiles.value.splice(index, 1)
+    form.documents = selectedFiles.value
+}
+
+const markDocumentForDeletion = (documentUuid) => {
+    const index = documentsToDelete.value.indexOf(documentUuid)
+    if (index > -1) {
+        // Unmark for deletion
+        documentsToDelete.value.splice(index, 1)
+    } else {
+        // Mark for deletion
+        documentsToDelete.value.push(documentUuid)
+    }
+
+    // Update form data
+    form.documents_to_delete = documentsToDelete.value
+}
+
+const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes'
+
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 </script>

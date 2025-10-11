@@ -4,17 +4,25 @@ namespace App\Http\Controllers;
 
 use App\Models\Device;
 use App\Models\Product;
+use App\Services\FileService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ProductController extends Controller
 {
+    protected FileService $fileService;
+
+    public function __construct(FileService $fileService)
+    {
+        $this->fileService = $fileService;
+    }
+
     /**
      * Display a listing of the products.
      */
     public function index(Request $request)
     {
-        $query = Product::with(['device', 'parent', 'children'])
+        $query = Product::with(['device', 'parent', 'children', 'documents'])
             ->withCount('children')
             ->whereNull('id_parent'); // Only show parent products by default
 
@@ -106,6 +114,8 @@ class ProductController extends Controller
             'default_value' => 'nullable|string|max:255',
             'caution_price' => 'nullable|numeric',
             'subscription_price' => 'nullable|numeric',
+            'documents' => 'nullable|array',
+            'documents.*' => 'file|mimes:pdf,doc,docx,xls,xlsx,txt,csv,ppt,pptx|max:10240', // 10MB max
             'sub_products' => 'array',
             'sub_products.*.name' => 'required|string|max:255',
             'sub_products.*.property_name' => 'nullable|string|max:255',
@@ -124,6 +134,11 @@ class ProductController extends Controller
             'subscription_price' => $validated['subscription_price'],
             'device_uuid' => null, // Parent products don't have devices directly
         ]);
+
+        // Handle document uploads
+        if (!empty($validated['documents'])) {
+            $this->fileService->uploadMultipleFiles($validated['documents'], $product, 'document');
+        }
 
         // Create sub-products
         if (!empty($validated['sub_products'])) {
@@ -152,7 +167,8 @@ class ProductController extends Controller
         $product->load([
             'device',
             'parent',
-            'children.device'
+            'children.device',
+            'documents'
         ]);
 
         return Inertia::render('CRM/Products/Show', [
@@ -165,7 +181,7 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        $product->load(['children.device', 'device']);
+        $product->load(['children.device', 'device', 'documents']);
 
         $devices = Device::select('uuid', 'brand', 'model', 'category', 'stock_qty', 'min_stock_level')
             ->orderBy('brand')
@@ -175,6 +191,9 @@ class ProductController extends Controller
                 $device->full_name = "{$device->brand} - {$device->model}";
                 return $device;
             });
+
+        // Force clear any session errors when loading the edit page
+        session()->forget('errors');
 
         return Inertia::render('CRM/Products/Edit', [
             'product' => $product,
@@ -193,6 +212,10 @@ class ProductController extends Controller
             'default_value' => 'nullable|string|max:255',
             'caution_price' => 'nullable|numeric',
             'subscription_price' => 'nullable|numeric',
+            'documents' => 'nullable|array',
+            'documents.*' => 'file|mimes:pdf,doc,docx,xls,xlsx,txt,csv,ppt,pptx|max:10240', // 10MB max
+            'documents_to_delete' => 'nullable|array',
+            'documents_to_delete.*' => 'exists:files,uuid',
             'sub_products' => 'array',
             'sub_products.*.id' => 'nullable|exists:products,id',
             'sub_products.*.name' => 'required|string|max:255',
@@ -211,6 +234,27 @@ class ProductController extends Controller
             'caution_price' => $validated['caution_price'],
             'subscription_price' => $validated['subscription_price'],
         ]);
+
+        // Handle document deletion
+        if (!empty($validated['documents_to_delete'])) {
+            $filesToDelete = $product->documents()->whereIn('uuid', $validated['documents_to_delete'])->get();
+            foreach ($filesToDelete as $file) {
+                $this->fileService->deleteFile($file);
+            }
+        }
+
+        // Handle new document uploads
+        if (!empty($validated['documents'])) {
+            try {
+                $this->fileService->uploadMultipleFiles($validated['documents'], $product, 'document');
+            } catch (\Exception $e) {
+                \Log::error('ProductController@update - Document upload failed:', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                throw $e;
+            }
+        }
 
         // Handle sub-products
         $existingSubProductIds = $product->children()->pluck('id')->toArray();
@@ -276,5 +320,70 @@ class ProductController extends Controller
 
         return redirect()->route('crm.products.index')
             ->with('success', $message);
+    }
+
+    /**
+     * Upload a new document for product
+     */
+    public function uploadDocument(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'document' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif|max:10240', // 10MB max
+        ]);
+
+        // Handle document upload
+        if ($request->hasFile('document')) {
+            $this->handleDocumentUpload($request->file('document'), $product);
+        }
+
+        return back()->with('success', 'Document uploaded successfully.');
+    }
+
+    /**
+     * Delete a document for product
+     */
+    public function deleteDocument(Request $request, Product $product, $fileUuid)
+    {
+        $file = $product->documents()->where('uuid', $fileUuid)->first();
+
+        if (!$file) {
+            return back()->with('error', 'Document not found.');
+        }
+
+        // Delete the physical file
+        $this->fileService->deleteFile($file);
+
+        return back()->with('success', 'Document deleted successfully.');
+    }
+
+    /**
+     * Rename a document for product
+     */
+    public function renameDocument(Request $request, Product $product, $fileUuid)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+        ]);
+
+        $file = $product->documents()->where('uuid', $fileUuid)->first();
+
+        if (!$file) {
+            return back()->with('error', 'Document not found.');
+        }
+
+        $file->update([
+            'title' => $validated['title']
+        ]);
+
+        return back()->with('success', 'Document renamed successfully.');
+    }
+
+    /**
+     * Handle document upload for product
+     */
+    private function handleDocumentUpload($uploadedFile, Product $product)
+    {
+        // Use FileService to handle the complete upload process
+        $this->fileService->uploadFile($uploadedFile, $product, 'document');
     }
 }

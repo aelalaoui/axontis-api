@@ -87,6 +87,12 @@ Route::middleware([
 
         // CRM Products Routes
         Route::resource('products', \App\Http\Controllers\ProductController::class);
+        Route::delete('products/{product}/documents/{file}', [\App\Http\Controllers\ProductController::class, 'deleteDocument'])
+            ->name('products.documents.delete');
+        Route::patch('products/{product}/documents/{file}/rename', [\App\Http\Controllers\ProductController::class, 'renameDocument'])
+            ->name('products.documents.rename');
+        Route::post('products/{product}/documents/upload', [\App\Http\Controllers\ProductController::class, 'uploadDocument'])
+            ->name('products.documents.upload');
 
         // API Routes for autocomplete
         Route::get('api/suppliers/search', [\App\Http\Controllers\SupplierController::class, 'searchSuppliers'])
