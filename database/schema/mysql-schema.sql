@@ -34,8 +34,8 @@ DROP TABLE IF EXISTS `arrivals`;
 CREATE TABLE `arrivals` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `device_id` bigint unsigned NOT NULL,
-  `order_id` bigint unsigned DEFAULT NULL,
+  `device_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `order_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `ht_price` decimal(10,2) NOT NULL,
   `tva_price` decimal(10,2) NOT NULL,
   `ttc_price` decimal(10,2) NOT NULL,
@@ -51,7 +51,13 @@ CREATE TABLE `arrivals` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `arrivals_uuid_unique` (`uuid`),
   KEY `arrivals_device_id_foreign` (`device_id`),
-  KEY `arrivals_order_id_foreign` (`order_id`)
+  KEY `arrivals_order_id_foreign` (`order_id`),
+  KEY `arrivals_order_id_index` (`order_id`),
+  KEY `arrivals_device_id_index` (`device_id`),
+  KEY `arrivals_status_index` (`status`),
+  KEY `arrivals_arrival_date_index` (`arrival_date`),
+  KEY `arrivals_order_device_index` (`order_id`,`device_id`),
+  KEY `arrivals_order_status_index` (`order_id`,`status`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `claims`;
@@ -86,7 +92,7 @@ CREATE TABLE `clients` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `user_id` bigint unsigned DEFAULT NULL,
-  `type` enum('individual','business') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` enum('unknown','individual','business') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'unknown',
   `company_name` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `first_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `last_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -95,7 +101,7 @@ CREATE TABLE `clients` (
   `address` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `city` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `country` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Morocco',
-  `status` enum('prospect','active_client','inactive_client') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'prospect',
+  `status` enum('email_step','price_step','info_step','document_step','signature_step','signed','payment_step','paid','create_password','active','not_active_due_payment','formal_notice','disabled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'email_step',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -186,7 +192,7 @@ CREATE TABLE `files` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `fileable_type` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `fileable_id` bigint unsigned NOT NULL,
+  `fileable_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `type` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `title` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `file_name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -315,6 +321,49 @@ CREATE TABLE `personal_access_tokens` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `personal_access_tokens_token_unique` (`token`),
   KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `products`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `products` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `id_parent` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `property_name` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `default_value` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `caution_price` double(8,2) DEFAULT NULL,
+  `subscription_price` double(8,2) DEFAULT NULL,
+  `device_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `products_device_uuid_index` (`device_uuid`),
+  KEY `products_id_parent_index` (`id_parent`),
+  KEY `products_name_index` (`name`),
+  KEY `products_property_name_index` (`property_name`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `properties`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `properties` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `extendable_type` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `extendable_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `property` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `value` text COLLATE utf8mb4_unicode_ci,
+  `type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'string',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `properties_unique` (`extendable_type`,`extendable_id`,`property`),
+  KEY `properties_lookup` (`extendable_type`,`extendable_id`,`property`),
+  KEY `properties_property_type` (`property`,`type`),
+  KEY `properties_extendable_type_index` (`extendable_type`),
+  KEY `properties_extendable_id_index` (`extendable_id`),
+  KEY `properties_property_index` (`property`),
+  KEY `properties_type_index` (`type`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `sessions`;
@@ -488,3 +537,10 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (27,'2025_09_30_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (28,'2025_09_31_000000_convert_device_id_to_uuid',4);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (29,'2025_10_02_000000_convert_drop_keys copy',5);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (30,'2025_09_27_000000_convert_all_tables_to_uuid',6);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (31,'2025_10_05_090130_add_indexes_to_arrivals_table',7);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (32,'2025_10_05_094058_fix_arrivals_uuid_columns',8);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (33,'2025_10_05_180156_add_unknown_type_to_clients',9);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (36,'2025_10_05_182939_add_new_enums_status_to_clients',10);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (55,'2025_10_06_192928_create_properties_table',11);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (58,'2025_10_07_202028_create_products_table',12);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (59,'2025_10_10_222255_modify_fileable_id_to_support_uuids_in_files_table',13);
