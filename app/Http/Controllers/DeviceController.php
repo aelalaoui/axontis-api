@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Device;
+use App\Models\File;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class DeviceController extends Controller
@@ -87,9 +89,22 @@ class DeviceController extends Controller
             'description' => 'nullable|string',
             'stock_qty' => 'required|integer|min:0',
             'min_stock_level' => 'required|integer|min:0',
+            'document' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif|max:10240', // 10MB max
         ]);
 
-        Device::create($validated);
+        $device = Device::create([
+            'brand' => $validated['brand'],
+            'model' => $validated['model'],
+            'category' => $validated['category'],
+            'description' => $validated['description'],
+            'stock_qty' => $validated['stock_qty'],
+            'min_stock_level' => $validated['min_stock_level'],
+        ]);
+
+        // Handle document upload
+        if ($request->hasFile('document')) {
+            $this->handleDocumentUpload($request->file('document'), $device);
+        }
 
         return redirect()->route('crm.devices.index')
             ->with('success', 'Device created successfully.');
@@ -103,6 +118,9 @@ class DeviceController extends Controller
         $device->load([
             'orderDevices.order.supplier',
             'orderDevices' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            },
+            'files' => function ($query) {
                 $query->orderBy('created_at', 'desc');
             }
         ]);
@@ -142,9 +160,22 @@ class DeviceController extends Controller
             'description' => 'nullable|string',
             'stock_qty' => 'required|integer|min:0',
             'min_stock_level' => 'required|integer|min:0',
+            'document' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif|max:10240', // 10MB max
         ]);
 
-        $device->update($validated);
+        $device->update([
+            'brand' => $validated['brand'],
+            'model' => $validated['model'],
+            'category' => $validated['category'],
+            'description' => $validated['description'],
+            'stock_qty' => $validated['stock_qty'],
+            'min_stock_level' => $validated['min_stock_level'],
+        ]);
+
+        // Handle document upload
+        if ($request->hasFile('document')) {
+            $this->handleDocumentUpload($request->file('document'), $device);
+        }
 
         return redirect()->route('crm.devices.index')
             ->with('success', 'Device updated successfully.');
@@ -243,5 +274,93 @@ class DeviceController extends Controller
 
         return redirect()->back()
             ->with('success', $message);
+    }
+
+    /**
+     * Handle document upload for device
+     */
+    private function handleDocumentUpload($uploadedFile, Device $device)
+    {
+        $disk = config('filesystems.default') === 'r2' ? 'r2' : 'public';
+        $directory = 'devices/' . $device->uuid;
+
+        // Generate unique filename
+        $filename = time() . '_' . $uploadedFile->getClientOriginalName();
+
+        // Store the file
+        $path = $uploadedFile->storeAs($directory, $filename, $disk);
+
+        // Create file record
+        File::create([
+            'fileable_type' => Device::class,
+            'fileable_id' => $device->uuid,
+            'type' => 'document',
+            'title' => $uploadedFile->getClientOriginalName(),
+            'file_name' => $filename,
+            'file_path' => $path,
+            'mime_type' => $uploadedFile->getMimeType(),
+            'file_size' => $uploadedFile->getSize(),
+        ]);
+    }
+
+    /**
+     * Delete a device document
+     */
+    public function deleteDocument(Device $device, File $file)
+    {
+        // Verify the file belongs to this device
+        if ($file->fileable_id !== $device->uuid || $file->fileable_type !== Device::class) {
+            abort(404);
+        }
+
+        // Delete the physical file
+        $disk = config('filesystems.default') === 'r2' ? 'r2' : 'public';
+        if (Storage::disk($disk)->exists($file->file_path)) {
+            Storage::disk($disk)->delete($file->file_path);
+        }
+
+        // Delete the file record
+        $file->delete();
+
+        return back()->with('success', 'Document deleted successfully.');
+    }
+
+    /**
+     * Rename a device document
+     */
+    public function renameDocument(Request $request, Device $device, File $file)
+    {
+        // Verify the file belongs to this device
+        if ($file->fileable_id !== $device->uuid || $file->fileable_type !== Device::class) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+        ]);
+
+        // Update the file title
+        $file->update([
+            'title' => $validated['title']
+        ]);
+
+        return back()->with('success', 'Document renamed successfully.');
+    }
+
+    /**
+     * Upload a new document for device
+     */
+    public function uploadDocument(Request $request, Device $device)
+    {
+        $validated = $request->validate([
+            'document' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif|max:10240', // 10MB max
+        ]);
+
+        // Handle document upload
+        if ($request->hasFile('document')) {
+            $this->handleDocumentUpload($request->file('document'), $device);
+        }
+
+        return back()->with('success', 'Document uploaded successfully.');
     }
 }
