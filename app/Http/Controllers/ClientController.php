@@ -18,7 +18,7 @@ class ClientController extends Controller
     {
         // Validation des données
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|unique:clients,email',
+            'email' => 'required|email',
             'country' => 'required|string|max:255',
         ]);
 
@@ -31,12 +31,23 @@ class ClientController extends Controller
         }
 
         try {
+            // Check if client exists
+            $client = Client::where('email', $request->email)->first();
+
+            if ($client) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Client already exists',
+                    'data' => $client
+                ], 200);
+            }
+
             // Créer le nouveau client
             $client = Client::create([
                 'email' => $request->email,
                 'country' => $request->country,
                 'type' => 'unknown',
-                'status' => ClientStatus::EMAIL_STEP->value
+                'status' => ClientStatus::EMAIL_STEP
             ]);
 
             return response()->json([
