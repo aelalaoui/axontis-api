@@ -23,8 +23,6 @@ class ClientCreationTest extends TestCase
     {
         $this->withoutExceptionHandling();
 
-        $user = User::factory()->create();
-        Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/client/new', [
             'email' => 'test@example.com',
@@ -58,9 +56,6 @@ class ClientCreationTest extends TestCase
     public function test_existing_client_is_returned()
     {
         $this->withoutExceptionHandling();
-
-        $user = User::factory()->create();
-        Sanctum::actingAs($user);
 
         // Create a client first
         $client = Client::create([
