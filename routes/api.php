@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/client/new', [ClientController::class, 'create']);
 Route::post('/client/{uuid}/store-criterias', [ClientController::class, 'storeCriterias']);
+Route::get('/client/{uuid}/property/{property}/value/{value}/offer', [ClientController::class, 'calculateOffer']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
@@ -24,7 +25,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::put('/client/{uuid}/step/{step}', [ClientController::class, 'updateStep']);
-    Route::get('/client/{uuid}/property/{property}/value/{value}/offer', [ClientController::class, 'calculateOffer']);
 });
 
 // Entity search routes - accessible for authenticated web users
