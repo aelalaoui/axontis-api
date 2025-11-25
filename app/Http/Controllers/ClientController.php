@@ -3,14 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ClientStatus;
-use App\Models\Client;
-use App\Models\Product;
+use App\Services\ClientService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ClientController extends Controller
 {
+    protected ClientService $clientService;
+
+    public function __construct(ClientService $clientService)
+    {
+        $this->clientService = $clientService;
+    }
+
     /**
      * Create a new client
      */
@@ -31,30 +37,20 @@ class ClientController extends Controller
         }
 
         try {
-            // Check if client exists
-            $client = Client::where('email', $request->email)->first();
+            // Check if client already existed
+            $isExisting = $this->clientService->clientExists($request->email);
 
-            if ($client) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Client already exists',
-                    'data' => $client
-                ], 200);
-            }
-
-            // Créer le nouveau client
-            $client = Client::create([
-                'email' => $request->email,
-                'country' => $request->country,
-                'type' => 'unknown',
-                'status' => ClientStatus::EMAIL_STEP
-            ]);
+            // Use service to find or create client
+            $client = $this->clientService->findOrCreateClient(
+                $request->email,
+                $request->country
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Client created successfully',
+                'message' => $isExisting ? 'Client already exists' : 'Client created successfully',
                 'data' => $client
-            ], 201);
+            ], $isExisting ? 200 : 201);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -64,6 +60,7 @@ class ClientController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Update client status/step
@@ -85,8 +82,8 @@ class ClientController extends Controller
         }
 
         try {
-            // Trouver le client par UUID
-            $client = Client::where('uuid', $uuid)->first();
+            // Find client by UUID using service
+            $client = $this->clientService->findClientByUuid($uuid);
 
             if (!$client) {
                 return response()->json([
@@ -95,17 +92,13 @@ class ClientController extends Controller
                 ], 404);
             }
 
-            // Mettre à jour uniquement le statut
-            $client->update(['status' => $step]);
+            // Update status using service
+            $statusData = $this->clientService->updateClientStatus($client, $step);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Client status updated successfully',
-                'data' => [
-                    'uuid' => $client->uuid,
-                    'previous_status' => $client->getOriginal('status'),
-                    'current_status' => $client->status
-                ]
+                'data' => $statusData
             ], 200);
 
         } catch (\Exception $e) {
@@ -116,6 +109,7 @@ class ClientController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Store client criterias as properties
@@ -136,9 +130,8 @@ class ClientController extends Controller
         }
 
         try {
-            // Trouver le client par UUID
-            /** @var Client $client */
-            $client = Client::where('uuid', $uuid)->first();
+            // Find client by UUID using service
+            $client = $this->clientService->findClientByUuid($uuid);
 
             if (!$client) {
                 return response()->json([
@@ -147,37 +140,16 @@ class ClientController extends Controller
                 ], 404);
             }
 
-            $client->clearProperties(); // Supprimer les anciennes propriétés
-
-            $criterias = $request->input('criterias');
-
-            // Stocker chaque critère comme une propriété
-            $storedProperties = [];
-            foreach ($criterias as $key => $value) {
-                if ($key === 'email') {
-                    continue; // Ignorer email
-                }
-                $propertyName = "{$key}";
-                $storedProperty = $client->setProperty($propertyName, $value);
-                $storedProperties[] = [
-                    'property' => $propertyName,
-                    'value' => $value,
-                    'type' => $storedProperty->type
-                ];
-            }
-
-            $client->type = $client->getProperty('customerType', 'unknown');
-            $client->save();
+            // Store criterias using service
+            $criteriasData = $this->clientService->storeCriterias(
+                $client,
+                $request->input('criterias')
+            );
 
             return response()->json([
                 'success' => true,
                 'message' => 'Criterias stored successfully',
-                'data' => [
-                    'client_uuid' => $client->uuid,
-                    'stored_criterias' => $storedProperties,
-                    'criterias_count' => count($storedProperties),
-                    'timestamp' => now()->toDateTimeString()
-                ]
+                'data' => $criteriasData
             ], 200);
 
         } catch (\Exception $e) {
@@ -189,15 +161,15 @@ class ClientController extends Controller
         }
     }
 
+
     /**
      * Calculate offer prices based on client properties and products
      */
     public function calculateOffer(Request $request, string $uuid, string $property, string $value): JsonResponse
     {
         try {
-            // Trouver le client par UUID
-            /** @var Client $client */
-            $client = Client::where('uuid', $uuid)->first();
+            // Find client by UUID using service
+            $client = $this->clientService->findClientByUuid($uuid);
 
             if (!$client) {
                 return response()->json([
@@ -206,11 +178,8 @@ class ClientController extends Controller
                 ], 404);
             }
 
-            // Trouver le premier produit parent basé sur la propriété et la valeur
-            $parentProduct = Product::whereNull('id_parent')
-                ->where('property_name', $property)
-                ->where('default_value', $value)
-                ->first();
+            // Find parent product using service
+            $parentProduct = $this->clientService->findParentProduct($property, $value);
 
             if (!$parentProduct) {
                 return response()->json([
@@ -223,59 +192,13 @@ class ClientController extends Controller
                 ], 404);
             }
 
-            // Récupérer tous les sous-produits du produit parent
-            $subProducts = Product::where('id_parent', $parentProduct->id)->get();
-
-            // Initialiser les totaux
-            $totalCautionPrice = 0;
-            $totalSubscriptionPrice = 0;
-            $matchedProducts = [];
-
-            // Pour chaque sous-produit, vérifier si le client a la propriété correspondante
-            foreach ($subProducts as $subProduct) {
-                if ($subProduct->property_name) {
-                    // Récupérer la valeur de la propriété du client
-                    $clientPropertyValue = $client->getProperty($subProduct->property_name);
-
-                    // Si le client a cette propriété et qu'elle correspond à la valeur par défaut du produit
-                    if ($clientPropertyValue !== null && $clientPropertyValue == $subProduct->default_value) {
-                        $totalCautionPrice += $subProduct->caution_price ?? 0;
-                        $totalSubscriptionPrice += $subProduct->subscription_price ?? 0;
-
-                        $matchedProducts[] = [
-                            'product_id' => $subProduct->id,
-                            'product_name' => $subProduct->name,
-                            'property_name' => $subProduct->property_name,
-                            'client_property_value' => $clientPropertyValue,
-                            'product_default_value' => $subProduct->default_value,
-                            'caution_price' => $subProduct->caution_price ?? 0,
-                            'subscription_price' => $subProduct->subscription_price ?? 0
-                        ];
-                    }
-                }
-            }
+            // Calculate offer using service
+            $offerData = $this->clientService->calculateOfferPrices($client, $parentProduct);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Offer calculated successfully',
-                'data' => [
-                    'client_uuid' => $client->uuid,
-                    'parent_product' => [
-                        'id' => $parentProduct->id,
-                        'name' => $parentProduct->name,
-                        'property' => $parentProduct->property_name,
-                        'value' => $parentProduct->default_value
-                    ],
-                    'pricing' => [
-                        'total_caution_price' => $totalCautionPrice,
-                        'total_subscription_price' => $totalSubscriptionPrice,
-                        'currency' => 'EUR' // Assuming EUR, adjust as needed
-                    ],
-                    'matched_products' => $matchedProducts,
-                    'matched_products_count' => count($matchedProducts),
-                    'total_subproducts_analyzed' => $subProducts->count(),
-                    'calculation_timestamp' => now()->toDateTimeString()
-                ]
+                'data' => $offerData
             ], 200);
 
         } catch (\Exception $e) {
@@ -287,3 +210,4 @@ class ClientController extends Controller
         }
     }
 }
+
