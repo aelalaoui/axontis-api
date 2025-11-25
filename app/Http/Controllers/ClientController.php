@@ -147,7 +147,7 @@ class ClientController extends Controller
                 ], 404);
             }
 
-            $client->properties->delete(); // Supprimer les anciennes propriétés
+            $client->clearProperties(); // Supprimer les anciennes propriétés
 
             $criterias = $request->input('criterias');
 
