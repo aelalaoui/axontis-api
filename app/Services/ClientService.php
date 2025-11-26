@@ -126,7 +126,9 @@ class ClientService
      */
     public function getSubProducts(Product $parentProduct)
     {
-        return Product::where('id_parent', $parentProduct->id)->get();
+        return Product::where('id_parent', $parentProduct->id)
+            ->with('device.files')
+            ->get();
     }
 
     /**
@@ -157,6 +159,17 @@ class ClientService
                     $totalCautionPrice += $subProduct->caution_price ?? 0;
                     $totalSubscriptionPrice += $subProduct->subscription_price ?? 0;
 
+                    // Load files from the associated device
+                    $files = $subProduct->device->files->map(function ($file) {
+                        return [
+                            'uuid' => $file->uuid,
+                            'file_name' => $file->file_name,
+                            'title' => $file->title,
+                            'url' => $file->url,
+                            'download_url' => $file->download_url,
+                        ];
+                    });
+
                     $matchedProducts[] = [
                         'product_id' => $subProduct->id,
                         'product_name' => $subProduct->name,
@@ -164,7 +177,8 @@ class ClientService
                         'client_property_value' => $clientPropertyValue,
                         'product_default_value' => $subProduct->default_value,
                         'caution_price' => $subProduct->caution_price ?? 0,
-                        'subscription_price' => $subProduct->subscription_price ?? 0
+                        'subscription_price' => $subProduct->subscription_price ?? 0,
+                        'files' => $files->toArray()
                     ];
                 }
             }
@@ -176,7 +190,16 @@ class ClientService
                 'id' => $parentProduct->id,
                 'name' => $parentProduct->name,
                 'property' => $parentProduct->property_name,
-                'value' => $parentProduct->default_value
+                'value' => $parentProduct->default_value,
+                'files' => $parentProduct->files->map(function ($file) {
+                    return [
+                        'uuid' => $file->uuid,
+                        'file_name' => $file->file_name,
+                        'title' => $file->title,
+                        'url' => $file->url,
+                        'download_url' => $file->download_url,
+                    ];
+                })
             ],
             'pricing' => [
                 'total_caution_price' => $totalCautionPrice,
