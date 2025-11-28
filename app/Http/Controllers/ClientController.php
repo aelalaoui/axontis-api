@@ -163,6 +163,61 @@ class ClientController extends Controller
 
 
     /**
+     * Update client details
+     */
+    public function updateDetails(Request $request, string $uuid): JsonResponse
+    {
+        // Validation des données
+        $validator = Validator::make($request->all(), [
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'company' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'city' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Find client by UUID using service
+            $client = $this->clientService->findClientByUuid($uuid);
+
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client not found'
+                ], 404);
+            }
+
+            // Update client details using service
+            $updatedClient = $this->clientService->updateClientDetails(
+                $client,
+                $request->only(['first_name', 'last_name', 'company', 'phone', 'city'])
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Client details updated successfully',
+                'data' => $updatedClient
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update client details',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    /**
      * Calculate offer prices based on client properties and products
      */
     public function calculateOffer(Request $request, string $uuid, string $property, string $value): JsonResponse

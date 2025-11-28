@@ -16,15 +16,15 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::post('/client/new', [ClientController::class, 'create']);
+Route::post('/client/{uuid}', [ClientController::class, 'updateDetails']);
 Route::post('/client/{uuid}/store-criterias', [ClientController::class, 'storeCriterias']);
 Route::get('/client/{uuid}/property/{property}/value/{value}/offer', [ClientController::class, 'calculateOffer']);
+Route::put('/client/{uuid}/step/{step}', [ClientController::class, 'updateStep']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-
-    Route::put('/client/{uuid}/step/{step}', [ClientController::class, 'updateStep']);
 });
 
 // Entity search routes - accessible for authenticated web users

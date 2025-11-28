@@ -234,4 +234,37 @@ class ClientService
     {
         return Client::where('email', $email)->first();
     }
+
+    /**
+     * Update client details
+     * 
+     * @param Client $client
+     * @param array $details
+     * @return Client
+     */
+    public function updateClientDetails(Client $client, array $details): Client
+    {
+        // Map frontend field names to database column names
+        $fieldMapping = [
+            'first_name' => 'first_name',
+            'last_name' => 'last_name',
+            'company' => 'company_name',
+            'phone' => 'phone',
+            'city' => 'city',
+        ];
+
+        $updateData = [];
+        foreach ($details as $key => $value) {
+            if (isset($fieldMapping[$key])) {
+                $updateData[$fieldMapping[$key]] = $value;
+            }
+        }
+
+        // Update the client with the mapped data
+        if (!empty($updateData)) {
+            $client->update($updateData);
+        }
+
+        return $client->fresh();
+    }
 }
