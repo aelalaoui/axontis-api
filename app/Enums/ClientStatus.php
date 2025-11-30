@@ -7,6 +7,7 @@ enum ClientStatus: string
     case EMAIL_STEP = 'email_step';
     case PRICE_STEP = 'price_step';
     case INFO_STEP = 'info_step';
+    case INSTALLATION_STEP = 'installation_step';
     case DOCUMENT_STEP = 'document_step';
     case SIGNATURE_STEP = 'signature_step';
     case SIGNED = 'signed';
