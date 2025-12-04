@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\InstallationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,8 @@ Route::post('/client/{uuid}', [ClientController::class, 'updateDetails']);
 Route::post('/client/{uuid}/store-criterias', [ClientController::class, 'storeCriterias']);
 Route::get('/client/{uuid}/property/{property}/value/{value}/offer', [ClientController::class, 'calculateOffer']);
 Route::put('/client/{uuid}/step/{step}', [ClientController::class, 'updateStep']);
+
+Route::post('/installation/new', [InstallationController::class, 'create']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
