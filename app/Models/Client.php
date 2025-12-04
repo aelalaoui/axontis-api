@@ -85,6 +85,11 @@ class Client extends Model
         return $this->hasMany(Contract::class);
     }
 
+    public function installations(): HasMany
+    {
+        return $this->hasMany(Installation::class, 'client_uuid', 'uuid');
+    }
+
     public function alerts(): HasMany
     {
         return $this->hasMany(Alert::class);

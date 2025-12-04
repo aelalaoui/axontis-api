@@ -42,6 +42,11 @@ class Contract extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function installations(): HasMany
+    {
+        return $this->hasMany(Installation::class, 'contract_uuid', 'uuid');
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);

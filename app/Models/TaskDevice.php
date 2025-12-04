@@ -47,7 +47,7 @@ class TaskDevice extends Pivot
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($taskDevice) {
             if (!$taskDevice->assigned_date) {
                 $taskDevice->assigned_date = now();
@@ -141,12 +141,12 @@ class TaskDevice extends Pivot
     {
         $this->status = 'returned';
         $this->return_date = now();
-        
+
         // Return stock to device
         if ($this->device) {
             $this->device->addStock(1);
         }
-        
+
         return $this->save();
     }
 

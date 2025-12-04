@@ -19,6 +19,7 @@ class Device extends Model
         'category',
         'description',
         'min_stock_level',
+        'installation_uuid',
     ];
 
     protected $casts = [
@@ -32,6 +33,11 @@ class Device extends Model
     ];
 
     // Relationships
+    public function installation()
+    {
+        return $this->belongsTo(Installation::class, 'installation_uuid', 'uuid');
+    }
+
     public function arrivals(): HasMany
     {
         return $this->hasMany(Arrival::class, 'device_id', 'uuid');
@@ -136,20 +142,20 @@ class Device extends Model
     public function getTotalOrderedQuantityAttribute(): int
     {
         return $this->orderDevices()
-                    ->whereHas('order', function ($query) {
-                        $query->whereIn('status', ['approved', 'ordered', 'partially_received']);
-                    })
-                    ->sum('qty_ordered');
+            ->whereHas('order', function ($query) {
+                $query->whereIn('status', ['approved', 'ordered', 'partially_received']);
+            })
+            ->sum('qty_ordered');
     }
 
     public function getPendingOrderQuantityAttribute(): int
     {
         return $this->orderDevices()
-                    ->whereHas('order', function ($query) {
-                        $query->whereIn('status', ['approved', 'ordered', 'partially_received']);
-                    })
-                    ->get()
-                    ->sum('qty_pending');
+            ->whereHas('order', function ($query) {
+                $query->whereIn('status', ['approved', 'ordered', 'partially_received']);
+            })
+            ->get()
+            ->sum('qty_pending');
     }
 
     // Methods
