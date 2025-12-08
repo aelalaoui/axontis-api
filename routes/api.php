@@ -23,6 +23,7 @@ Route::get('/client/{uuid}/property/{property}/value/{value}/offer', [ClientCont
 Route::put('/client/{uuid}/step/{step}', [ClientController::class, 'updateStep']);
 
 Route::post('/installation/new', [InstallationController::class, 'create']);
+Route::post('/contract/generate/client/{uuid}', [\App\Http\Controllers\ContractController::class, 'generate']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
