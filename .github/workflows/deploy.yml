@@ -183,27 +183,12 @@ jobs:
           sed -i "s/DOCUSIGN_USER_ID=.*/DOCUSIGN_USER_ID=$DOCUSIGN_USER_ID/" .env
           sed -i "s/DOCUSIGN_ACCOUNT_ID=.*/DOCUSIGN_ACCOUNT_ID=$DOCUSIGN_ACCOUNT_ID/" .env
           sed -i "s|DOCUSIGN_BASE_PATH=.*|DOCUSIGN_BASE_PATH=$DOCUSIGN_BASE_PATH|" .env
-          # For RSA Key, we need to be careful with newlines. 
-          # The key is passed as a single line string from secrets, possibly with \n literals.
-          # We'll use a specific delimiter for sed to avoid issues.
-          # Alternatively, we can just append it if not present, but replacement is safer.
-          # IMPORTANT: We assume the variable is properly escaped for shell usage.
           
-          # A safer approach for multiline/complex keys is to append them if we can't easily sed them.
-          # But for now let's try to sed it, assuming it is passed as a string.
-          # We used double quotes for variable expansion.
-          
-          # NOTE: RSA Keys often contain slashes, so we use pipe | as delimiter.
-          # And we must escape newlines if they are literal newlines. 
-          # Assuming the secret is base64 encoded might be safer but here we use the raw value.
-          # Let's use a simpler approach: write the key to a temporary file and append/replace.
-          
-          # For simplicity and consistency with existing blocks:
-          # We use single quotes around the value in the sed command to prevent interpretation, 
-          # but we need to inject the variable.
-          
-          # Let's try the standard way with pipe delimiter, hoping no pipes in the key.
-           sed -i "s|DOCUSIGN_RSA_KEY=.*|DOCUSIGN_RSA_KEY='$DOCUSIGN_RSA_KEY'|" .env
+          # Handle RSA Key (Multiline)
+          # 1. Remove existing line
+          sed -i '/^DOCUSIGN_RSA_KEY=/d' .env
+          # 2. Append new key safely
+          echo "DOCUSIGN_RSA_KEY=\"$DOCUSIGN_RSA_KEY\"" >> .env
           
           echo "✅ DocuSign configuration updated"
 
