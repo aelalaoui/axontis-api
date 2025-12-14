@@ -93,7 +93,7 @@ jobs:
       - name: Deploy on server (expects PHP 8.1 configured on Hostinger)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}' CLOUDFLARE_R2_ACCESS_KEY_ID='${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}' CLOUDFLARE_R2_SECRET_ACCESS_KEY='${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}' CLOUDFLARE_R2_BUCKET='${{ secrets.CLOUDFLARE_R2_BUCKET }}' CLOUDFLARE_R2_ENDPOINT='${{ secrets.CLOUDFLARE_R2_ENDPOINT }}' CLOUDFLARE_R2_URL='${{ secrets.CLOUDFLARE_R2_URL }}' DOCUSIGN_CLIENT_ID='${{ secrets.DOCUSIGN_CLIENT_ID }}' DOCUSIGN_USER_ID='${{ secrets.DOCUSIGN_USER_ID }}' DOCUSIGN_ACCOUNT_ID='${{ secrets.DOCUSIGN_ACCOUNT_ID }}' DOCUSIGN_RSA_KEY='${{ secrets.DOCUSIGN_RSA_KEY }}' DOCUSIGN_BASE_PATH='${{ secrets.DOCUSIGN_BASE_PATH }}'; /bin/bash" << 'EOF'
+          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}' CLOUDFLARE_R2_ACCESS_KEY_ID='${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}' CLOUDFLARE_R2_SECRET_ACCESS_KEY='${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}' CLOUDFLARE_R2_BUCKET='${{ secrets.CLOUDFLARE_R2_BUCKET }}' CLOUDFLARE_R2_ENDPOINT='${{ secrets.CLOUDFLARE_R2_ENDPOINT }}' CLOUDFLARE_R2_URL='${{ secrets.CLOUDFLARE_R2_URL }}' DOCUSIGN_CLIENT_ID='${{ secrets.DOCUSIGN_CLIENT_ID }}' DOCUSIGN_USER_ID='${{ secrets.DOCUSIGN_USER_ID }}' DOCUSIGN_ACCOUNT_ID='${{ secrets.DOCUSIGN_ACCOUNT_ID }}' DOCUSIGN_BASE_PATH='${{ secrets.DOCUSIGN_BASE_PATH }}'; /bin/bash" << 'EOF'
           set -e
 
           # Debug environment
@@ -183,12 +183,6 @@ jobs:
           sed -i "s/DOCUSIGN_USER_ID=.*/DOCUSIGN_USER_ID=$DOCUSIGN_USER_ID/" .env
           sed -i "s/DOCUSIGN_ACCOUNT_ID=.*/DOCUSIGN_ACCOUNT_ID=$DOCUSIGN_ACCOUNT_ID/" .env
           sed -i "s|DOCUSIGN_BASE_PATH=.*|DOCUSIGN_BASE_PATH=$DOCUSIGN_BASE_PATH|" .env
-          
-          # Handle RSA Key (Multiline)
-          # 1. Remove existing line
-          sed -i '/^DOCUSIGN_RSA_KEY=/d' .env
-          # 2. Append new key safely
-          echo "DOCUSIGN_RSA_KEY=\"$DOCUSIGN_RSA_KEY\"" >> .env
           
           echo "✅ DocuSign configuration updated"
 

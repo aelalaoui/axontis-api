@@ -36,7 +36,9 @@ return [
         'account_id' => env('DOCUSIGN_ACCOUNT_ID'),
         'client_id' => env('DOCUSIGN_CLIENT_ID'),
         'user_id' => env('DOCUSIGN_USER_ID'),
-        'rsa_key' => env('DOCUSIGN_RSA_KEY'),
+        'rsa_key' => file_exists(storage_path('keys/docusign_key.key'))
+            ? file_get_contents(storage_path('keys/docusign_key.key'))
+            : null,
     ],
 
 ];
