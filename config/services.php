@@ -31,4 +31,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'docusign' => [
+        'base_path' => env('DOCUSIGN_BASE_PATH', 'https://demo.docusign.net/restapi'),
+        'account_id' => env('DOCUSIGN_ACCOUNT_ID'),
+        'client_id' => env('DOCUSIGN_CLIENT_ID'),
+        'user_id' => env('DOCUSIGN_USER_ID'),
+        'rsa_key' => env('DOCUSIGN_RSA_KEY'),
+    ],
+
 ];

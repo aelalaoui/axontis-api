@@ -10,10 +10,12 @@ use Illuminate\Support\Facades\Log;
 class ContractController extends Controller
 {
     protected $contractService;
+    protected $docuSignService;
 
-    public function __construct(ContractService $contractService)
+    public function __construct(ContractService $contractService, \App\Services\DocuSignService $docuSignService)
     {
         $this->contractService = $contractService;
+        $this->docuSignService = $docuSignService;
     }
 
     /**
@@ -35,13 +37,45 @@ class ContractController extends Controller
                 ], 401);
             }
 
+            // 1. Generate Contract and save PDF
             $contract = $this->contractService->generateContract($client);
+
+            // 2. Get PDF Content
+            // Assuming the contract generation attaches exactly one file which is the contract
+            $contractFile = $contract->files->first();
+
+            if (!$contractFile) {
+                throw new \Exception("Le fichier du contrat n'a pas été généré.");
+            }
+
+            // Retrieve content - if remote, might need to download using url or temporaryUrl
+            // FileService logic implies we can use storage to get contents
+            try {
+                $pdfContent = $contractFile->getContents();
+            } catch (\Exception $e) {
+                // Fallback for some cloud storages if direct local access isn't setup same way
+                // But getContents in File model delegates to Storage::disk()->get() which should work for R2 too
+                $pdfContent = file_get_contents($contractFile->url);
+            }
+
+            // 3. Generate Signing URL via DocuSign
+            $clientName = $client->company ?? $client->first_name . ' ' . $client->last_name;
+            $returnUrl = 'https://axontis.com/contract/signed'; // Callback URL for frontend
+
+            $signingUrl = $this->docuSignService->sendEnvelopeForEmbeddedSigning(
+                $pdfContent,
+                $clientName,
+                $client->email,
+                $client->uuid,
+                $returnUrl
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Contrat généré avec succès',
+                'message' => 'Contrat généré et prêt à être signé',
                 'data' => [
-                    'contract' => $contract
+                    'contract' => $contract,
+                    'signing_url' => $signingUrl
                 ]
             ]);
 
