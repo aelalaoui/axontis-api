@@ -11,6 +11,7 @@ class Installation extends Model
     use HasUuid, SoftDeletes;
 
     protected $fillable = [
+        'uuid',
         'client_uuid',
         'contract_uuid',
         'city',
