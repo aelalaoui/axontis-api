@@ -37,18 +37,13 @@ class DocuSignService
         try {
             $clientId = config('services.docusign.client_id');
             $userId = config('services.docusign.user_id');
-            $rsaKey = config('services.docusign.rsa_key');
+            $rsaKeyPath = config('services.docusign.rsa_key_path');
 
-            // Handle RSA key formatting
-            // 1. Replace literal \n from .env with actual newlines
-            $rsaKey = str_replace('\n', "\n", $rsaKey);
-
-            // 2. Check if it already has headers (either PKCS#1 or PKCS#8)
-            if (!str_contains($rsaKey, 'BEGIN RSA PRIVATE KEY') && !str_contains($rsaKey, 'BEGIN PRIVATE KEY')) {
-                $rsaKey = "-----BEGIN RSA PRIVATE KEY-----\n" .
-                    wordwrap($rsaKey, 64, "\n", true) .
-                    "\n-----END RSA PRIVATE KEY-----";
+            if (!file_exists($rsaKeyPath)) {
+                throw new \Exception("DocuSign RSA key file not found at: {$rsaKeyPath}");
             }
+
+            $rsaKey = file_get_contents($rsaKeyPath);
 
             $scopes = ['signature', 'impersonation'];
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Installation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class InstallationService
 {
@@ -15,7 +16,7 @@ class InstallationService
     public function createInstallation(array $data)
     {
         return DB::transaction(function () use ($data) {
-            $installation = Installation::create($data);
+            $installation = Installation::create(array_merge($data, ['uuid' => Str::uuid()]));
 
             if (isset($data['city'])) {
                 $installation->client()->update(['city' => $data['city']]);

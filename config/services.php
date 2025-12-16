@@ -36,7 +36,7 @@ return [
         'account_id' => env('DOCUSIGN_ACCOUNT_ID'),
         'client_id' => env('DOCUSIGN_CLIENT_ID'),
         'user_id' => env('DOCUSIGN_USER_ID'),
-        'rsa_key' => env('DOCUSIGN_RSA_KEY'),
+        'rsa_key_path' => storage_path('keys/docusign_key.key'),
     ],
 
 ];
