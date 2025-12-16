@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Traits\HasUuid;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Installation extends Model
@@ -11,7 +10,6 @@ class Installation extends Model
     use HasUuid, SoftDeletes;
 
     protected $fillable = [
-        'uuid',
         'client_uuid',
         'contract_uuid',
         'city',
