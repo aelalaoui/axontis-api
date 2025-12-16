@@ -159,30 +159,30 @@ jobs:
 
           # Configure MySQL database for Hostinger
           echo "=== DATABASE CONFIGURATION ==="
-          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
-          sed -i "s/DB_HOST=.*/DB_HOST=$DB_HOST/" .env
-          sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
-          sed -i "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" .env
-          sed -i "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" .env
-          sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" .env
+          sed -i 's|DB_CONNECTION=.*|DB_CONNECTION=mysql|' .env
+          sed -i "s|DB_HOST=.*|DB_HOST=$DB_HOST|" .env
+          sed -i 's|DB_PORT=.*|DB_PORT=3306|' .env
+          sed -i "s|DB_DATABASE=.*|DB_DATABASE=$DB_NAME|" .env
+          sed -i "s|DB_USERNAME=.*|DB_USERNAME=$DB_USER|" .env
+          sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env
           echo "✅ Database configuration updated"
 
           # Configure Cloudflare R2 storage
           echo "=== CLOUDFLARE R2 CONFIGURATION ==="
-          sed -i 's/FILESYSTEM_DISK=.*/FILESYSTEM_DISK=r2/' .env
-          sed -i "s/CLOUDFLARE_R2_ACCESS_KEY_ID=.*/CLOUDFLARE_R2_ACCESS_KEY_ID=$CLOUDFLARE_R2_ACCESS_KEY_ID/" .env
-          sed -i "s/CLOUDFLARE_R2_SECRET_ACCESS_KEY=.*/CLOUDFLARE_R2_SECRET_ACCESS_KEY=$CLOUDFLARE_R2_SECRET_ACCESS_KEY/" .env
-          sed -i "s/CLOUDFLARE_R2_BUCKET=.*/CLOUDFLARE_R2_BUCKET=$CLOUDFLARE_R2_BUCKET/" .env
-          sed -i "s/CLOUDFLARE_R2_ENDPOINT=.*/CLOUDFLARE_R2_ENDPOINT=$CLOUDFLARE_R2_ENDPOINT/" .env
-          sed -i "s/CLOUDFLARE_R2_URL=.*/CLOUDFLARE_R2_URL=$CLOUDFLARE_R2_URL/" .env
+          sed -i 's|FILESYSTEM_DISK=.*|FILESYSTEM_DISK=r2|' .env
+          sed -i "s|CLOUDFLARE_R2_ACCESS_KEY_ID=.*|CLOUDFLARE_R2_ACCESS_KEY_ID=$CLOUDFLARE_R2_ACCESS_KEY_ID|" .env
+          sed -i "s|CLOUDFLARE_R2_SECRET_ACCESS_KEY=.*|CLOUDFLARE_R2_SECRET_ACCESS_KEY=$CLOUDFLARE_R2_SECRET_ACCESS_KEY|" .env
+          sed -i "s|CLOUDFLARE_R2_BUCKET=.*|CLOUDFLARE_R2_BUCKET=$CLOUDFLARE_R2_BUCKET|" .env
+          sed -i "s|CLOUDFLARE_R2_ENDPOINT=.*|CLOUDFLARE_R2_ENDPOINT=$CLOUDFLARE_R2_ENDPOINT|" .env
+          sed -i "s|CLOUDFLARE_R2_URL=.*|CLOUDFLARE_R2_URL=$CLOUDFLARE_R2_URL|" .env
           echo "✅ Cloudflare R2 configuration updated"
 
           # Configure DocuSign
           echo "=== DOCUSIGN CONFIGURATION ==="
-          sed -i "s/DOCUSIGN_CLIENT_ID=.*/DOCUSIGN_CLIENT_ID=$DOCUSIGN_CLIENT_ID/" .env
-          sed -i "s/DOCUSIGN_USER_ID=.*/DOCUSIGN_USER_ID=$DOCUSIGN_USER_ID/" .env
-          sed -i "s/DOCUSIGN_ACCOUNT_ID=.*/DOCUSIGN_ACCOUNT_ID=$DOCUSIGN_ACCOUNT_ID/" .env
-          sed -i "s/DOCUSIGN_BASE_PATH=.*/DOCUSIGN_BASE_PATH=$DOCUSIGN_BASE_PATH/" .env
+          sed -i "s|DOCUSIGN_CLIENT_ID=.*|DOCUSIGN_CLIENT_ID=$DOCUSIGN_CLIENT_ID|" .env
+          sed -i "s|DOCUSIGN_USER_ID=.*|DOCUSIGN_USER_ID=$DOCUSIGN_USER_ID|" .env
+          sed -i "s|DOCUSIGN_ACCOUNT_ID=.*|DOCUSIGN_ACCOUNT_ID=$DOCUSIGN_ACCOUNT_ID|" .env
+          sed -i "s|DOCUSIGN_BASE_PATH=.*|DOCUSIGN_BASE_PATH=$DOCUSIGN_BASE_PATH|" .env
           
           echo "✅ DocuSign configuration updated"
 
