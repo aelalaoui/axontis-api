@@ -25,6 +25,15 @@ Route::get('/', function () {
     ]);
 });
 
+
+// Callback route for DocuSign OAuth consent flow
+Route::get('/docusign/callback', function () {
+    return response()->json([
+        'message' => 'Consent granted successfully! You can now close this window and use DocuSign in your application.',
+        'status' => 'success'
+    ]);
+})->name('docusign.callback');
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),

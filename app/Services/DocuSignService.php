@@ -59,9 +59,37 @@ class DocuSignService
             $this->apiClient->getConfig()->setHost(config('services.docusign.base_path')); // e.g. https://demo.docusign.net/restapi
 
         } catch (\Exception $e) {
+            // Check if this is a consent_required error
+            if (strpos($e->getMessage(), 'consent_required') !== false) {
+                $consentUrl = $this->getConsentUrl();
+                Log::error('DocuSign Consent Required. Please visit this URL to grant consent: ' . $consentUrl);
+                throw new \Exception(
+                    "DocuSign consent required. Please visit this URL to grant consent: {$consentUrl}\n\n" .
+                    "After granting consent, try again. This is a one-time setup step."
+                );
+            }
+
             Log::error('DocuSign Authentication Failed: ' . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Generate the consent URL for JWT authentication
+     * This URL must be visited once to grant consent to the integration
+     *
+     * @return string The consent URL
+     */
+    public function getConsentUrl()
+    {
+        $clientId = config('services.docusign.client_id');
+        $redirectUri = urlencode(config('app.url') . '/docusign/callback'); // You can customize this
+        $oauthBasePath = env('DOCUSIGN_OAUTH_BASE_PATH', 'account-d.docusign.com');
+
+        // For production, use account.docusign.com instead of account-d.docusign.com
+        $scopes = 'signature%20impersonation';
+
+        return "https://{$oauthBasePath}/oauth/auth?response_type=code&scope={$scopes}&client_id={$clientId}&redirect_uri={$redirectUri}";
     }
 
     /**
