@@ -67,7 +67,8 @@ class ContractController extends Controller
                 $clientName,
                 $client->email,
                 $client->uuid,
-                $returnUrl
+                $returnUrl,
+                $contract
             );
 
             return response()->json([

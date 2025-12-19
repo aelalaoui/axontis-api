@@ -34,6 +34,11 @@ Route::get('/docusign/callback', function () {
     ]);
 })->name('docusign.callback');
 
+// Signature webhooks viewer
+Route::get('/signature/webhooks', [\App\Http\Controllers\SignatureController::class, 'viewWebhooks'])
+    ->name('signature.webhooks');
+
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),

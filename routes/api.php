@@ -25,6 +25,10 @@ Route::put('/client/{uuid}/step/{step}', [ClientController::class, 'updateStep']
 Route::post('/installation/new', [InstallationController::class, 'create']);
 Route::post('/contract/generate/client/{uuid}', [\App\Http\Controllers\ContractController::class, 'generate']);
 
+// Signature webhook endpoint (publicly accessible)
+Route::post('/signature/webhook/{provider}', [\App\Http\Controllers\SignatureController::class, 'handleWebhook']);
+
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();

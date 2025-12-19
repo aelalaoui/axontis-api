@@ -20,12 +20,20 @@ class Signature extends Model
         'signed_at',
         'ip_address',
         'metadata',
+        'provider',
+        'provider_envelope_id',
+        'provider_status',
+        'webhook_payload',
+        'webhook_received_at',
+        'signing_url',
     ];
 
     protected $casts = [
         'signed_at' => 'datetime',
         'metadata' => 'array',
         'signature_type' => 'string',
+        'webhook_payload' => 'array',
+        'webhook_received_at' => 'datetime',
     ];
 
     // Relationships
@@ -71,7 +79,7 @@ class Signature extends Model
     public function scopeSignedThisMonth($query)
     {
         return $query->whereMonth('signed_at', now()->month)
-                    ->whereYear('signed_at', now()->year);
+            ->whereYear('signed_at', now()->year);
     }
 
     // Accessors
@@ -102,7 +110,7 @@ class Signature extends Model
     public function getSignerNameAttribute(): string
     {
         $signer = $this->signableBy;
-        
+
         if (!$signer) {
             return 'Unknown Signer';
         }

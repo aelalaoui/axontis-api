@@ -10,6 +10,8 @@ use DocuSign\eSign\Model\Signer;
 use DocuSign\eSign\Model\SignHere;
 use DocuSign\eSign\Model\Tabs;
 use DocuSign\eSign\Model\RecipientViewRequest;
+use App\Models\Signature;
+use App\Models\Client;
 use Illuminate\Support\Facades\Log;
 
 class DocuSignService
@@ -100,9 +102,10 @@ class DocuSignService
      * @param string $clientEmail
      * @param string $clientUuid
      * @param string $returnUrl
+     * @param mixed $signable Optional model to link the signature to
      * @return string Signing URL
      */
-    public function sendEnvelopeForEmbeddedSigning($pdfContent, $clientName, $clientEmail, $clientUuid, $returnUrl)
+    public function sendEnvelopeForEmbeddedSigning($pdfContent, $clientName, $clientEmail, $clientUuid, $returnUrl, $signable = null)
     {
         try {
             // 1. Create Envelope Definition
@@ -124,8 +127,26 @@ class DocuSignService
             ]);
 
             $viewUrl = $envelopesApi->createRecipientView($this->accountId, $envelopeId, $recipientViewRequest);
+            $signingUrl = $viewUrl->getUrl();
 
-            return $viewUrl->getUrl();
+            // 4. Create Signature record if signable is provided
+            if ($signable) {
+                $client = Client::where('uuid', $clientUuid)->first();
+
+                Signature::create([
+                    'signable_type' => get_class($signable),
+                    'signable_id' => $signable->id,
+                    'signable_by_type' => $client ? get_class($client) : null,
+                    'signable_by_id' => $client ? $client->id : null,
+                    'provider' => 'docusign',
+                    'provider_envelope_id' => $envelopeId,
+                    'provider_status' => 'sent',
+                    'signing_url' => $signingUrl,
+                    'signature_type' => 'digital',
+                ]);
+            }
+
+            return $signingUrl;
 
         } catch (\Exception $e) {
             Log::error('DocuSign Send Envelope Failed: ' . $e->getMessage());
