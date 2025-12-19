@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Signature;
 use App\Models\Contract;
 use App\Models\Client;
+use App\Enums\ContractStatus;
 use App\Enums\ClientStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -128,11 +129,11 @@ class SignatureController extends Controller
             $client = $signature->signable_by;
 
             if ($contract instanceof Contract) {
-                $contract->update(['status' => ClientStatus::SIGNED]);
+                $contract->update(['status' => ContractStatus::SIGNED->value]);
             }
 
             if ($client instanceof Client) {
-                $client->update(['status' => ClientStatus::SIGNED]);
+                $client->update(['status' => ClientStatus::SIGNED->value]);
             }
 
             Log::info('Contract and Client status updated to signed', [
