@@ -124,22 +124,21 @@ class SignatureController extends Controller
             }
 
             // Find associated signable (Contract, etc.)
-            $signable = $signature->signable;
+            $contract = $signature->signable;
+            $client = $signature->signable_by;
 
-            if ($signable instanceof Contract) {
-                // Update contract status
-                $signable->update(['status' => 'signed']);
-
-                // Update client status if available
-                if ($signable->client) {
-                    $signable->client->update(['status' => ClientStatus::SIGNED]);
-                }
-
-                Log::info('Contract and Client status updated to signed', [
-                    'contract_uuid' => $signable->uuid,
-                    'client_uuid' => $signable->client->uuid ?? 'N/A'
-                ]);
+            if ($contract instanceof Contract) {
+                $contract->update(['status' => ClientStatus::SIGNED]);
             }
+
+            if ($client instanceof Client) {
+                $client->update(['status' => ClientStatus::SIGNED]);
+            }
+
+            Log::info('Contract and Client status updated to signed', [
+                'contract_uuid' => $contract?->uuid ?? 'N/A',
+                'client_uuid' => $client?->uuid ?? 'N/A'
+            ]);
 
             Log::info('Signature completed processed', [
                 'signature_id' => $signature->id,
