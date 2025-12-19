@@ -135,9 +135,9 @@ class DocuSignService
 
                 Signature::create([
                     'signable_type' => get_class($signable),
-                    'signable_id' => $signable->id,
+                    'signable_id' => $signable->uuid,
                     'signable_by_type' => $client ? get_class($client) : null,
-                    'signable_by_id' => $client ? $client->id : null,
+                    'signable_by_id' => $client ? $client->uuid : null,
                     'provider' => 'docusign',
                     'provider_envelope_id' => $envelopeId,
                     'provider_status' => 'sent',
