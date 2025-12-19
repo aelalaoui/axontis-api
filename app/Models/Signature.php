@@ -12,9 +12,9 @@ class Signature extends Model
 
     protected $fillable = [
         'signable_type',
-        'signable_id',
+        'signable_uuid',
         'signable_by_type',
-        'signable_by_id',
+        'signable_by_uuid',
         'signature_file',
         'signature_type',
         'signed_at',
@@ -39,12 +39,12 @@ class Signature extends Model
     // Relationships
     public function signable(): MorphTo
     {
-        return $this->morphTo();
+        return $this->morphTo('signable', 'signable_type', 'signable_uuid');
     }
 
     public function signableBy(): MorphTo
     {
-        return $this->morphTo('signable_by');
+        return $this->morphTo('signable_by', 'signable_by_type', 'signable_by_uuid');
     }
 
     // Scopes
