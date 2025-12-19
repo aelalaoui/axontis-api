@@ -136,8 +136,8 @@ class SignatureController extends Controller
                 }
 
                 Log::info('Contract and Client status updated to signed', [
-                    'contract_id' => $signable->id,
-                    'client_id' => $signable->client_id ?? 'N/A'
+                    'contract_uuid' => $signable->uuid,
+                    'client_uuid' => $signable->client->uuid ?? 'N/A'
                 ]);
             }
 

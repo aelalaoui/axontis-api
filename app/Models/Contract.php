@@ -74,7 +74,7 @@ class Contract extends Model
 
     public function signatures(): MorphMany
     {
-        return $this->morphMany(Signature::class, 'signable');
+        return $this->morphMany(Signature::class, 'signable', 'signable_type', 'signable_uuid');
     }
 
     public function communications(): MorphMany
@@ -111,7 +111,7 @@ class Contract extends Model
 
     public function getIsExpiredAttribute(): bool
     {
-        return $this->end_date && $this->end_date->isPast();
+        return $this->end_date && $this->end_date < now();
     }
 
     public function getTotalPaidAttribute(): float

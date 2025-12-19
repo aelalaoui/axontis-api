@@ -11,6 +11,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+
 class User extends Authenticatable
 {
     use HasApiTokens;
@@ -61,4 +63,12 @@ class User extends Authenticatable
     protected $appends = [
         'profile_photo_url',
     ];
+
+    /**
+     * Get the signatures where this user is the signer.
+     */
+    public function signatures(): MorphMany
+    {
+        return $this->morphMany(Signature::class, 'signable_by', 'signable_by_type', 'signable_by_uuid');
+    }
 }

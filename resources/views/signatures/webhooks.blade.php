@@ -228,7 +228,8 @@
             <div class="stat-card">
                 <div class="stat-label">Pending</div>
                 <div class="stat-value">
-                    {{ \App\Models\Signature::whereNull('signed_at')->whereNotNull('webhook_payload')->count() }}</div>
+                    {{ \App\Models\Signature::whereNull('signed_at')->whereNotNull('webhook_payload')->count() }}
+                </div>
             </div>
         </div>
 
@@ -277,7 +278,7 @@
                     <div class="webhook-body" id="webhook-{{ $signature->id }}">
                         <div style="margin-bottom: 10px; color: #e2e8f0; font-size: 14px;">
                             <strong>Signable:</strong> {{ str_replace('App\\Models\\', '', $signature->signable_type) }}
-                            ({{ $signature->signable_id }})
+                            ({{ $signature->signable_uuid }})
                         </div>
                         <pre>{{ json_encode($signature->webhook_payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
                     </div>
@@ -295,8 +296,8 @@
                     Configure your signature provider to send webhooks to:<br>
                     <code
                         style="background: #f7fafc; padding: 8px 16px; border-radius: 6px; margin-top: 10px; display: inline-block;">
-                                {{ url('/api/signature/webhook/{provider}') }}
-                            </code>
+                                    {{ url('/api/signature/webhook/{provider}') }}
+                                </code>
                 </p>
             </div>
         @endif

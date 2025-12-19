@@ -112,7 +112,7 @@ class Client extends Model
 
     public function signatures(): MorphMany
     {
-        return $this->morphMany(Signature::class, 'signable');
+        return $this->morphMany(Signature::class, 'signable_by', 'signable_by_type', 'signable_by_uuid');
     }
 
     public function communications(): MorphMany
