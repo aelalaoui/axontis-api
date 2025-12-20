@@ -126,7 +126,7 @@ class SignatureController extends Controller
 
             // Find associated signable (Contract, etc.)
             $contract = $signature->signable;
-            $client = $signature->signable_by;
+            $client = $signature->signableBy;
 
             if ($contract instanceof Contract) {
                 $contract->update(['status' => ContractStatus::SIGNED->value]);
