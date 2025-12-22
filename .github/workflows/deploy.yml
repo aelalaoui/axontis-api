@@ -1,4 +1,4 @@
-name: Deploy Laravel Jetstream + Inertia to Hostinger (PHP 8.1)
+name: Deploy Laravel Jetstream + Inertia to Hostinger (PHP 8.3)
 
 on:
   push:
