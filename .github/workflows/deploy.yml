@@ -1,4 +1,4 @@
-name: Deploy Laravel Jetstream + Inertia to Hostinger (PHP 8.3)
+name: Deploy Laravel Jetstream + Inertia to Hostinger (PHP 8.4)
 
 on:
   push:
@@ -14,10 +14,10 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, intl, zip, bcmath, gd, pdo, pdo_mysql, fileinfo
           coverage: none
 
@@ -90,7 +90,7 @@ jobs:
         run: |
           scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no release.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/domains/axontis.net/apps/axontis/release.tar.gz
 
-      - name: Deploy on server (expects PHP 8.3 configured on Hostinger)
+      - name: Deploy on server (expects PHP 8.4 configured on Hostinger)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
           "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}' CLOUDFLARE_R2_ACCESS_KEY_ID='${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}' CLOUDFLARE_R2_SECRET_ACCESS_KEY='${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}' CLOUDFLARE_R2_BUCKET='${{ secrets.CLOUDFLARE_R2_BUCKET }}' CLOUDFLARE_R2_ENDPOINT='${{ secrets.CLOUDFLARE_R2_ENDPOINT }}' CLOUDFLARE_R2_URL='${{ secrets.CLOUDFLARE_R2_URL }}' DOCUSIGN_CLIENT_ID='${{ secrets.DOCUSIGN_CLIENT_ID }}' DOCUSIGN_USER_ID='${{ secrets.DOCUSIGN_USER_ID }}' DOCUSIGN_ACCOUNT_ID='${{ secrets.DOCUSIGN_ACCOUNT_ID }}' DOCUSIGN_BASE_PATH='${{ secrets.DOCUSIGN_BASE_PATH }}' SENTRY_LARAVEL_DSN='${{ secrets.SENTRY_LARAVEL_DSN }}'; /bin/bash" << 'EOF'
@@ -146,12 +146,12 @@ jobs:
 
           # Composer install (prod)
           echo "=== COMPOSER INSTALL ==="
-          composer install --no-dev --optimize-autoloader --prefer-dist
+          /opt/alt/php84/usr/bin/php /usr/local/bin/composer install --no-dev --optimize-autoloader --prefer-dist
 
           # .env géré côté serveur
           if [ ! -f .env ]; then
             cp .env.example .env
-            php artisan key:generate
+            /opt/alt/php84/usr/bin/php artisan key:generate
             echo "✅ .env file created and key generated"
           else
             echo "✅ .env file already exists"
@@ -197,13 +197,13 @@ jobs:
 
           # Migrations
           echo "=== RUNNING MIGRATIONS ==="
-          php artisan migrate --force || echo "⚠️ Migration failed or no migrations to run"
+          /opt/alt/php84/usr/bin/php artisan migrate --force || echo "⚠️ Migration failed or no migrations to run"
 
           # Caches
           echo "=== BUILDING CACHES ==="
-          php artisan config:cache || echo "⚠️ Config cache failed"
-          php artisan route:cache || echo "⚠️ Route cache failed"
-          php artisan view:cache || echo "⚠️ View cache failed"
+          /opt/alt/php84/usr/bin/php artisan config:cache || echo "⚠️ Config cache failed"
+          /opt/alt/php84/usr/bin/php artisan route:cache || echo "⚠️ Route cache failed"
+          /opt/alt/php84/usr/bin/php artisan view:cache || echo "⚠️ View cache failed"
 
           # Permissions
           echo "=== SETTING PERMISSIONS ==="
@@ -317,5 +317,5 @@ jobs:
           echo "Content of index.php:"
           cat "$HOME/$WEB_DIR/index.php"
 
-          echo "🎉 Deployment complete (PHP 8.3)"
+          echo "🎉 Deployment complete (PHP 8.4)"
           EOF
