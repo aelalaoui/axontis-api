@@ -33,10 +33,10 @@ class ContractService
             'client_id' => $client->id,
             'status' => 'pending',
             'start_date' => now(),
-            'end_date' => now()->addYear(),
             // These would normally come from the accepted offer/quote
             'monthly_amount_cents' => 0,
             'vat_rate_percentage' => 20,
+            'currency' => 'MAD',
             'description' => 'Contrat de maintenance et télésurveillance'
         ]);
 

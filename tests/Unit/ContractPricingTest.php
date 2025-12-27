@@ -23,10 +23,10 @@ class ContractPricingTest extends TestCase
         $contract = Contract::create([
             'client_id' => $client->id,
             'start_date' => now(),
-            'end_date' => now()->addYear(),
             'status' => 'pending',
             'monthly_amount_cents' => 15050, // 150.50 DH HT
             'vat_rate_percentage' => 20,      // 20% VAT
+            'currency' => 'MAD',
             'description' => 'Test contract',
         ]);
 
@@ -46,10 +46,10 @@ class ContractPricingTest extends TestCase
         $contract = Contract::create([
             'client_id' => $client->id,
             'start_date' => now(),
-            'end_date' => now()->addYear(),
             'status' => 'pending',
             'monthly_amount_cents' => 0,
             'vat_rate_percentage' => 20,
+            'currency' => 'MAD',
             'description' => 'Test contract with zero amount',
         ]);
 
@@ -69,10 +69,10 @@ class ContractPricingTest extends TestCase
         $contract = Contract::create([
             'client_id' => $client->id,
             'start_date' => now(),
-            'end_date' => now()->addYear(),
             'status' => 'pending',
             'monthly_amount_cents' => 10000, // 100.00 DH HT
             'vat_rate_percentage' => 10,      // 10% VAT
+            'currency' => 'MAD',
             'description' => 'Test contract with 10% VAT',
         ]);
 
@@ -91,10 +91,10 @@ class ContractPricingTest extends TestCase
         $contract = Contract::create([
             'client_id' => $client->id,
             'start_date' => now(),
-            'end_date' => now()->addYear(),
             'status' => 'pending',
             'monthly_amount_cents' => 12345, // 123.45 DH
             'vat_rate_percentage' => 20,
+            'currency' => 'MAD',
             'description' => 'Test contract',
         ]);
 

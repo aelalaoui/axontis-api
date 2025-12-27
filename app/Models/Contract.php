@@ -15,16 +15,19 @@ class Contract extends Model
     protected $fillable = [
         'client_id',
         'start_date',
-        'end_date',
+        'due_date',
+        'termination_date',
         'status',
         'monthly_amount_cents',
         'vat_rate_percentage',
+        'currency',
         'description',
     ];
 
     protected $casts = [
         'start_date' => 'date',
-        'end_date' => 'date',
+        'due_date' => 'string',
+        'termination_date' => 'date',
         'monthly_amount_cents' => 'integer',
         'vat_rate_percentage' => 'integer',
         'status' => 'string',
@@ -32,6 +35,7 @@ class Contract extends Model
 
     protected $attributes = [
         'status' => 'pending',
+        'currency' => 'MAD',
     ];
 
     // Relationships
@@ -96,9 +100,9 @@ class Contract extends Model
         return $query->where('status', 'pending');
     }
 
-    public function scopeExpired($query)
+    public function scopeTerminated($query)
     {
-        return $query->where('end_date', '<', now());
+        return $query->whereNotNull('termination_date');
     }
 
     // Accessors
@@ -107,9 +111,9 @@ class Contract extends Model
         return $this->status === 'active';
     }
 
-    public function getIsExpiredAttribute(): bool
+    public function getIsTerminatedAttribute(): bool
     {
-        return $this->end_date && $this->end_date < now();
+        return $this->termination_date !== null;
     }
 
     public function getTotalPaidAttribute(): float
