@@ -72,7 +72,7 @@ onMounted(async () => {
                     color: '#ffffff',
                     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     '::placeholder': {
-                        color: '#9ca3af',
+                        color: '#ffffff',
                     },
                 },
                 invalid: {
