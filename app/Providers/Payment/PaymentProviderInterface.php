@@ -5,28 +5,28 @@ namespace App\Providers\Payment;
 interface PaymentProviderInterface
 {
     /**
-     * Process payment
+     * Create a payment intent (deposit / one-shot)
      *
-     * @param array $paymentData Payment information including card details
-     * @return array Response with 'success' flag and transaction details
+     * @param array $data Payment intent data (amount, currency, metadata)
+     * @return array Response with 'client_secret', 'payment_intent_id'
      */
-    public function processPayment(array $paymentData): array;
+    public function createPaymentIntent(array $data): array;
 
     /**
-     * Refund payment
+     * Handle provider webhook
      *
-     * @param string $transactionId Original transaction identifier
+     * @param array $payload Webhook payload from payment provider
+     * @return void
+     */
+    public function handleWebhook(array $payload): void;
+
+    /**
+     * Refund a payment
+     *
+     * @param string $providerPaymentId Payment ID from provider
      * @param float $amount Refund amount
      * @return array Response with 'success' flag and refund details
      */
-    public function refundPayment(string $transactionId, float $amount): array;
-
-    /**
-     * Get payment status
-     *
-     * @param string $transactionId Transaction identifier
-     * @return array Response with payment status
-     */
-    public function getPaymentStatus(string $transactionId): array;
+    public function refund(string $providerPaymentId, float $amount): array;
 }
 

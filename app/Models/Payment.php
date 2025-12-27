@@ -14,10 +14,12 @@ class Payment extends Model
     protected $fillable = [
         'contract_id',
         'amount',
+        'currency',
         'payment_date',
         'method',
         'status',
         'transaction_id',
+        'provider_response',
         'notes',
     ];
 
@@ -26,6 +28,8 @@ class Payment extends Model
         'payment_date' => 'date',
         'method' => 'string',
         'status' => 'string',
+        'currency' => 'string',
+        'provider_response' => 'array',
     ];
 
     protected $attributes = [

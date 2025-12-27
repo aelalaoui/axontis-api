@@ -2,6 +2,16 @@
 
 namespace App\Providers\Payment;
 
+use App\Models\Payment;
+use App\Models\Contract;
+use App\Models\Client;
+use Illuminate\Support\Facades\Log;
+use Stripe\Stripe;
+use Stripe\PaymentIntent;
+use Stripe\Refund;
+use Stripe\Webhook;
+use Stripe\Exception\SignatureVerificationException;
+
 class StripeProvider implements PaymentProviderInterface
 {
     /**
@@ -10,230 +20,325 @@ class StripeProvider implements PaymentProviderInterface
     protected string $apiKey;
 
     /**
-     * Stripe API endpoint
+     * Stripe webhook secret
      */
-    protected string $apiEndpoint = 'https://api.stripe.com/v1';
+    protected string $webhookSecret;
 
     public function __construct()
     {
         $this->apiKey = config('services.stripe.secret');
+        $this->webhookSecret = config('services.stripe.webhook_secret');
+
+        // Set Stripe API key
+        Stripe::setApiKey($this->apiKey);
     }
 
     /**
-     * Process payment
+     * Create a payment intent
      */
-    public function processPayment(array $paymentData): array
+    public function createPaymentIntent(array $data): array
     {
         try {
             // Validate required fields
-            $this->validatePaymentData($paymentData);
+            $this->validatePaymentIntentData($data);
 
-            // Mock payment processing (replace with actual Stripe API call)
-            return $this->mockProcessPayment($paymentData);
+            // Create Stripe PaymentIntent
+            $paymentIntent = PaymentIntent::create([
+                'amount' => (int)($data['amount'] * 100), // Convert to cents
+                'currency' => strtolower($data['currency']),
+                'automatic_payment_methods' => [
+                    'enabled' => true,
+                ],
+                'metadata' => [
+                    'payment_uuid' => $data['payment_uuid'] ?? null,
+                    'contract_uuid' => $data['contract_uuid'] ?? null,
+                    'client_uuid' => $data['client_uuid'] ?? null,
+                    'description' => $data['description'] ?? 'Payment',
+                ],
+            ]);
 
-            // Actual Stripe API implementation would go here:
-            // $response = $this->callStripeAPI('/charges', [
-            //     'amount' => (int)($paymentData['amount'] * 100),
-            //     'currency' => strtolower($paymentData['currency']),
-            //     'source' => $this->createToken($paymentData),
-            //     'description' => $paymentData['description'],
-            // ]);
-            //
-            // return [
-            //     'success' => true,
-            //     'transaction_id' => $response['id'],
-            //     'status' => $response['status'],
-            //     'message' => 'Payment processed successfully via Stripe',
-            //     'provider' => 'stripe'
-            // ];
+            Log::info('Stripe PaymentIntent created', [
+                'payment_intent_id' => $paymentIntent->id,
+                'amount' => $data['amount'],
+                'currency' => $data['currency'],
+            ]);
+
+            return [
+                'success' => true,
+                'client_secret' => $paymentIntent->client_secret,
+                'payment_intent_id' => $paymentIntent->id,
+                'amount' => $data['amount'],
+                'currency' => $data['currency'],
+            ];
 
         } catch (\Exception $e) {
-            \Log::error('Stripe payment error', [
+            Log::error('Stripe PaymentIntent creation error', [
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Stripe payment failed',
+                'message' => 'Failed to create payment intent',
                 'error' => $e->getMessage(),
-                'provider' => 'stripe'
             ];
         }
     }
 
     /**
-     * Refund payment
+     * Handle Stripe webhook
      */
-    public function refundPayment(string $transactionId, float $amount): array
+    public function handleWebhook(array $payload): void
     {
         try {
-            if (empty($transactionId)) {
+            $sigHeader = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+
+            // Verify webhook signature
+            try {
+                $event = Webhook::constructEvent(
+                    file_get_contents('php://input'),
+                    $sigHeader,
+                    $this->webhookSecret
+                );
+            } catch (SignatureVerificationException $e) {
+                Log::error('Stripe webhook signature verification failed', [
+                    'error' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
+
+            Log::info('Stripe webhook received', [
+                'event_type' => $event->type,
+                'event_id' => $event->id,
+            ]);
+
+            // Handle different event types
+            switch ($event->type) {
+                case 'payment_intent.succeeded':
+                    $this->handlePaymentIntentSucceeded($event->data->object);
+                    break;
+
+                case 'payment_intent.payment_failed':
+                    $this->handlePaymentIntentFailed($event->data->object);
+                    break;
+
+                case 'payment_intent.canceled':
+                    $this->handlePaymentIntentCanceled($event->data->object);
+                    break;
+
+                default:
+                    Log::info('Unhandled Stripe webhook event type', [
+                        'type' => $event->type,
+                    ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Stripe webhook handling error', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Refund a payment
+     */
+    public function refund(string $providerPaymentId, float $amount): array
+    {
+        try {
+            if (empty($providerPaymentId)) {
                 return [
                     'success' => false,
-                    'message' => 'Transaction ID is required for refund'
+                    'message' => 'Payment Intent ID is required for refund',
                 ];
             }
 
-            // Mock refund processing
-            return $this->mockRefundPayment($transactionId, $amount);
+            // Create Stripe refund
+            $refund = Refund::create([
+                'payment_intent' => $providerPaymentId,
+                'amount' => (int)($amount * 100), // Convert to cents
+            ]);
 
-            // Actual Stripe API implementation would go here:
-            // $response = $this->callStripeAPI("/charges/{$transactionId}/refunds", [
-            //     'amount' => (int)($amount * 100),
-            // ]);
-            //
-            // return [
-            //     'success' => true,
-            //     'refund_id' => $response['id'],
-            //     'message' => 'Refund processed successfully',
-            //     'provider' => 'stripe'
-            // ];
+            Log::info('Stripe refund created', [
+                'refund_id' => $refund->id,
+                'payment_intent_id' => $providerPaymentId,
+                'amount' => $amount,
+            ]);
+
+            return [
+                'success' => true,
+                'refund_id' => $refund->id,
+                'payment_intent_id' => $providerPaymentId,
+                'amount' => $amount,
+                'status' => $refund->status,
+                'message' => 'Refund processed successfully',
+            ];
 
         } catch (\Exception $e) {
-            \Log::error('Stripe refund error', [
+            Log::error('Stripe refund error', [
                 'exception' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'payment_intent_id' => $providerPaymentId,
             ]);
 
             return [
                 'success' => false,
                 'message' => 'Stripe refund failed',
                 'error' => $e->getMessage(),
-                'provider' => 'stripe'
             ];
         }
     }
 
     /**
-     * Get payment status
+     * Handle successful payment intent
      */
-    public function getPaymentStatus(string $transactionId): array
+    protected function handlePaymentIntentSucceeded($paymentIntent): void
     {
-        try {
-            if (empty($transactionId)) {
-                return [
-                    'success' => false,
-                    'message' => 'Transaction ID is required'
-                ];
+        $paymentUuid = $paymentIntent->metadata->payment_uuid ?? null;
+        $contractUuid = $paymentIntent->metadata->contract_uuid ?? null;
+        $clientUuid = $paymentIntent->metadata->client_uuid ?? null;
+
+        if (!$paymentUuid) {
+            Log::warning('Payment UUID not found in PaymentIntent metadata', [
+                'payment_intent_id' => $paymentIntent->id,
+            ]);
+            return;
+        }
+
+        // Find payment record
+        $payment = Payment::where('uuid', $paymentUuid)->first();
+
+        if (!$payment) {
+            Log::error('Payment not found', [
+                'payment_uuid' => $paymentUuid,
+                'payment_intent_id' => $paymentIntent->id,
+            ]);
+            return;
+        }
+
+        // Update payment status
+        $payment->update([
+            'status' => 'successful',
+            'transaction_id' => $paymentIntent->id,
+            'payment_date' => now(),
+            'provider_response' => json_encode([
+                'payment_intent_id' => $paymentIntent->id,
+                'status' => $paymentIntent->status,
+                'amount_received' => $paymentIntent->amount_received / 100,
+                'charges' => $paymentIntent->charges->data ?? [],
+            ]),
+        ]);
+
+        Log::info('Payment marked as successful', [
+            'payment_uuid' => $paymentUuid,
+            'payment_intent_id' => $paymentIntent->id,
+        ]);
+
+        // Update contract and client status
+        if ($contractUuid && $clientUuid) {
+            $contract = Contract::where('uuid', $contractUuid)->first();
+            $client = Client::where('uuid', $clientUuid)->first();
+
+            if ($contract) {
+                $contract->update(['status' => 'active']);
+                Log::info('Contract activated', ['contract_uuid' => $contractUuid]);
             }
 
-            // Mock status check
-            return $this->mockGetPaymentStatus($transactionId);
-
-            // Actual Stripe API implementation would go here:
-            // $response = $this->callStripeAPI("/charges/{$transactionId}");
-            //
-            // return [
-            //     'success' => true,
-            //     'status' => $response['status'],
-            //     'amount' => $response['amount'] / 100,
-            //     'currency' => strtoupper($response['currency']),
-            //     'created_at' => date('Y-m-d H:i:s', $response['created']),
-            // ];
-
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Failed to retrieve payment status',
-                'error' => $e->getMessage(),
-                'provider' => 'stripe'
-            ];
+            if ($client) {
+                $client->update(['status' => 'paid']);
+                Log::info('Client marked as paid', ['client_uuid' => $clientUuid]);
+            }
         }
     }
 
     /**
-     * Mock process payment
+     * Handle failed payment intent
      */
-    protected function mockProcessPayment(array $paymentData): array
+    protected function handlePaymentIntentFailed($paymentIntent): void
     {
-        // Simulate payment processing delay
-        usleep(rand(500000, 1500000)); // 0.5 - 1.5 seconds
+        $paymentUuid = $paymentIntent->metadata->payment_uuid ?? null;
 
-        // 95% success rate in mock
-        $success = rand(1, 100) <= 95;
-
-        if ($success) {
-            return [
-                'success' => true,
-                'transaction_id' => 'txn_' . uniqid() . '_' . time(),
-                'status' => 'succeeded',
-                'message' => 'Payment processed successfully via Stripe',
-                'provider' => 'stripe',
-                'amount' => $paymentData['amount'],
-                'currency' => $paymentData['currency'],
-                'card_last_four' => substr($paymentData['card_number'], -4),
-                'timestamp' => now()->toIso8601String(),
-            ];
+        if (!$paymentUuid) {
+            Log::warning('Payment UUID not found in failed PaymentIntent metadata', [
+                'payment_intent_id' => $paymentIntent->id,
+            ]);
+            return;
         }
 
-        return [
-            'success' => false,
-            'message' => 'Card declined',
-            'error' => 'Your card was declined. Please try another payment method.',
-            'provider' => 'stripe',
+        $payment = Payment::where('uuid', $paymentUuid)->first();
+
+        if (!$payment) {
+            Log::error('Payment not found for failed intent', [
+                'payment_uuid' => $paymentUuid,
+                'payment_intent_id' => $paymentIntent->id,
+            ]);
+            return;
+        }
+
+        // Update payment status
+        $payment->update([
             'status' => 'failed',
-            'timestamp' => now()->toIso8601String(),
-        ];
+            'transaction_id' => $paymentIntent->id,
+            'provider_response' => json_encode([
+                'payment_intent_id' => $paymentIntent->id,
+                'status' => $paymentIntent->status,
+                'last_payment_error' => $paymentIntent->last_payment_error,
+            ]),
+        ]);
+
+        Log::info('Payment marked as failed', [
+            'payment_uuid' => $paymentUuid,
+            'payment_intent_id' => $paymentIntent->id,
+            'error' => $paymentIntent->last_payment_error->message ?? 'Unknown error',
+        ]);
     }
 
     /**
-     * Mock refund payment
+     * Handle canceled payment intent
      */
-    protected function mockRefundPayment(string $transactionId, float $amount): array
+    protected function handlePaymentIntentCanceled($paymentIntent): void
     {
-        // Simulate refund processing delay
-        usleep(rand(500000, 1500000)); // 0.5 - 1.5 seconds
+        $paymentUuid = $paymentIntent->metadata->payment_uuid ?? null;
 
-        return [
-            'success' => true,
-            'refund_id' => 're_' . uniqid() . '_' . time(),
-            'transaction_id' => $transactionId,
-            'amount' => $amount,
-            'message' => 'Refund processed successfully',
-            'provider' => 'stripe',
-            'status' => 'succeeded',
-            'timestamp' => now()->toIso8601String(),
-        ];
+        if (!$paymentUuid) {
+            return;
+        }
+
+        $payment = Payment::where('uuid', $paymentUuid)->first();
+
+        if ($payment) {
+            $payment->update([
+                'status' => 'canceled',
+                'transaction_id' => $paymentIntent->id,
+                'provider_response' => json_encode([
+                    'payment_intent_id' => $paymentIntent->id,
+                    'status' => $paymentIntent->status,
+                ]),
+            ]);
+
+            Log::info('Payment marked as canceled', [
+                'payment_uuid' => $paymentUuid,
+                'payment_intent_id' => $paymentIntent->id,
+            ]);
+        }
     }
 
     /**
-     * Mock get payment status
+     * Validate payment intent data
      */
-    protected function mockGetPaymentStatus(string $transactionId): array
+    protected function validatePaymentIntentData(array $data): void
     {
-        return [
-            'success' => true,
-            'status' => 'completed',
-            'transaction_id' => $transactionId,
-            'provider' => 'stripe',
-            'timestamp' => now()->toIso8601String(),
-        ];
-    }
-
-    /**
-     * Validate payment data
-     */
-    protected function validatePaymentData(array $paymentData): void
-    {
-        $required = ['card_number', 'card_holder', 'expiry_date', 'cvv', 'amount', 'currency'];
+        $required = ['amount', 'currency'];
 
         foreach ($required as $field) {
-            if (empty($paymentData[$field])) {
+            if (!isset($data[$field]) || empty($data[$field])) {
                 throw new \InvalidArgumentException("Missing required field: {$field}");
             }
         }
-    }
 
-    /**
-     * Call Stripe API (placeholder for actual implementation)
-     */
-    protected function callStripeAPI(string $endpoint, array $params = []): array
-    {
-        // This would be implemented with actual HTTP calls to Stripe API
-        // Using GuzzleHttp or similar HTTP client
-
-        throw new \Exception('Actual Stripe API implementation required');
+        if ($data['amount'] <= 0) {
+            throw new \InvalidArgumentException("Amount must be greater than 0");
+        }
     }
 }
 

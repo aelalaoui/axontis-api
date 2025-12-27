@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Payment;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class PaymentService
 {
@@ -18,101 +19,120 @@ class PaymentService
     }
 
     /**
-     * Process payment for a contract
+     * Initialize payment intent for a contract deposit
      */
-    public function processPayment(array $paymentData): array
+    public function initializePayment(string $clientUuid, string $contractUuid): array
     {
         try {
-            // Validate payment data
-            if (!$this->validatePaymentData($paymentData)) {
-                return [
-                    'success' => false,
-                    'message' => 'Invalid payment data provided'
-                ];
-            }
-
             // Find client and contract
-            $client = Client::where('uuid', $paymentData['client_uuid'])->first();
-            $contract = Contract::where('uuid', $paymentData['contract_uuid'])->first();
+            $client = Client::where('uuid', $clientUuid)->first();
+            $contract = Contract::where('uuid', $contractUuid)->first();
 
-            if (!$client || !$contract) {
+            if (!$client) {
                 return [
                     'success' => false,
-                    'message' => 'Client or contract not found'
+                    'message' => 'Client not found',
                 ];
             }
 
-            // Verify contract amount matches
-            if ((float)$paymentData['amount'] !== (float)$contract->monthly_ttc) {
+            if (!$contract) {
                 return [
                     'success' => false,
-                    'message' => 'Payment amount does not match contract amount'
+                    'message' => 'Contract not found',
                 ];
             }
 
-            // Get payment provider (default: Stripe)
-            $provider = $this->paymentManager->getProvider();
+            // Verify contract belongs to client
+            if ($contract->client_id !== $client->id) {
+                return [
+                    'success' => false,
+                    'message' => 'Contract does not belong to this client',
+                ];
+            }
 
-            // Process payment through provider
-            $providerResponse = $provider->processPayment([
-                'card_number' => $paymentData['card_number'],
-                'card_holder' => $paymentData['card_holder'],
-                'expiry_date' => $paymentData['expiry_date'],
-                'cvv' => $paymentData['cvv'],
-                'amount' => $paymentData['amount'],
-                'currency' => $contract->currency,
-                'description' => "Payment for contract {$contract->uuid}",
-            ]);
+            // Validate contract has valid amount
+            $amount = $contract->monthly_ttc ?? 0;
+            $currency = $contract->currency ?? 'EUR';
 
-            // Create payment record
+            if ($amount <= 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Contract must have a valid amount greater than 0',
+                ];
+            }
+
+            // Create payment record in PENDING status
             $payment = Payment::create([
                 'contract_id' => $contract->id,
-                'amount' => $paymentData['amount'],
-                'currency' => $contract->currency,
-                'status' => $providerResponse['success'] ? 'successful' : 'failed',
-                'payment_method' => 'credit_card',
-                'transaction_id' => $providerResponse['transaction_id'] ?? null,
-                'provider_response' => json_encode($providerResponse),
-                'paid_at' => $providerResponse['success'] ? now() : null,
+                'amount' => $amount,
+                'currency' => $currency,
+                'status' => 'pending',
+                'method' => 'card',
+                'notes' => 'Deposit payment for contract ' . $contract->uuid,
             ]);
 
-            if ($providerResponse['success']) {
-                // Update contract status to active
-                $contract->update(['status' => 'active']);
+            // Get payment provider
+            $provider = $this->paymentManager->getProvider();
 
-                // Update client status to paid
-                $client->update(['status' => 'paid']);
+            // Create PaymentIntent via provider
+            $intentResponse = $provider->createPaymentIntent([
+                'amount' => $amount,
+                'currency' => $currency,
+                'payment_uuid' => $payment->uuid,
+                'contract_uuid' => $contract->uuid,
+                'client_uuid' => $client->uuid,
+                'description' => "Deposit payment for contract {$contract->uuid}",
+            ]);
+
+            if (!$intentResponse['success']) {
+                // Mark payment as failed
+                $payment->update(['status' => 'failed']);
 
                 return [
-                    'success' => true,
-                    'message' => 'Payment processed successfully',
-                    'data' => [
-                        'payment_uuid' => $payment->uuid,
-                        'transaction_id' => $providerResponse['transaction_id'],
-                        'amount' => $payment->amount,
-                        'status' => $payment->status,
-                        'contract_uuid' => $contract->uuid,
-                        'client_uuid' => $client->uuid,
-                    ]
+                    'success' => false,
+                    'message' => $intentResponse['message'] ?? 'Failed to create payment intent',
+                    'error' => $intentResponse['error'] ?? null,
                 ];
             }
 
+            // Update payment with provider payment intent ID
+            $payment->update([
+                'transaction_id' => $intentResponse['payment_intent_id'],
+                'provider_response' => json_encode($intentResponse),
+            ]);
+
+            Log::info('Payment initialized', [
+                'payment_uuid' => $payment->uuid,
+                'payment_intent_id' => $intentResponse['payment_intent_id'],
+                'client_uuid' => $clientUuid,
+                'contract_uuid' => $contractUuid,
+            ]);
+
             return [
-                'success' => false,
-                'message' => $providerResponse['message'] ?? 'Payment failed',
-                'error' => $providerResponse['error'] ?? null
+                'success' => true,
+                'message' => 'Payment intent created successfully',
+                'data' => [
+                    'payment_uuid' => $payment->uuid,
+                    'client_secret' => $intentResponse['client_secret'],
+                    'payment_intent_id' => $intentResponse['payment_intent_id'],
+                    'amount' => $amount,
+                    'currency' => $currency,
+                    'stripe_public_key' => config('services.stripe.key'),
+                ],
             ];
 
         } catch (Exception $e) {
-            \Log::error('Payment processing error', [
+            Log::error('Payment initialization error', [
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'client_uuid' => $clientUuid,
+                'contract_uuid' => $contractUuid,
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Payment processing error',
-                'error' => $e->getMessage()
+                'message' => 'Payment initialization error',
+                'error' => $e->getMessage(),
             ];
         }
     }
@@ -128,14 +148,14 @@ class PaymentService
             if (!$payment) {
                 return [
                     'success' => false,
-                    'message' => 'Payment not found'
+                    'message' => 'Payment not found',
                 ];
             }
 
             if ($payment->status !== 'successful') {
                 return [
                     'success' => false,
-                    'message' => 'Only successful payments can be refunded'
+                    'message' => 'Only successful payments can be refunded',
                 ];
             }
 
@@ -144,23 +164,36 @@ class PaymentService
             if ($refundAmount > $payment->amount) {
                 return [
                     'success' => false,
-                    'message' => 'Refund amount cannot exceed payment amount'
+                    'message' => 'Refund amount cannot exceed payment amount',
+                ];
+            }
+
+            if (!$payment->transaction_id) {
+                return [
+                    'success' => false,
+                    'message' => 'Payment has no transaction ID',
                 ];
             }
 
             // Get provider and process refund
             $provider = $this->paymentManager->getProvider();
-            $refundResponse = $provider->refundPayment(
+            $refundResponse = $provider->refund(
                 $payment->transaction_id,
                 $refundAmount
             );
 
             if ($refundResponse['success']) {
                 // Update payment status
-                $newStatus = $refundAmount === $payment->amount ? 'refunded' : 'partially_refunded';
+                $newStatus = $refundAmount >= $payment->amount ? 'refunded' : 'partially_refunded';
                 $payment->update([
                     'status' => $newStatus,
                     'provider_response' => json_encode($refundResponse),
+                ]);
+
+                Log::info('Payment refunded', [
+                    'payment_uuid' => $paymentUuid,
+                    'refund_amount' => $refundAmount,
+                    'status' => $newStatus,
                 ]);
 
                 return [
@@ -170,47 +203,46 @@ class PaymentService
                         'payment_uuid' => $payment->uuid,
                         'refund_amount' => $refundAmount,
                         'status' => $newStatus,
-                    ]
+                        'refund_id' => $refundResponse['refund_id'] ?? null,
+                    ],
                 ];
             }
 
             return [
                 'success' => false,
                 'message' => $refundResponse['message'] ?? 'Refund failed',
-                'error' => $refundResponse['error'] ?? null
+                'error' => $refundResponse['error'] ?? null,
             ];
 
         } catch (Exception $e) {
-            \Log::error('Payment refund error', [
+            Log::error('Payment refund error', [
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'payment_uuid' => $paymentUuid,
             ]);
 
             return [
                 'success' => false,
                 'message' => 'Refund processing error',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
 
     /**
-     * Get payment status
+     * Get payment details
      */
-    public function getPaymentStatus(string $paymentUuid): array
+    public function getPaymentDetails(string $paymentUuid): array
     {
         try {
-            $payment = Payment::where('uuid', $paymentUuid)->first();
+            $payment = Payment::with('contract')->where('uuid', $paymentUuid)->first();
 
             if (!$payment) {
                 return [
                     'success' => false,
-                    'message' => 'Payment not found'
+                    'message' => 'Payment not found',
                 ];
             }
-
-            $provider = $this->paymentManager->getProvider();
-            $statusResponse = $provider->getPaymentStatus($payment->transaction_id);
 
             return [
                 'success' => true,
@@ -219,82 +251,28 @@ class PaymentService
                     'status' => $payment->status,
                     'amount' => $payment->amount,
                     'currency' => $payment->currency,
+                    'method' => $payment->method,
                     'transaction_id' => $payment->transaction_id,
                     'created_at' => $payment->created_at,
-                    'paid_at' => $payment->paid_at,
-                    'provider_status' => $statusResponse['status'] ?? null,
-                ]
+                    'payment_date' => $payment->payment_date,
+                    'contract' => [
+                        'uuid' => $payment->contract->uuid ?? null,
+                    ],
+                ],
             ];
 
         } catch (Exception $e) {
+            Log::error('Get payment details error', [
+                'exception' => $e->getMessage(),
+                'payment_uuid' => $paymentUuid,
+            ]);
+
             return [
                 'success' => false,
-                'message' => 'Failed to retrieve payment status',
-                'error' => $e->getMessage()
+                'message' => 'Failed to retrieve payment details',
+                'error' => $e->getMessage(),
             ];
         }
-    }
-
-    /**
-     * Validate payment data
-     */
-    protected function validatePaymentData(array $paymentData): bool
-    {
-        $requiredFields = ['client_uuid', 'contract_uuid', 'card_number', 'card_holder', 'expiry_date', 'cvv', 'amount'];
-
-        foreach ($requiredFields as $field) {
-            if (empty($paymentData[$field])) {
-                return false;
-            }
-        }
-
-        // Validate card number (basic Luhn check)
-        if (!$this->validateCardNumber($paymentData['card_number'])) {
-            return false;
-        }
-
-        // Validate expiry date format
-        if (!preg_match('/^\d{2}\/\d{2}$/', $paymentData['expiry_date'])) {
-            return false;
-        }
-
-        // Validate CVV
-        if (!preg_match('/^\d{3,4}$/', $paymentData['cvv'])) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Validate card number using Luhn algorithm
-     */
-    protected function validateCardNumber(string $cardNumber): bool
-    {
-        $cardNumber = preg_replace('/\s+/', '', $cardNumber);
-
-        if (!preg_match('/^\d{13,19}$/', $cardNumber)) {
-            return false;
-        }
-
-        $sum = 0;
-        $isEven = false;
-
-        for ($i = strlen($cardNumber) - 1; $i >= 0; $i--) {
-            $digit = (int)$cardNumber[$i];
-
-            if ($isEven) {
-                $digit *= 2;
-                if ($digit > 9) {
-                    $digit -= 9;
-                }
-            }
-
-            $sum += $digit;
-            $isEven = !$isEven;
-        }
-
-        return $sum % 10 === 0;
     }
 }
 
