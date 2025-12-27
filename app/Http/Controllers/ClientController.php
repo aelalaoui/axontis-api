@@ -7,6 +7,8 @@ use App\Services\ClientService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ClientController extends Controller
 {
@@ -264,5 +266,46 @@ class ClientController extends Controller
             ], 500);
         }
     }
-}
 
+
+    /**
+     * Display payment form for a specific contract
+     */
+    public function payment(string $clientUuid, string $contractUuid): Response
+    {
+        try {
+            // Find client by UUID
+            $client = $this->clientService->findClientByUuid($clientUuid);
+
+            if (!$client) {
+                abort(404, 'Client not found');
+            }
+
+            // Find contract
+            $contract = $client->contracts()->where('uuid', $contractUuid)->first();
+
+            if (!$contract) {
+                abort(404, 'Contract not found');
+            }
+
+            return Inertia::render('Payment', [
+                'client' => [
+                    'uuid' => $client->uuid,
+                    'full_name' => $client->full_name,
+                    'email' => $client->email,
+                ],
+                'contract' => [
+                    'uuid' => $contract->uuid,
+                    'monthly_ht' => $contract->monthly_ht,
+                    'monthly_tva' => $contract->monthly_tva,
+                    'monthly_ttc' => $contract->monthly_ttc,
+                    'description' => $contract->description,
+                    'currency' => $contract->currency,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            abort(500, 'Failed to load payment page');
+        }
+    }
+}

@@ -38,6 +38,9 @@ Route::get('/docusign/callback', function () {
 Route::get('/signature/webhooks', [\App\Http\Controllers\SignatureController::class, 'viewWebhooks'])
     ->name('signature.webhooks');
 
+// Client payment route - no middleware
+Route::get('/client/{clientUuid}/contract/{contractUuid}/payment', [\App\Http\Controllers\ClientController::class, 'payment'])
+    ->name('client.payment');
 
 Route::middleware([
     'auth:sanctum',
