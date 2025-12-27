@@ -93,7 +93,7 @@ jobs:
       - name: Deploy on server (expects PHP 8.4 configured on Hostinger)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}' CLOUDFLARE_R2_ACCESS_KEY_ID='${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}' CLOUDFLARE_R2_SECRET_ACCESS_KEY='${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}' CLOUDFLARE_R2_BUCKET='${{ secrets.CLOUDFLARE_R2_BUCKET }}' CLOUDFLARE_R2_ENDPOINT='${{ secrets.CLOUDFLARE_R2_ENDPOINT }}' CLOUDFLARE_R2_URL='${{ secrets.CLOUDFLARE_R2_URL }}' DOCUSIGN_CLIENT_ID='${{ secrets.DOCUSIGN_CLIENT_ID }}' DOCUSIGN_USER_ID='${{ secrets.DOCUSIGN_USER_ID }}' DOCUSIGN_ACCOUNT_ID='${{ secrets.DOCUSIGN_ACCOUNT_ID }}' DOCUSIGN_BASE_PATH='${{ secrets.DOCUSIGN_BASE_PATH }}' SENTRY_LARAVEL_DSN='${{ secrets.SENTRY_LARAVEL_DSN }}'; /bin/bash" << 'EOF'
+          "export DB_NAME='${{ secrets.DB_NAME }}' DB_USER='${{ secrets.DB_USER }}' DB_PASSWORD='${{ secrets.DB_PASSWORD }}' DB_HOST='${{ secrets.DB_HOST }}' HOSTINGER_USER_ID='${{ secrets.HOSTINGER_USER_ID }}' CLOUDFLARE_R2_ACCESS_KEY_ID='${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}' CLOUDFLARE_R2_SECRET_ACCESS_KEY='${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}' CLOUDFLARE_R2_BUCKET='${{ secrets.CLOUDFLARE_R2_BUCKET }}' CLOUDFLARE_R2_ENDPOINT='${{ secrets.CLOUDFLARE_R2_ENDPOINT }}' CLOUDFLARE_R2_URL='${{ secrets.CLOUDFLARE_R2_URL }}' DOCUSIGN_CLIENT_ID='${{ secrets.DOCUSIGN_CLIENT_ID }}' DOCUSIGN_USER_ID='${{ secrets.DOCUSIGN_USER_ID }}' DOCUSIGN_ACCOUNT_ID='${{ secrets.DOCUSIGN_ACCOUNT_ID }}' DOCUSIGN_BASE_PATH='${{ secrets.DOCUSIGN_BASE_PATH }}' STRIPE_PUBLIC_KEY='${{ secrets.STRIPE_PUBLIC_KEY }}' STRIPE_SECRET_KEY='${{ secrets.STRIPE_SECRET_KEY }}' STRIPE_WEBHOOK_SECRET='${{ secrets.STRIPE_WEBHOOK_SECRET }}' SENTRY_LARAVEL_DSN='${{ secrets.SENTRY_LARAVEL_DSN }}'; /bin/bash" << 'EOF'
           set -e
 
           # Debug environment
@@ -185,6 +185,13 @@ jobs:
           sed -i "s|DOCUSIGN_BASE_PATH=.*|DOCUSIGN_BASE_PATH=$DOCUSIGN_BASE_PATH|" .env
 
           echo "✅ DocuSign configuration updated"
+
+          # Configure Stripe
+          echo "=== STRIPE CONFIGURATION ==="
+          sed -i "s|STRIPE_PUBLIC_KEY=.*|STRIPE_PUBLIC_KEY=$STRIPE_PUBLIC_KEY|" .env
+          sed -i "s|STRIPE_SECRET_KEY=.*|STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY|" .env
+          sed -i "s|STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET|" .env
+          echo "✅ Stripe configuration updated"
 
           # Configure Sentry
           echo "=== SENTRY CONFIGURATION ==="
