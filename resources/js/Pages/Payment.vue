@@ -23,6 +23,8 @@ const paymentSuccess = ref(false);
 // Payment intent data
 const clientSecret = ref('');
 const paymentIntentId = ref('');
+const amount = ref(0);
+const currency = ref('EUR');
 
 /**
  * Initialize Stripe
@@ -51,6 +53,8 @@ onMounted(async () => {
 
         clientSecret.value = result.data.client_secret;
         paymentIntentId.value = result.data.payment_intent_id;
+        amount.value = result.data.amount;
+        currency.value = result.data.currency;
         const stripePublicKey = result.data.stripe_public_key;
 
         // Load Stripe.js
@@ -167,11 +171,11 @@ async function submit() {
 /**
  * Format amount for display
  */
-function formatAmount(amount) {
+function formatAmount(value) {
     return new Intl.NumberFormat('fr-FR', {
         style: 'currency',
-        currency: 'EUR',
-    }).format(amount);
+        currency: currency.value,
+    }).format(value);
 }
 </script>
 
@@ -225,7 +229,7 @@ function formatAmount(amount) {
                     <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-sm font-medium text-gray-700">Montant à payer :</span>
-                            <span class="text-lg font-bold text-gray-900">{{ formatAmount(contract.monthly_ttc) }}</span>
+                            <span class="text-lg font-bold text-gray-900">{{ formatAmount(amount) }}</span>
                         </div>
                         <div class="text-xs text-gray-600">
                             Caution pour le contrat {{ contract.uuid }}
@@ -260,7 +264,7 @@ function formatAmount(amount) {
                             Traitement en cours...
                         </span>
                         <span v-else-if="!stripeReady">Chargement...</span>
-                        <span v-else>Payer {{ formatAmount(contract.monthly_ttc) }}</span>
+                        <span v-else>Payer {{ formatAmount(amount) }}</span>
                     </button>
                 </form>
             </div>
