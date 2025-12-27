@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Helpers\MoneyHelper;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\File;
@@ -34,9 +35,8 @@ class ContractService
             'start_date' => now(),
             'end_date' => now()->addYear(),
             // These would normally come from the accepted offer/quote
-            'monthly_ht' => 0,
-            'monthly_tva' => 0,
-            'monthly_ttc' => 0,
+            'monthly_amount_cents' => 0,
+            'vat_rate_percentage' => 20,
             'description' => 'Contrat de maintenance et télésurveillance'
         ]);
 

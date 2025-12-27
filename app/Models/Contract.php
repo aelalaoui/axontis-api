@@ -17,18 +17,16 @@ class Contract extends Model
         'start_date',
         'end_date',
         'status',
-        'monthly_ht',
-        'monthly_tva',
-        'monthly_ttc',
+        'monthly_amount_cents',
+        'vat_rate_percentage',
         'description',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
-        'monthly_ht' => 'decimal:2',
-        'monthly_tva' => 'decimal:2',
-        'monthly_ttc' => 'decimal:2',
+        'monthly_amount_cents' => 'integer',
+        'vat_rate_percentage' => 'integer',
         'status' => 'string',
     ];
 
@@ -117,5 +115,21 @@ class Contract extends Model
     public function getTotalPaidAttribute(): float
     {
         return $this->payments()->where('status', 'successful')->sum('amount');
+    }
+
+    // Calculate monthly amounts from cents
+    public function getMonthlyHtAttribute(): float
+    {
+        return $this->monthly_amount_cents / 100;
+    }
+
+    public function getMonthlyTvaAttribute(): float
+    {
+        return ($this->monthly_amount_cents * $this->vat_rate_percentage) / 10000;
+    }
+
+    public function getMonthlyTtcAttribute(): float
+    {
+        return $this->monthly_ht + $this->monthly_tva;
     }
 }
