@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ClientStatus;
+use App\Models\Client;
+use App\Models\Contract;
 use App\Services\ClientService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -273,39 +275,34 @@ class ClientController extends Controller
      */
     public function payment(string $clientUuid, string $contractUuid): Response
     {
-        try {
-            // Find client by UUID
-            $client = $this->clientService->findClientByUuid($clientUuid);
+        // Find client by UUID
+        $client = Client::fromUuid($clientUuid);
 
-            if (!$client) {
-                abort(404, 'Client not found');
-            }
-
-            // Find contract
-            $contract = $client->contracts()->where('uuid', $contractUuid)->first();
-
-            if (!$contract) {
-                abort(404, 'Contract not found');
-            }
-
-            return Inertia::render('Payment', [
-                'client' => [
-                    'uuid' => $client->uuid,
-                    'full_name' => $client->full_name,
-                    'email' => $client->email,
-                ],
-                'contract' => [
-                    'uuid' => $contract->uuid,
-                    'monthly_ht' => $contract->monthly_ht,
-                    'monthly_tva' => $contract->monthly_tva,
-                    'monthly_ttc' => $contract->monthly_ttc,
-                    'description' => $contract->description,
-                    'currency' => $contract->currency,
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            abort(500, 'Failed to load payment page');
+        if (is_null($client)) {
+            abort(404, 'Client not found');
         }
+
+        // Find contract
+        $contract = Contract::fromUuid($contractUuid);
+
+        if (is_null($contract)) {
+            abort(404, 'Contract not found');
+        }
+
+        return Inertia::render('Payment', [
+            'client' => [
+                'uuid' => $client->uuid,
+                'full_name' => $client->full_name,
+                'email' => $client->email,
+            ],
+            'contract' => [
+                'uuid' => $contract->uuid,
+                'monthly_ht' => $contract->monthly_ht,
+                'monthly_tva' => $contract->monthly_tva,
+                'monthly_ttc' => $contract->monthly_ttc,
+                'description' => $contract->description,
+                'currency' => $contract->currency,
+            ]
+        ]);
     }
 }

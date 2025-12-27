@@ -54,7 +54,7 @@ return [
     'channels' => [
         'stack' => [
             'driver' => 'stack',
-            'channels' => ['single', 'sentry'],
+            'channels' => [(env('APP_ENV') === 'production') ? 'single' : 'daily', 'sentry'],
             'ignore_exceptions' => false,
         ],
 
