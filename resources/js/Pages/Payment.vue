@@ -13,6 +13,7 @@ let stripe = null;
 let cardElement = null;
 const stripeReady = ref(false);
 const cardError = ref('');
+const cardComplete = ref(false);
 
 // UI state
 const processing = ref(false);
@@ -91,6 +92,7 @@ onMounted(async () => {
         // Handle card element changes
         cardElement.on('change', (event) => {
             cardError.value = event.error ? event.error.message : '';
+            cardComplete.value = event.complete;
         });
 
         stripeReady.value = true;
@@ -252,19 +254,33 @@ function formatAmount(value) {
 
                     <!-- Submit button -->
                     <button
+                        v-if="cardComplete && !cardError"
                         type="submit"
                         :disabled="processing || !stripeReady"
                         class="auth-button auth-button-primary"
+                        style="min-height: 52px; margin-top: 1.5rem;"
                     >
-                        <span v-if="processing">
-                            <svg class="inline-block animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <span v-if="processing" class="flex items-center justify-center gap-2">
+                            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Traitement en cours...
+                            <span>Traitement en cours...</span>
                         </span>
-                        <span v-else-if="!stripeReady">Chargement...</span>
-                        <span v-else>Payer {{ formatAmount(amount) }}</span>
+                        <span v-else-if="!stripeReady" class="flex items-center justify-center gap-2">
+                            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Chargement de Stripe...</span>
+                        </span>
+                        <span v-else class="flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                            <span>Payer {{ formatAmount(amount) }}</span>
+                        </span>
                     </button>
                 </form>
             </div>
