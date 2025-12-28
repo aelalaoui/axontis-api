@@ -206,9 +206,9 @@ class StripeProvider implements PaymentProviderInterface
         }
 
         // Find payment record
-        $payment = Payment::where('uuid', $paymentUuid)->first();
+        $payment = Payment::fromUuid($paymentUuid);
 
-        if (!$payment) {
+        if (is_null($payment)) {
             Log::error('Payment not found', [
                 'payment_uuid' => $paymentUuid,
                 'payment_intent_id' => $paymentIntent->id,
