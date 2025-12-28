@@ -198,7 +198,7 @@ class StripeProvider implements PaymentProviderInterface
         $contractUuid = $paymentIntent->metadata->contract_uuid ?? null;
         $clientUuid = $paymentIntent->metadata->client_uuid ?? null;
 
-        if (!$paymentUuid) {
+        if (is_null($paymentUuid)) {
             Log::warning('Payment UUID not found in PaymentIntent metadata', [
                 'payment_intent_id' => $paymentIntent->id,
             ]);
@@ -236,15 +236,15 @@ class StripeProvider implements PaymentProviderInterface
 
         // Update contract and client status
         if ($contractUuid && $clientUuid) {
-            $contract = Contract::where('uuid', $contractUuid)->first();
-            $client = Client::where('uuid', $clientUuid)->first();
+            $contract = Contract::fromUuid($contractUuid);
+            $client = Client::fromUuid($clientUuid);
 
-            if ($contract) {
+            if (!is_null($contract)) {
                 $contract->update(['status' => 'active']);
                 Log::info('Contract activated', ['contract_uuid' => $contractUuid]);
             }
 
-            if ($client) {
+            if (!is_null($client)) {
                 $client->update(['status' => 'paid']);
                 Log::info('Client marked as paid', ['client_uuid' => $clientUuid]);
             }
