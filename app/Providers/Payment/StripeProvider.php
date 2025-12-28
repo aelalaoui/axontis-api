@@ -2,6 +2,8 @@
 
 namespace App\Providers\Payment;
 
+use App\Enums\ClientStatus;
+use App\Enums\ContractStatus;
 use App\Models\Payment;
 use App\Models\Contract;
 use App\Models\Client;
@@ -240,12 +242,12 @@ class StripeProvider implements PaymentProviderInterface
             $client = Client::fromUuid($clientUuid);
 
             if (!is_null($contract)) {
-                $contract->update(['status' => 'active']);
+                $contract->update(['status' => ContractStatus::ACTIVE->value]);
                 Log::info('Contract activated', ['contract_uuid' => $contractUuid]);
             }
 
             if (!is_null($client)) {
-                $client->update(['status' => 'paid']);
+                $client->update(['status' => ClientStatus::PAID->value]);
                 Log::info('Client marked as paid', ['client_uuid' => $clientUuid]);
             }
         }
@@ -258,16 +260,16 @@ class StripeProvider implements PaymentProviderInterface
     {
         $paymentUuid = $paymentIntent->metadata->payment_uuid ?? null;
 
-        if (!$paymentUuid) {
+        if (is_null($paymentUuid)) {
             Log::warning('Payment UUID not found in failed PaymentIntent metadata', [
                 'payment_intent_id' => $paymentIntent->id,
             ]);
             return;
         }
 
-        $payment = Payment::where('uuid', $paymentUuid)->first();
+        $payment = Payment::fromUuid($paymentUuid);
 
-        if (!$payment) {
+        if (is_null($payment)) {
             Log::error('Payment not found for failed intent', [
                 'payment_uuid' => $paymentUuid,
                 'payment_intent_id' => $paymentIntent->id,
@@ -300,13 +302,13 @@ class StripeProvider implements PaymentProviderInterface
     {
         $paymentUuid = $paymentIntent->metadata->payment_uuid ?? null;
 
-        if (!$paymentUuid) {
+        if (is_null($paymentUuid)) {
             return;
         }
 
-        $payment = Payment::where('uuid', $paymentUuid)->first();
+        $payment = Payment::fromUuid($paymentUuid);
 
-        if ($payment) {
+        if (!is_null($payment)) {
             $payment->update([
                 'status' => 'canceled',
                 'transaction_id' => $paymentIntent->id,
