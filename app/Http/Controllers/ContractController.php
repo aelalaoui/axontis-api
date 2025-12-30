@@ -54,8 +54,8 @@ class ContractController extends Controller
             if ($storedOfferData) {
                 // Use stored offer data directly (prices are already calculated)
                 // Convert to cents (prices from products are in units, multiply by 100)
-                $monthlyAmountCents = (int) (($storedOfferData['total_caution_price'] ?? 0) * 100);
-                $subscriptionPriceCents = (int) (($storedOfferData['total_subscription_price'] ?? 0) * 100);
+                $monthlyAmountCents = (int) (($storedOfferData['monthly_amount'] ?? 0) * 100);
+                $subscriptionPriceCents = (int) (($storedOfferData['subscription_amount'] ?? 0) * 100);
                 $currency = $storedOfferData['currency'] ?? 'MAD';
             } else {
                 // Fallback: try to recalculate from stored parent product info
@@ -67,8 +67,8 @@ class ContractController extends Controller
 
                     if ($parentProduct) {
                         $offerData = $this->clientService->calculateOfferPrices($client, $parentProduct);
-                        $monthlyAmountCents = (int) (($offerData['pricing']['total_caution_price'] ?? 0) * 100);
-                        $subscriptionPriceCents = (int) (($offerData['pricing']['total_subscription_price'] ?? 0) * 100);
+                        $monthlyAmountCents = (int) (($offerData['pricing']['monthly_amount'] ?? 0) * 100);
+                        $subscriptionPriceCents = (int) (($offerData['pricing']['subscription_amount'] ?? 0) * 100);
                         $currency = $offerData['pricing']['currency'] ?? 'MAD';
                     }
                 }

@@ -144,8 +144,8 @@ class ClientService
         $subProducts = $this->getSubProducts($parentProduct);
 
         // Initialize totals
-        $totalCautionPrice = 0;
-        $totalSubscriptionPrice = 0;
+        $totalSubscriptionAmount = 0;
+        $totalMonthlyAmount = 0;
         $matchedProducts = [];
 
         // For each sub-product, check if client has the corresponding property
@@ -156,8 +156,8 @@ class ClientService
 
                 // If client has this property and it matches the product's default value
                 if ($clientPropertyValue !== null && $clientPropertyValue == $subProduct->default_value) {
-                    $totalCautionPrice += $subProduct->caution_price ?? 0;
-                    $totalSubscriptionPrice += $subProduct->subscription_price ?? 0;
+                    $totalSubscriptionAmount += $subProduct->caution_price ?? 0;
+                    $totalMonthlyAmount += $subProduct->subscription_price ?? 0;
 
                     // Load files from the associated device
                     $files = $subProduct->device->files->map(function ($file) {
@@ -187,8 +187,8 @@ class ClientService
         // Store offer data in client properties for later use (contract generation)
         $client->setProperty('offer_parent_property', $parentProduct->property_name);
         $client->setProperty('offer_parent_value', $parentProduct->default_value);
-        $client->setProperty('offer_total_caution_price', $totalCautionPrice);
-        $client->setProperty('offer_total_subscription_price', $totalSubscriptionPrice);
+        $client->setProperty('offer_monthly_amount', $totalMonthlyAmount);
+        $client->setProperty('offer_subscription_amount', $totalSubscriptionAmount);
         $client->setProperty('offer_currency', 'MAD');
 
         return [
@@ -209,8 +209,8 @@ class ClientService
                 })
             ],
             'pricing' => [
-                'total_caution_price' => $totalCautionPrice,
-                'total_subscription_price' => $totalSubscriptionPrice,
+                'monthly_amount' => $totalMonthlyAmount,
+                'subscription_amount' => $totalSubscriptionAmount,
                 'currency' => 'MAD' // TODO Assuming MAD, adjust as needed
             ],
             'matched_products' => $matchedProducts,
@@ -294,8 +294,8 @@ class ClientService
         return [
             'parent_property' => $parentProperty,
             'parent_value' => $parentValue,
-            'total_caution_price' => (float) $client->getProperty('offer_total_caution_price', 0),
-            'total_subscription_price' => (float) $client->getProperty('offer_total_subscription_price', 0),
+            'monthly_amount' => (float) $client->getProperty('offer_monthly_amount', 0),
+            'subscription_amount' => (float) $client->getProperty('offer_subscription_amount', 0),
             'currency' => $client->getProperty('offer_currency', 'MAD'),
         ];
     }
