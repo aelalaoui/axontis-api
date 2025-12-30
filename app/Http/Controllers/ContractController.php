@@ -44,21 +44,34 @@ class ContractController extends Controller
                 ], 401);
             }
 
-            // Get pricing from client's offer calculation
-            // The client should have a 'country' property to determine the product offer
-            $country = $client->getProperty('country', $client->country ?? 'MA');
-            $parentProduct = $this->clientService->findParentProduct('country', $country);
+            // Get pricing from stored offer data (saved during calculateOffer step)
+            $storedOfferData = $this->clientService->getStoredOfferData($client);
 
             $monthlyAmountCents = 0;
             $subscriptionPriceCents = 0;
             $currency = 'MAD';
 
-            if ($parentProduct) {
-                $offerData = $this->clientService->calculateOfferPrices($client, $parentProduct);
+            if ($storedOfferData) {
+                // Use stored offer data directly (prices are already calculated)
                 // Convert to cents (prices from products are in units, multiply by 100)
-                $monthlyAmountCents = (int) (($offerData['pricing']['total_caution_price'] ?? 0) * 100);
-                $subscriptionPriceCents = (int) (($offerData['pricing']['total_subscription_price'] ?? 0) * 100);
-                $currency = $offerData['pricing']['currency'] ?? 'MAD';
+                $monthlyAmountCents = (int) (($storedOfferData['total_caution_price'] ?? 0) * 100);
+                $subscriptionPriceCents = (int) (($storedOfferData['total_subscription_price'] ?? 0) * 100);
+                $currency = $storedOfferData['currency'] ?? 'MAD';
+            } else {
+                // Fallback: try to recalculate from stored parent product info
+                $parentProperty = $client->getProperty('offer_parent_property');
+                $parentValue = $client->getProperty('offer_parent_value');
+
+                if ($parentProperty && $parentValue) {
+                    $parentProduct = $this->clientService->findParentProduct($parentProperty, $parentValue);
+
+                    if ($parentProduct) {
+                        $offerData = $this->clientService->calculateOfferPrices($client, $parentProduct);
+                        $monthlyAmountCents = (int) (($offerData['pricing']['total_caution_price'] ?? 0) * 100);
+                        $subscriptionPriceCents = (int) (($offerData['pricing']['total_subscription_price'] ?? 0) * 100);
+                        $currency = $offerData['pricing']['currency'] ?? 'MAD';
+                    }
+                }
             }
 
             // 1. Generate Contract and save PDF with calculated prices

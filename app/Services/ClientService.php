@@ -11,7 +11,7 @@ class ClientService
 {
     /**
      * Find or create a client by email
-     * 
+     *
      * @param string $email
      * @param string $country
      * @return Client
@@ -36,7 +36,7 @@ class ClientService
 
     /**
      * Find a client by UUID
-     * 
+     *
      * @param string $uuid
      * @return Client|null
      */
@@ -47,7 +47,7 @@ class ClientService
 
     /**
      * Update client status
-     * 
+     *
      * @param Client $client
      * @param string $step
      * @return array Returns array with previous and current status
@@ -66,7 +66,7 @@ class ClientService
 
     /**
      * Store client criterias as properties
-     * 
+     *
      * @param Client $client
      * @param array $criterias
      * @return array Returns stored properties information
@@ -105,7 +105,7 @@ class ClientService
 
     /**
      * Find parent product by property and value
-     * 
+     *
      * @param string $property
      * @param string $value
      * @return Product|null
@@ -120,7 +120,7 @@ class ClientService
 
     /**
      * Get sub-products for a parent product
-     * 
+     *
      * @param Product $parentProduct
      * @return \Illuminate\Database\Eloquent\Collection
      */
@@ -133,7 +133,7 @@ class ClientService
 
     /**
      * Calculate offer prices based on client properties and products
-     * 
+     *
      * @param Client $client
      * @param Product $parentProduct
      * @return array Returns calculation results
@@ -184,6 +184,13 @@ class ClientService
             }
         }
 
+        // Store offer data in client properties for later use (contract generation)
+        $client->setProperty('offer_parent_property', $parentProduct->property_name);
+        $client->setProperty('offer_parent_value', $parentProduct->default_value);
+        $client->setProperty('offer_total_caution_price', $totalCautionPrice);
+        $client->setProperty('offer_total_subscription_price', $totalSubscriptionPrice);
+        $client->setProperty('offer_currency', 'MAD');
+
         return [
             'client_uuid' => $client->uuid,
             'parent_product' => [
@@ -204,7 +211,7 @@ class ClientService
             'pricing' => [
                 'total_caution_price' => $totalCautionPrice,
                 'total_subscription_price' => $totalSubscriptionPrice,
-                'currency' => 'EUR' // Assuming EUR, adjust as needed
+                'currency' => 'MAD' // TODO Assuming MAD, adjust as needed
             ],
             'matched_products' => $matchedProducts,
             'matched_products_count' => count($matchedProducts),
@@ -215,7 +222,7 @@ class ClientService
 
     /**
      * Check if client already exists by email
-     * 
+     *
      * @param string $email
      * @return bool
      */
@@ -226,7 +233,7 @@ class ClientService
 
     /**
      * Get client by email
-     * 
+     *
      * @param string $email
      * @return Client|null
      */
@@ -237,7 +244,7 @@ class ClientService
 
     /**
      * Update client details
-     * 
+     *
      * @param Client $client
      * @param array $details
      * @return Client
@@ -266,5 +273,30 @@ class ClientService
         }
 
         return $client->fresh();
+    }
+
+    /**
+     * Get stored offer data from client properties
+     * This retrieves the offer data that was stored during calculateOfferPrices
+     *
+     * @param Client $client
+     * @return array|null Returns offer data or null if not found
+     */
+    public function getStoredOfferData(Client $client): ?array
+    {
+        $parentProperty = $client->getProperty('offer_parent_property');
+        $parentValue = $client->getProperty('offer_parent_value');
+
+        if (!$parentProperty || !$parentValue) {
+            return null;
+        }
+
+        return [
+            'parent_property' => $parentProperty,
+            'parent_value' => $parentValue,
+            'total_caution_price' => (float) $client->getProperty('offer_total_caution_price', 0),
+            'total_subscription_price' => (float) $client->getProperty('offer_total_subscription_price', 0),
+            'currency' => $client->getProperty('offer_currency', 'MAD'),
+        ];
     }
 }

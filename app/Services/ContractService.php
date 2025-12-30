@@ -27,6 +27,7 @@ class ContractService
      * @param int $monthlyAmountCents Monthly subscription amount in cents
      * @param int $subscriptionPriceCents Initial subscription/caution price in cents
      * @param string $currency Currency code (default: MAD)
+     * @throws \Exception
      */
     public function generateContract(
         Client $client,
