@@ -13,7 +13,7 @@ class SignatureService
 {
     /**
      * Handle incoming webhook from a signature provider
-     * 
+     *
      * @param string $provider
      * @param array $payload
      * @return Signature
@@ -73,7 +73,7 @@ class SignatureService
     public function extractStatus(string $provider, array $payload): ?string
     {
         return match ($provider) {
-            'docusign' => $payload['data']['status'] ?? $payload['status'] ?? 'unknown',
+            'docusign' => $payload['data']['event'] ?? 'unknown',
             default => 'unknown',
         };
     }
