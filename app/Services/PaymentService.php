@@ -50,14 +50,14 @@ class PaymentService
                 ];
             }
 
-            // Validate contract has valid amount
-            $amount = $contract->monthly_ttc ?? 0;
+            // Use subscription price (initial deposit/caution) for first payment
+            $amount = $contract->subscription_ttc ?? 0;
             $currency = $contract->currency ?? 'EUR';
 
             if ($amount <= 0) {
                 return [
                     'success' => false,
-                    'message' => 'Contract must have a valid amount greater than 0',
+                    'message' => 'Contract must have a valid subscription price greater than 0',
                 ];
             }
 
@@ -68,7 +68,7 @@ class PaymentService
                 'currency' => $currency,
                 'status' => 'pending',
                 'method' => 'card',
-                'notes' => 'Deposit payment for contract ' . $contract->uuid,
+                'notes' => 'Initial subscription payment (deposit) for contract ' . $contract->uuid,
             ]);
 
             // Get payment provider

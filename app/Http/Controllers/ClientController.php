@@ -300,6 +300,9 @@ class ClientController extends Controller
                 'monthly_ht' => $contract->monthly_ht,
                 'monthly_tva' => $contract->monthly_tva,
                 'monthly_ttc' => $contract->monthly_ttc,
+                'subscription_ht' => $contract->subscription_ht,
+                'subscription_tva' => $contract->subscription_tva,
+                'subscription_ttc' => $contract->subscription_ttc,
                 'description' => $contract->description,
                 'currency' => $contract->currency,
             ]

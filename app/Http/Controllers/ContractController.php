@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Services\ClientService;
 use App\Services\ContractService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -11,11 +12,17 @@ class ContractController extends Controller
 {
     protected $contractService;
     protected $docuSignService;
+    protected $clientService;
 
-    public function __construct(ContractService $contractService, \App\Services\DocuSignService $docuSignService)
+    public function __construct(
+        ContractService $contractService,
+        \App\Services\DocuSignService $docuSignService,
+        ClientService $clientService
+    )
     {
         $this->contractService = $contractService;
         $this->docuSignService = $docuSignService;
+        $this->clientService = $clientService;
     }
 
     /**
@@ -37,8 +44,30 @@ class ContractController extends Controller
                 ], 401);
             }
 
-            // 1. Generate Contract and save PDF
-            $contract = $this->contractService->generateContract($client);
+            // Get pricing from client's offer calculation
+            // The client should have a 'country' property to determine the product offer
+            $country = $client->getProperty('country', $client->country ?? 'MA');
+            $parentProduct = $this->clientService->findParentProduct('country', $country);
+
+            $monthlyAmountCents = 0;
+            $subscriptionPriceCents = 0;
+            $currency = 'MAD';
+
+            if ($parentProduct) {
+                $offerData = $this->clientService->calculateOfferPrices($client, $parentProduct);
+                // Convert to cents (prices from products are in units, multiply by 100)
+                $monthlyAmountCents = (int) (($offerData['pricing']['total_caution_price'] ?? 0) * 100);
+                $subscriptionPriceCents = (int) (($offerData['pricing']['total_subscription_price'] ?? 0) * 100);
+                $currency = $offerData['pricing']['currency'] ?? 'MAD';
+            }
+
+            // 1. Generate Contract and save PDF with calculated prices
+            $contract = $this->contractService->generateContract(
+                $client,
+                $monthlyAmountCents,
+                $subscriptionPriceCents,
+                $currency
+            );
 
             // 2. Get PDF Content
             // Assuming the contract generation attaches exactly one file which is the contract

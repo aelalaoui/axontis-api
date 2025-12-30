@@ -22,8 +22,18 @@ class ContractService
 
     /**
      * Generate a contract for a client
+     *
+     * @param Client $client
+     * @param int $monthlyAmountCents Monthly subscription amount in cents
+     * @param int $subscriptionPriceCents Initial subscription/caution price in cents
+     * @param string $currency Currency code (default: MAD)
      */
-    public function generateContract(Client $client): Contract
+    public function generateContract(
+        Client $client,
+        int $monthlyAmountCents = 0,
+        int $subscriptionPriceCents = 0,
+        string $currency = 'MAD'
+    ): Contract
     {
         // 1. Create a Contract record if it doesn't exist or create a new one
         // For now, we'll create a new pending contract based on client data
@@ -33,10 +43,10 @@ class ContractService
             'client_id' => $client->id,
             'status' => 'pending',
             'start_date' => now(),
-            // These would normally come from the accepted offer/quote
-            'monthly_amount_cents' => 0,
+            'monthly_amount_cents' => $monthlyAmountCents,
+            'subscription_price_cents' => $subscriptionPriceCents,
             'vat_rate_percentage' => 20,
-            'currency' => 'MAD',
+            'currency' => $currency,
             'description' => 'Contrat de maintenance et télésurveillance'
         ]);
 

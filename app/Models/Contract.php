@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Contract extends Model
 {
-    use HasFactory, HasUuid;
+    use HasUuid;
 
     protected $fillable = [
         'client_id',
@@ -19,6 +19,7 @@ class Contract extends Model
         'termination_date',
         'status',
         'monthly_amount_cents',
+        'subscription_price_cents',
         'vat_rate_percentage',
         'currency',
         'description',
@@ -29,6 +30,7 @@ class Contract extends Model
         'due_date' => 'string',
         'termination_date' => 'date',
         'monthly_amount_cents' => 'integer',
+        'subscription_price_cents' => 'integer',
         'vat_rate_percentage' => 'integer',
         'status' => 'string',
     ];
@@ -135,5 +137,21 @@ class Contract extends Model
     public function getMonthlyTtcAttribute(): float
     {
         return $this->monthly_ht + $this->monthly_tva;
+    }
+
+    // Calculate subscription price amounts from cents
+    public function getSubscriptionHtAttribute(): float
+    {
+        return $this->subscription_price_cents / 100;
+    }
+
+    public function getSubscriptionTvaAttribute(): float
+    {
+        return ($this->subscription_price_cents * $this->vat_rate_percentage) / 10000;
+    }
+
+    public function getSubscriptionTtcAttribute(): float
+    {
+        return $this->subscription_ht + $this->subscription_tva;
     }
 }

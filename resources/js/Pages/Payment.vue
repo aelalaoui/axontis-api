@@ -230,11 +230,19 @@ function formatAmount(value) {
                     <!-- Payment summary -->
                     <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm font-medium text-gray-700">Montant à payer :</span>
+                            <span class="text-sm font-medium text-gray-700">Caution initiale :</span>
                             <span class="text-lg font-bold text-gray-900">{{ formatAmount(amount) }}</span>
                         </div>
-                        <div class="text-xs text-gray-600">
-                            Caution pour le contrat {{ contract.uuid }}
+                        <div class="flex justify-between items-center mb-2 text-sm text-gray-600">
+                            <span>Montant HT :</span>
+                            <span>{{ formatAmount(contract.subscription_ht) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-2 text-sm text-gray-600">
+                            <span>TVA :</span>
+                            <span>{{ formatAmount(contract.subscription_tva) }}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-2 pt-2 border-t border-blue-200">
+                            Abonnement mensuel après souscription : {{ formatAmount(contract.monthly_ttc) }} TTC/mois
                         </div>
                     </div>
 
