@@ -43,7 +43,7 @@ class PaymentService
             }
 
             // Verify contract belongs to client
-            if ($contract->client_id !== $client->id) {
+            if ($contract->client_uuid !== $client->uuid) {
                 return [
                     'success' => false,
                     'message' => 'Contract does not belong to this client',
@@ -64,6 +64,7 @@ class PaymentService
             // Create payment record in PENDING status
             $payment = Payment::create([
                 'contract_id' => $contract->id,
+                'contract_uuid' => $contract->uuid,
                 'amount' => $amount,
                 'currency' => $currency,
                 'status' => 'pending',

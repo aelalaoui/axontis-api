@@ -13,7 +13,9 @@ class Alert extends Model
 
     protected $fillable = [
         'client_id',
+        'client_uuid',
         'contract_id',
+        'contract_uuid',
         'type',
         'severity',
         'description',
@@ -38,12 +40,12 @@ class Alert extends Model
     // Relationships
     public function client(): BelongsTo
     {
-        return $this->belongsTo(Client::class);
+        return $this->belongsTo(Client::class, 'client_uuid', 'uuid');
     }
 
     public function contract(): BelongsTo
     {
-        return $this->belongsTo(Contract::class);
+        return $this->belongsTo(Contract::class, 'contract_uuid', 'uuid');
     }
 
     public function resolvedBy(): BelongsTo

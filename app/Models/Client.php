@@ -82,7 +82,7 @@ class Client extends Model
 
     public function contracts(): HasMany
     {
-        return $this->hasMany(Contract::class);
+        return $this->hasMany(Contract::class, 'client_uuid', 'uuid');
     }
 
     public function installations(): HasMany
@@ -92,7 +92,7 @@ class Client extends Model
 
     public function alerts(): HasMany
     {
-        return $this->hasMany(Alert::class);
+        return $this->hasMany(Alert::class, 'client_uuid', 'uuid');
     }
 
     public function tasks(): MorphMany

@@ -13,6 +13,7 @@ class Payment extends Model
 
     protected $fillable = [
         'contract_id',
+        'contract_uuid',
         'amount',
         'currency',
         'payment_date',
@@ -39,7 +40,7 @@ class Payment extends Model
     // Relationships
     public function contract(): BelongsTo
     {
-        return $this->belongsTo(Contract::class);
+        return $this->belongsTo(Contract::class, 'contract_uuid', 'uuid');
     }
 
     public function files(): MorphMany

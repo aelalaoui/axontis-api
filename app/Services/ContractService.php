@@ -42,6 +42,7 @@ class ContractService
 
         $contract = Contract::create([
             'client_id' => $client->id,
+            'client_uuid' => $client->uuid,
             'status' => 'pending',
             'start_date' => now(),
             'monthly_amount_cents' => $monthlyAmountCents,

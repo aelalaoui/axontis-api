@@ -91,6 +91,7 @@ class Contract extends Model
 
     protected $fillable = [
         'client_id',
+        'client_uuid',
         'start_date',
         'due_date',
         'termination_date',
@@ -120,7 +121,7 @@ class Contract extends Model
     // Relationships
     public function client(): BelongsTo
     {
-        return $this->belongsTo(Client::class);
+        return $this->belongsTo(Client::class, 'client_uuid', 'uuid');
     }
 
     public function installations(): HasMany
@@ -130,12 +131,12 @@ class Contract extends Model
 
     public function payments(): HasMany
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasMany(Payment::class, 'contract_uuid', 'uuid');
     }
 
     public function alerts(): HasMany
     {
-        return $this->hasMany(Alert::class);
+        return $this->hasMany(Alert::class, 'contract_uuid', 'uuid');
     }
 
     public function tasks(): MorphMany
