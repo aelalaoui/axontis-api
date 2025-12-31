@@ -275,19 +275,21 @@ class ClientController extends Controller
      */
     public function payment(string $clientUuid, string $contractUuid): Response
     {
-        // Find client by UUID
+        /** @var Client $client */
         $client = Client::fromUuid($clientUuid);
 
         if (is_null($client)) {
             abort(404, 'Client not found');
         }
 
-        // Find contract
+        /** @var Contract $contract */
         $contract = Contract::fromUuid($contractUuid);
 
         if (is_null($contract)) {
             abort(404, 'Contract not found');
         }
+
+        $client->update(['status' => ClientStatus::PAYMENT_STEP->value]);
 
         return Inertia::render('Payment', [
             'client' => [

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ClientStatus;
 use App\Models\Client;
 use App\Services\ClientService;
 use App\Services\ContractService;
@@ -35,9 +36,9 @@ class ContractController extends Controller
     public function generate(Request $request, $uuid)
     {
         try {
-            $client = Client::where('uuid', $uuid)->firstOrFail();
+            $client = Client::fromUuid($uuid);
 
-            if ($client->status !== \App\Enums\ClientStatus::INSTALLATION_STEP) {
+            if ($client->status !== ClientStatus::INSTALLATION_STEP) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid action'

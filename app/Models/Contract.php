@@ -8,6 +8,83 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
+/**
+ * Class Contract
+ *
+ * Represents a contractual agreement between a client and the system, handling
+ * several aspects such as installations, payments, alerts, tasks, claims,
+ * files, signatures, and communications. Provides utility methods for
+ * financial calculations and status evaluations.
+ *
+ * Properties:
+ * - Defines the fillable attributes to allow mass assignment.
+ * - Casts specific attributes to their required data types.
+ * - Sets default values for some attributes.
+ *
+ * Relationships:
+ * - `client`: Links the contract to a single client.
+ * - `installations`: Relates to multiple installations tied to the contract.
+ * - `payments`: Relates to multiple payments associated with the contract.
+ * - `alerts`: Relates to multiple alerts linked to the contract.
+ * - `tasks`: Morph relationship for tasks associated with the contract.
+ * - `claims`: Morph relationship for claims related to the contract.
+ * - `files`: Morph relationship for files linked to the contract.
+ * - `signatures`: Morph relationship for electronic signatures associated
+ *   with the contract.
+ * - `communications`: Morph relationship for communications linked
+ *   to the contract.
+ *
+ * Scopes:
+ * - `active`: Filters contracts having a status of 'active'.
+ * - `signed`: Filters contracts having a status of 'signed'.
+ * - `pending`: Filters contracts having a status of 'pending'.
+ * - `terminated`: Filters contracts marked as having a termination date.
+ *
+ * Accessors:
+ * - `is_active`: Determines if the contract is active based on its status.
+ * - `is_terminated`: Checks whether the contract has been terminated.
+ * - `total_paid`: Calculates the total amount paid for the contract from
+ *   successful payments.
+ *
+ * Financial Calculations:
+ * - Monthly amounts:
+ *   - `monthly_ht`: Calculates the monthly amount excluding taxes (HT).
+ *   - `monthly_tva`: Calculates the tax value added (TVA) for the monthly
+ *     amount.
+ *   - `monthly_ttc`: Calculates the total monthly amount including taxes
+ *     (TTC).
+ * - Subscription amounts:
+ *   - `subscription_ht`: Calculates the subscription price excluding taxes
+ *     (HT).
+ *   - `subscription_tva`: Calculates the tax value added (TVA) for the
+ *     subscription price.
+ *   - `subscription_ttc`: Calculates the total subscription price including
+ *     taxes (TTC).
+ * @property string $uuid
+ * @property string $client_id
+ * @property string $start_date
+ * @property string|null $due_date
+ * @property string|null $termination_date
+ * @property string $status
+ * @property int $monthly_amount_cents
+ * @property int $subscription_price_cents
+ * @property int $vat_rate_percentage
+ * @property string $currency
+ * @property string $description
+ * @property-read bool $is_active
+ * @property-read bool $is_terminated
+ * @property-read float $total_paid
+ * @property-read float $monthly_ht
+ * @property-read float $monthly_tva
+ * @property-read float $monthly_ttc
+ * @property-read float $subscription_ht
+ * @property-read float $subscription_tva
+ * @property-read float $subscription_ttc
+ * @method static active()
+ * @method static signed()
+ * @method static pending()
+ * @method static terminated()
+ */
 class Contract extends Model
 {
     use HasUuid;
