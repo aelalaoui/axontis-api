@@ -135,6 +135,10 @@ async function submit() {
         if (paymentIntent.status === 'succeeded') {
             paymentSuccess.value = true;
             paymentProcessing.value = false;
+            // Redirect after success
+            setTimeout(() => {
+                router.visit(`/client/${props.client.uuid}/create-account`);
+            }, 2500);
         } else if (paymentIntent.status === 'processing') {
             // Payment is being processed
             paymentProcessing.value = true;
@@ -144,6 +148,10 @@ async function submit() {
             setTimeout(() => {
                 paymentSuccess.value = true;
                 paymentProcessing.value = false;
+                // Redirect after success
+                setTimeout(() => {
+                    router.visit(`/client/${props.client.uuid}/create-account`);
+                }, 2500);
             }, 3000);
         } else {
             // Show processing state for webhook confirmation
@@ -153,14 +161,11 @@ async function submit() {
             setTimeout(() => {
                 paymentSuccess.value = true;
                 paymentProcessing.value = false;
+                // Redirect after success
+                setTimeout(() => {
+                    router.visit(`/client/${props.client.uuid}/create-account`);
+                }, 2500);
             }, 3000);
-        }
-
-        // Redirect after success
-        if (paymentSuccess.value) {
-            setTimeout(() => {
-                router.visit('/register');
-            }, 2500);
         }
 
     } catch (error) {

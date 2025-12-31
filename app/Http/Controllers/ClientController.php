@@ -5,10 +5,15 @@ namespace App\Http\Controllers;
 use App\Enums\ClientStatus;
 use App\Models\Client;
 use App\Models\Contract;
+use App\Models\User;
 use App\Services\ClientService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -309,5 +314,96 @@ class ClientController extends Controller
                 'currency' => $contract->currency,
             ]
         ]);
+    }
+
+    /**
+     * Display the create account form for a client after payment
+     */
+    public function createAccount(string $clientUuid): Response|RedirectResponse
+    {
+        /** @var Client $client */
+        $client = Client::fromUuid($clientUuid);
+
+        if (is_null($client)) {
+            abort(404, 'Client not found');
+        }
+
+        // Check if user already exists for this client
+        if ($client->user_id) {
+            return redirect()->route('login')->with('message', 'Un compte existe déjà pour ce client.');
+        }
+
+        return Inertia::render('Client/CreateAccount', [
+            'client' => [
+                'uuid' => $client->uuid,
+                'full_name' => $client->full_name,
+                'email' => $client->email,
+                'first_name' => $client->first_name,
+                'last_name' => $client->last_name,
+            ],
+            'clientUuid' => $clientUuid,
+        ]);
+    }
+
+    /**
+     * Store the new user account and convert client to user
+     */
+    public function storeAccount(Request $request): RedirectResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'client_uuid' => 'required|string|exists:clients,uuid',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        try {
+            /** @var Client $client */
+            $client = Client::fromUuid($request->client_uuid);
+
+            if (is_null($client)) {
+                return back()->withErrors(['client_uuid' => 'Client introuvable.']);
+            }
+
+            // Check if user already exists for this email
+            $existingUser = User::query()->where('email', $client->email)->first();
+
+            if ($existingUser) {
+                // Link existing user to client
+                $client->update(['user_id' => $existingUser->id]);
+                Auth::login($existingUser);
+                return redirect()->route('crm.dashboard');
+            }
+
+            // Check if client already has a user
+            if ($client->user_id) {
+                Auth::loginUsingId($client->user_id);
+                return redirect()->route('crm.dashboard');
+            }
+
+            // Create new user
+            $user = User::create([
+                'uuid' => Str::uuid()->toString(),
+                'name' => $client->full_name,
+                'email' => $client->email,
+                'password' => Hash::make($request->password),
+            ]);
+
+            // Link user to client
+            $client->update([
+                'user_id' => $user->id,
+                'status' => ClientStatus::ACTIVE->value,
+            ]);
+
+            // Login the user
+            Auth::login($user);
+
+            return redirect()->route('crm.dashboard');
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['client_uuid' => 'Une erreur est survenue lors de la création du compte.']);
+        }
     }
 }

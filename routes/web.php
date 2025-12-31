@@ -46,6 +46,17 @@ Route::get(
     [\App\Http\Controllers\ClientController::class, 'payment']
 )->name('client.payment');
 
+// Client account creation after payment - no middleware
+Route::get(
+    '/client/{clientUuid}/create-account',
+    [\App\Http\Controllers\ClientController::class, 'createAccount']
+)->name('client.create-account');
+
+Route::post(
+    '/client/create-account',
+    [\App\Http\Controllers\ClientController::class, 'storeAccount']
+)->name('client.create-account.store');
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
