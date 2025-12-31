@@ -379,13 +379,13 @@ class ClientController extends Controller
                 // Link existing user to client
                 $client->update(['user_id' => $existingUser->id]);
                 Auth::login($existingUser);
-                return redirect()->route('crm.dashboard');
+                return redirect()->route('security.dashboard');
             }
 
             // Check if client already has a user
             if ($client->user_id) {
                 Auth::loginUsingId($client->user_id);
-                return redirect()->route('crm.dashboard');
+                return redirect()->route('security.dashboard');
             }
 
             // Create new user
@@ -405,7 +405,7 @@ class ClientController extends Controller
             // Login the user
             Auth::login($user);
 
-            return redirect()->route('crm.dashboard');
+            return redirect()->route('security.dashboard');
 
         } catch (\Exception $e) {
             return back()->withErrors(['client_uuid' => 'Une erreur est survenue lors de la création du compte.']);

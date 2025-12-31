@@ -57,6 +57,15 @@ Route::post(
     [\App\Http\Controllers\ClientController::class, 'storeAccount']
 )->name('client.create-account.store');
 
+// Security Routes - Client Space (requires authenticated user with active client status)
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'client.active',
+])->prefix('security')->name('security.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SecurityController::class, 'dashboard'])->name('dashboard');
+});
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
