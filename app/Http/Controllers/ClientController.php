@@ -333,10 +333,15 @@ class ClientController extends Controller
             return redirect()->route('login')->with('message', 'Un compte existe déjà pour ce client.');
         }
 
+        // Link user to client
+        $client->update([
+            'status' => ClientStatus::CREATE_PASSWORD->value,
+        ]);
+
         return Inertia::render('Client/CreateAccount', [
             'client' => [
                 'uuid' => $client->uuid,
-                'full_name' => $client->full_name,
+                'full_name' => $client->full_name ?? $client->first_name .' '. $client->last_name,
                 'email' => $client->email,
                 'first_name' => $client->first_name,
                 'last_name' => $client->last_name,
