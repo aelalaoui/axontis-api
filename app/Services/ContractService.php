@@ -41,7 +41,6 @@ class ContractService
         // You might want to adjust this logic based on your specific requirements (e.g. from an offer)
 
         $contract = Contract::create([
-            'client_id' => $client->id,
             'client_uuid' => $client->uuid,
             'status' => 'pending',
             'start_date' => now(),

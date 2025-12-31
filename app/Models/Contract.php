@@ -61,7 +61,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  *   - `subscription_ttc`: Calculates the total subscription price including
  *     taxes (TTC).
  * @property string $uuid
- * @property string $client_id
+ * @property string $client_uuid
  * @property string $start_date
  * @property string|null $due_date
  * @property string|null $termination_date
@@ -90,7 +90,6 @@ class Contract extends Model
     use HasUuid;
 
     protected $fillable = [
-        'client_id',
         'client_uuid',
         'start_date',
         'due_date',

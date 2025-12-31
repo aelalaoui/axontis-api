@@ -63,7 +63,6 @@ class PaymentService
 
             // Create payment record in PENDING status
             $payment = Payment::create([
-                'contract_id' => $contract->id,
                 'contract_uuid' => $contract->uuid,
                 'amount' => $amount,
                 'currency' => $currency,

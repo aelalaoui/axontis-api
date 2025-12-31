@@ -12,7 +12,6 @@ class Payment extends Model
     use HasFactory, HasUuid;
 
     protected $fillable = [
-        'contract_id',
         'contract_uuid',
         'amount',
         'currency',

@@ -12,9 +12,7 @@ class Alert extends Model
     use HasFactory, HasUuid;
 
     protected $fillable = [
-        'client_id',
         'client_uuid',
-        'contract_id',
         'contract_uuid',
         'type',
         'severity',
