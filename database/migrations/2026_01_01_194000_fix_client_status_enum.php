@@ -14,7 +14,7 @@ return new class extends Migration
     {
         // First, convert old enum values to valid new values
         // 'installation_step' and other old values should become 'created'
-        DB::statement("UPDATE clients SET status = 'created' WHERE status NOT IN ('installation_step', 'price_step', 'email_step')");
+        DB::statement("UPDATE clients SET status = 'created' WHERE status IN ('installation_step', 'price_step', 'email_step')");
 
         // Now modify the enum to the new values
         $statusValues = \App\Enums\ClientStatus::values();
