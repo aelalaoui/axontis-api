@@ -12,9 +12,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // First, update any existing rows with old enum values to 'created'
-        DB::statement("UPDATE clients SET status = 'created' WHERE status NOT IN ('created', 'signed', 'refused', 'paid', 'active', 'formal_notice', 'disabled', 'closed')");
-
         // Get the current status values from enum
         $statusValues = \App\Enums\ClientStatus::values();
 
@@ -23,6 +20,9 @@ return new class extends Migration
 
         // Use raw SQL to modify the column
         DB::statement("ALTER TABLE clients MODIFY status enum('" . $enumValues . "') NOT NULL DEFAULT 'created'");
+
+        // Then, update any existing rows with old enum values to 'created'
+        DB::statement("UPDATE clients SET status = 'created' WHERE status NOT IN ('created', 'signed', 'refused', 'paid', 'active', 'formal_notice', 'disabled', 'closed')");
     }
 
     /**
