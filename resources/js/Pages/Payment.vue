@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
-import { loadStripe } from '@stripe/stripe-js';
+import {onMounted, ref} from 'vue';
+import {Head, router} from '@inertiajs/vue3';
+import {loadStripe} from '@stripe/stripe-js';
 
 const props = defineProps({
     client: Object,
@@ -71,6 +71,7 @@ onMounted(async () => {
 
         // Create card element
         cardElement = elements.create('card', {
+            hidePostalCode: true,
             style: {
                 base: {
                     fontSize: '16px',
