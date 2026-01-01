@@ -48,21 +48,21 @@ class ClientService
     }
 
     /**
-     * Update client status
+     * Update client step
      *
      * @param Client $client
      * @param string $step
-     * @return array Returns array with previous and current status
+     * @return array Returns array with previous and current step
      */
-    public function updateClientStatus(Client $client, string $step): array
+    public function updateClientStep(Client $client, string $step): array
     {
-        $previousStatus = $client->status;
-        $client->update(['status' => $step]);
+        $previousStatus = $client->step;
+        $client->update(['step' => $step]);
 
         return [
             'uuid' => $client->uuid,
-            'previous_status' => $previousStatus,
-            'current_status' => $client->status
+            'previous_step' => $previousStatus,
+            'current_step' => $client->step
         ];
     }
 

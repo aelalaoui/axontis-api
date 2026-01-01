@@ -103,7 +103,7 @@ class ClientController extends Controller
             }
 
             // Update status using service
-            $statusData = $this->clientService->updateClientStatus($client, $step);
+            $statusData = $this->clientService->updateClientStep($client, $step);
 
             return response()->json([
                 'success' => true,
