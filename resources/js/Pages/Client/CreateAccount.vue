@@ -59,26 +59,6 @@ const submit = () => {
                 </div>
 
                 <form @submit.prevent="submit" class="auth-form">
-                    <!-- Client name (read-only info) -->
-                    <div class="auth-form-group">
-                        <label class="auth-label">Nom</label>
-                        <div class="auth-input-wrapper">
-                            <span class="auth-input-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                            </span>
-                            <input
-                                type="text"
-                                class="auth-input"
-                                :value="client.full_name"
-                                disabled
-                                style="opacity: 0.7; cursor: not-allowed;"
-                            />
-                        </div>
-                    </div>
-
                     <!-- Email (disabled) -->
                     <div class="auth-form-group">
                         <label class="auth-label">Adresse e-mail</label>
