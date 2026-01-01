@@ -22,23 +22,36 @@ class EnsureClientIsActive
         $user = $request->user();
 
         if (!$user) {
-            return redirect()->route('login');
+            return redirect()
+                ->route('login');
         }
 
         // Find client associated with this user
-        $client = Client::where('user_id', $user->id)->first();
+        $client = Client::query()->where('user_id', $user->id)->first();
 
         if (!$client) {
-            return redirect()->route('login')->with('error', 'Aucun compte client associé.');
+            return redirect()
+                ->route('login')
+                ->with('error', 'Aucun compte client associé.');
         }
 
         // Check if client has active status
         $activeStatuses = [
             ClientStatus::ACTIVE->value,
+            ClientStatus::FORMAL_NOTICE->value,
+            ClientStatus::DISABLED->value,
         ];
 
         if (!in_array($client->status->value, $activeStatuses)) {
-            return redirect()->route('login')->with('error', 'Votre compte client n\'est pas actif.');
+            return redirect()
+                ->route('login')
+                ->with('error', 'Votre compte client n\'est pas actif.');
+        }
+
+        if ($client->status->value === ClientStatus::CLOSED->value) {
+            return redirect()
+                ->route('login')
+                ->with('error', 'Votre compte client est clôturé. merci de contacter le support technique.');
         }
 
         // Share client data with the request for use in controllers

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ClientStatus;
+use App\Enums\ClientStep;
 use App\Models\Client;
 use App\Models\Product;
 use Exception;
@@ -30,7 +31,8 @@ class ClientService
             'email' => $email,
             'country' => $country,
             'type' => 'unknown',
-            'status' => ClientStatus::EMAIL_STEP
+            'step' => ClientStep::EMAIL_STEP,
+            'status' => ClientStatus::CREATED
         ]);
     }
 

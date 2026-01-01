@@ -3,11 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\ClientStatus;
+use App\Enums\ClientStep;
 use App\Models\Client;
-use App\Models\User;
-use Laravel\Sanctum\Sanctum;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class ClientControllerTest extends TestCase
@@ -62,7 +60,8 @@ class ClientControllerTest extends TestCase
             'email' => 'existing@example.com',
             'country' => 'Germany',
             'type' => 'unknown',
-            'status' => ClientStatus::EMAIL_STEP
+            'step' => ClientStep::EMAIL_STEP,
+            'status' => ClientStatus::CREATED
         ]);
 
         // Try to create the same client again
@@ -104,7 +103,7 @@ class ClientControllerTest extends TestCase
             'email' => 'client@example.com',
             'country' => 'France',
             'type' => 'unknown',
-            'status' => ClientStatus::EMAIL_STEP
+            'step' => ClientStep::EMAIL_STEP
         ]);
 
         // Store criterias
@@ -150,7 +149,7 @@ class ClientControllerTest extends TestCase
             'email' => 'client@example.com',
             'country' => 'France',
             'type' => 'unknown',
-            'status' => ClientStatus::EMAIL_STEP
+            'step' => ClientStep::EMAIL_STEP
         ]);
 
         $client->setProperty('oldProperty', 'oldValue');
@@ -187,7 +186,7 @@ class ClientControllerTest extends TestCase
             'email' => 'original@example.com',
             'country' => 'France',
             'type' => 'unknown',
-            'status' => ClientStatus::EMAIL_STEP
+            'step' => ClientStep::EMAIL_STEP
         ]);
 
         // Try to store email in criterias
@@ -237,7 +236,7 @@ class ClientControllerTest extends TestCase
             'email' => 'client@example.com',
             'country' => 'France',
             'type' => 'unknown',
-            'status' => ClientStatus::EMAIL_STEP
+            'step' => ClientStep::EMAIL_STEP
         ]);
 
         $response = $this->postJson("/api/client/{$client->uuid}/store-criterias", []);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ClientStatus;
+use App\Enums\ClientStep;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\User;
@@ -78,7 +79,7 @@ class ClientController extends Controller
     {
         // Validation du statut
         $validator = Validator::make(['step' => $step], [
-            'step' => 'required|string|in:' . ClientStatus::validationString(),
+            'step' => 'required|string|in:' . ClientStep::validationString(),
         ]);
 
         if ($validator->fails()) {
@@ -86,7 +87,7 @@ class ClientController extends Controller
                 'success' => false,
                 'message' => 'Invalid step provided',
                 'errors' => $validator->errors(),
-                'valid_steps' => ClientStatus::values()
+                'valid_steps' => ClientStep::values()
             ], 422);
         }
 
@@ -294,7 +295,7 @@ class ClientController extends Controller
             abort(404, 'Contract not found');
         }
 
-        $client->update(['status' => ClientStatus::PAYMENT_STEP->value]);
+        $client->update(['step' => ClientStep::PAYMENT_STEP->value]);
 
         return Inertia::render('Payment', [
             'client' => [
@@ -335,7 +336,7 @@ class ClientController extends Controller
 
         // Link user to client
         $client->update([
-            'status' => ClientStatus::CREATE_PASSWORD->value,
+            'status' => ClientStep::PASSWORD_STEP->value,
         ]);
 
         return Inertia::render('Client/CreateAccount', [
@@ -400,6 +401,7 @@ class ClientController extends Controller
             $client->update([
                 'user_id' => $user->id,
                 'status' => ClientStatus::ACTIVE->value,
+                'step' => ClientStep::SCHEDULE_STEP->value,
             ]);
 
             // Login the user

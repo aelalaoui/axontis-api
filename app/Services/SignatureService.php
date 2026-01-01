@@ -92,7 +92,7 @@ class SignatureService
     /**
      * Process signature completed event
      */
-    public function processSignatureCompleted(Signature $signature, array $payload)
+    public function processSignatureCompleted(Signature $signature, array $payload): void
     {
         try {
             // Update the signature timestamp if not set

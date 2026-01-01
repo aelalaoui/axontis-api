@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ClientStep;
 use App\Traits\HasUuid;
 use App\Traits\HasProperties;
 use App\Enums\ClientStatus;
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @property string|null $city
  * @property string|null $country
  * @property ClientStatus $status
+ * @property ClientStatus $step
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\User|null $user
@@ -48,7 +50,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class Client extends Model
 {
-    use HasFactory, HasUuid, HasProperties;
+    use HasUuid, HasProperties;
 
     protected $fillable = [
         'user_id',
@@ -62,16 +64,19 @@ class Client extends Model
         'city',
         'country',
         'status',
+        'step'
     ];
 
     protected $casts = [
         'type' => 'string',
         'status' => ClientStatus::class,
+        'step' => ClientStep::class,
     ];
 
     protected $attributes = [
-        'country' => 'Morocco',
-        'status' => 'email_step',
+        'country' => 'MA',
+        'status' => 'created',
+        'step' => 'email_step',
     ];
 
     // Relationships
