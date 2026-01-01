@@ -336,7 +336,7 @@ class ClientController extends Controller
 
         // Link user to client
         $client->update([
-            'status' => ClientStep::PASSWORD_STEP->value,
+            'step' => ClientStep::PASSWORD_STEP->value,
         ]);
 
         return Inertia::render('Client/CreateAccount', [
