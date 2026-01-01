@@ -12,6 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
+        DB::statement("ALTER TABLE clients MODIFY status enum('created','email_step','price_step','info_step','installation_step','document_step','signature_step','signed','payment_step','paid','create_password','active','not_active_due_payment','formal_notice','disabled') NOT NULL DEFAULT 'email_step'");
         // First, convert old enum values to valid new values
         // 'installation_step' and other old values should become 'created'
         DB::statement("UPDATE clients SET status = 'created' WHERE status IN ('installation_step', 'price_step', 'email_step')");
