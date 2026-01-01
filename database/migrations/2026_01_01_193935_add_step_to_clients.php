@@ -12,9 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('clients', function (Blueprint $table) {
-            $table->string('step')
+            $stepValues = \App\Enums\ClientStep::values();
+            $table->enum('step', $stepValues)
                 ->after('status')
-                ->nullable();
+                ->default('email_step')
+                ->nullable(false);
         });
     }
 
