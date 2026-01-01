@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ClientStatus;
+use App\Enums\ClientStep;
 use App\Models\Client;
 use App\Services\ClientService;
 use App\Services\ContractService;
@@ -38,7 +38,7 @@ class ContractController extends Controller
         try {
             $client = Client::fromUuid($uuid);
 
-            if ($client->step !== ClientStatus::INSTALLATION_STEP) {
+            if ($client->step !== ClientStep::INSTALLATION_STEP) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid action'
