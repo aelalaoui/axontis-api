@@ -354,7 +354,7 @@ class ClientController extends Controller
     /**
      * Store the new user account and convert client to user
      */
-    public function storeAccount(Request $request): RedirectResponse|JsonResponse
+    public function storeAccount(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
             'client_uuid' => 'required|string|exists:clients,uuid',
@@ -380,13 +380,13 @@ class ClientController extends Controller
                 // Link existing user to client
                 $client->update(['user_id' => $existingUser->id]);
                 Auth::login($existingUser);
-                return redirect()->route('client.home')->with('success', 'Connexion réussie');
+                return redirect()->route('client.home');
             }
 
             // Check if client already has a user
             if ($client->user_id) {
                 Auth::loginUsingId($client->user_id);
-                return redirect()->route('client.home')->with('success', 'Connexion réussie');
+                return redirect()->route('client.home');
             }
 
             // Create new user
@@ -407,17 +407,11 @@ class ClientController extends Controller
             // Login the user
             Auth::login($user);
 
-            // Return JSON response for Inertia to handle
-            return response()->json([
-                'success' => true,
-                'redirect' => route('client.home')
-            ], 200);
+            // Return redirect response
+            return redirect()->route('client.home');
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Une erreur est survenue lors de la création du compte.'
-            ], 500);
+            return back()->withErrors(['message' => 'Une erreur est survenue lors de la création du compte.']);
         }
     }
 

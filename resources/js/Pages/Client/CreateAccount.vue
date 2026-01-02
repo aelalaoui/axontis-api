@@ -20,10 +20,6 @@ const form = useForm({
 
 const submit = () => {
     form.post(route('client.create-account.store'), {
-        onSuccess: () => {
-            // Redirection automatique après succès
-            window.location.href = route('client.home');
-        },
         onFinish: () => form.reset('password', 'password_confirmation'),
     });
 };
