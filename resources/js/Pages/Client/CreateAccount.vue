@@ -1,8 +1,5 @@
 <script setup>
 import {Head, useForm} from '@inertiajs/vue3';
-import {useRouter} from 'vue-router';
-
-const router = useRouter();
 
 const props = defineProps({
     client: {
@@ -23,8 +20,8 @@ const form = useForm({
 
 const submit = () => {
     form.post(route('client.create-account.store'), {
-        onSuccess: (page) => {
-            // Redirect after successful account creation
+        onSuccess: () => {
+            // Redirection automatique après succès
             window.location.href = route('client.home');
         },
         onFinish: () => form.reset('password', 'password_confirmation'),
@@ -179,4 +176,3 @@ const submit = () => {
 <style scoped>
 /* Use existing auth styles from the application */
 </style>
-
