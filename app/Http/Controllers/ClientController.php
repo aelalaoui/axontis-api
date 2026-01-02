@@ -425,7 +425,7 @@ class ClientController extends Controller
         // Load client relationships
         $client->load(['contracts', 'installations']);
 
-        return Inertia::render('Security/Dashboard', [
+        return Inertia::render('Client/Home', [
             'client' => [
                 'uuid' => $client->uuid,
                 'full_name' => $client->full_name,
