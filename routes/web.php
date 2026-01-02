@@ -2,7 +2,6 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 /*
@@ -62,8 +61,8 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'client.active',
-])->prefix('security')->name('security.')->group(function () {
-    Route::get('/', [\App\Http\Controllers\SecurityController::class, 'dashboard'])->name('dashboard');
+])->prefix('client')->name('client.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\ClientController::class, 'home'])->name('home');
 });
 
 Route::middleware([

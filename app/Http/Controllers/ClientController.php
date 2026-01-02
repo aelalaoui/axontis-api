@@ -380,13 +380,13 @@ class ClientController extends Controller
                 // Link existing user to client
                 $client->update(['user_id' => $existingUser->id]);
                 Auth::login($existingUser);
-                return redirect()->route('security.dashboard');
+                return redirect()->route('client.home');
             }
 
             // Check if client already has a user
             if ($client->user_id) {
                 Auth::loginUsingId($client->user_id);
-                return redirect()->route('security.dashboard');
+                return redirect()->route('client.home');
             }
 
             // Create new user
@@ -407,10 +407,45 @@ class ClientController extends Controller
             // Login the user
             Auth::login($user);
 
-            return redirect()->route('security.dashboard');
+            return redirect()->route('client.home');
 
         } catch (\Exception $e) {
             return back()->withErrors(['client_uuid' => 'Une erreur est survenue lors de la création du compte.']);
         }
+    }
+
+    /**
+     * Display the client security dashboard.
+     */
+    public function home(Request $request): Response
+    {
+        /** @var Client $client */
+        $client = $request->get('client');
+
+        // Load client relationships
+        $client->load(['contracts', 'installations']);
+
+        return Inertia::render('Security/Dashboard', [
+            'client' => [
+                'uuid' => $client->uuid,
+                'full_name' => $client->full_name,
+                'email' => $client->email,
+                'phone' => $client->phone,
+                'address' => $client->address,
+                'city' => $client->city,
+                'country' => $client->country,
+                'status' => $client->status->value,
+                'step' => $client->step->value,
+            ],
+            'contracts' => $client->contracts->map(function ($contract) {
+                return [
+                    'uuid' => $contract->uuid,
+                    'description' => $contract->description,
+                    'status' => $contract->status,
+                    'monthly_ttc' => $contract->monthly_ttc,
+                    'created_at' => $contract->created_at->format('d/m/Y'),
+                ];
+            }),
+        ]);
     }
 }

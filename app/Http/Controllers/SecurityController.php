@@ -30,6 +30,7 @@ class SecurityController extends Controller
                 'city' => $client->city,
                 'country' => $client->country,
                 'status' => $client->status->value,
+                'step' => $client->step->value,
             ],
             'contracts' => $client->contracts->map(function ($contract) {
                 return [
