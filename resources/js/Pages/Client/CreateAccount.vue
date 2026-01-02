@@ -1,5 +1,8 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
+import {Head, useForm} from '@inertiajs/vue3';
+import {useRouter} from 'vue-router';
+
+const router = useRouter();
 
 const props = defineProps({
     client: {
@@ -20,6 +23,10 @@ const form = useForm({
 
 const submit = () => {
     form.post(route('client.create-account.store'), {
+        onSuccess: (page) => {
+            // Redirect after successful account creation
+            window.location.href = route('client.home');
+        },
         onFinish: () => form.reset('password', 'password_confirmation'),
     });
 };
