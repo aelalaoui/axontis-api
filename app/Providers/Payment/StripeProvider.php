@@ -4,15 +4,15 @@ namespace App\Providers\Payment;
 
 use App\Enums\ClientStatus;
 use App\Enums\ContractStatus;
-use App\Models\Payment;
-use App\Models\Contract;
 use App\Models\Client;
+use App\Models\Contract;
+use App\Models\Payment;
 use Illuminate\Support\Facades\Log;
-use Stripe\Stripe;
+use Stripe\Exception\SignatureVerificationException;
 use Stripe\PaymentIntent;
 use Stripe\Refund;
+use Stripe\Stripe;
 use Stripe\Webhook;
-use Stripe\Exception\SignatureVerificationException;
 
 class StripeProvider implements PaymentProviderInterface
 {
@@ -242,8 +242,8 @@ class StripeProvider implements PaymentProviderInterface
             $client = Client::fromUuid($clientUuid);
 
             if (!is_null($contract)) {
-                $contract->update(['status' => ContractStatus::ACTIVE->value]);
-                Log::info('Contract activated', ['contract_uuid' => $contractUuid]);
+                $contract->update(['status' => ContractStatus::PAID->value]);
+                Log::info('Contract made the first payment', ['contract_uuid' => $contractUuid]);
             }
 
             if (!is_null($client)) {
