@@ -3,72 +3,66 @@
 namespace Database\Seeders;
 
 use App\Models\City;
+use App\Models\Region;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 
 class CitySeeder extends Seeder
 {
     public function run(): void
     {
-        $seederName = 'CitySeeder';
+        $regionSeederName = 'RegionSeeder';
+        $citySeederName = 'CitySeeder';
 
-        // Vérifier si ce seeder a déjà été exécuté
-        $alreadySeeded = DB::table('seeder_logs')
-            ->where('seeder_name', $seederName)
-            ->exists();
+        // Charger les données depuis all.json
+        $jsonPath = base_path('database/data/cities/ma/all.json');
+        $jsonContent = file_get_contents($jsonPath);
+        $data = json_decode($jsonContent, true);
 
-        if ($alreadySeeded) {
-            $this->command->warn("Seeder '{$seederName}' already executed. Skipping...");
-            return;
-        }
-
-        $filePath = database_path('data/cities/ma/MA.txt');
-
-        if (!File::exists($filePath)) {
-            $this->command->error('Le fichier MA.txt n\'existe pas!');
-            return;
-        }
-
-        $lines = File::lines($filePath);
-        $cities = [];
-        $batchSize = 500;
-
-        foreach ($lines as $line) {
-            $columns = explode("\t", $line);
-
-            if (count($columns) < 7) {
-                continue;
+        // Traiter les régions
+        if (!DB::table('seeder_logs')->where('seeder_name', $regionSeederName)->exists()) {
+            foreach ($data['regions']['data'] as $regionData) {
+                Region::create([
+                    'id' => $regionData['id'],
+                    'name_ar' => $regionData['names']['ar'],
+                    'name_en' => $regionData['names']['en'],
+                    'name_fr' => $regionData['names']['fr'],
+                ]);
             }
 
-            $cities[] = [
-                'country_code' => $columns[0],
-                'postal_code' => $columns[1],
-                'city' => $columns[2],
-                'region' => $columns[3],
-                'prefecture' => $columns[5],
+            DB::table('seeder_logs')->insert([
+                'seeder_name' => $regionSeederName,
+                'executed_at' => now(),
                 'created_at' => now(),
                 'updated_at' => now(),
-            ];
+            ]);
 
-            if (count($cities) >= $batchSize) {
-                City::insert($cities);
-                $cities = [];
+            $this->command->info('Régions importées avec succès!');
+        } else {
+            $this->command->warn("Seeder '{$regionSeederName}' already executed. Skipping...");
+        }
+
+        // Traiter les villes
+        if (!DB::table('seeder_logs')->where('seeder_name', $citySeederName)->exists()) {
+            foreach ($data['cities']['data'] as $cityData) {
+                City::create([
+                    'region_id' => $cityData['region_id'],
+                    'name_ar' => $cityData['names']['ar'],
+                    'name_en' => $cityData['names']['en'],
+                    'name_fr' => $cityData['names']['fr'],
+                ]);
             }
+
+            DB::table('seeder_logs')->insert([
+                'seeder_name' => $citySeederName,
+                'executed_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->command->info('Villes importées avec succès!');
+        } else {
+            $this->command->warn("Seeder '{$citySeederName}' already executed. Skipping...");
         }
-
-        if (!empty($cities)) {
-            City::insert($cities);
-        }
-
-        // Enregistrer l'exécution du seeder
-        DB::table('seeder_logs')->insert([
-            'seeder_name' => $seederName,
-            'executed_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $this->command->info('Villes importées avec succès!');
     }
 }

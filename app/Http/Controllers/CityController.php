@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CityTransformer;
 use App\Models\City;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,13 +17,16 @@ class CityController extends Controller
 
         $search = $request->query('search', '');
 
-        $cities = City::query()->where('city', 'LIKE', "%{$search}%")
-            ->where('country_code', 'MA')
-            ->select('id', 'city', 'postal_code', 'region', 'prefecture')
+        $cities = City::query()
+            ->where('name_en', 'LIKE', "%{$search}%")
+            ->orWhere('name_fr', 'LIKE', "%{$search}%")
+            ->orWhere('name_ar', 'LIKE', "%{$search}%")
+            ->with('region')
+            ->select('id', 'region_id', 'name_ar', 'name_en', 'name_fr')
             ->get();
 
         return response()->json([
-            'data' => $cities,
+            'data' => CityTransformer::collection($cities),
             'count' => $cities->count(),
         ]);
     }
