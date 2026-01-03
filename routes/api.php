@@ -22,6 +22,8 @@ Route::post('/client/{uuid}/store-criterias', [ClientController::class, 'storeCr
 Route::get('/client/{uuid}/property/{property}/value/{value}/offer', [ClientController::class, 'calculateOffer']);
 Route::put('/client/{uuid}/step/{step}', [ClientController::class, 'updateStep']);
 
+Route::get('/cities/autocomplete', [CityController::class, 'autocomplete']);
+
 Route::post('/installation/new', [InstallationController::class, 'create']);
 Route::post('/contract/generate/client/{uuid}', [\App\Http\Controllers\ContractController::class, 'generate']);
 
