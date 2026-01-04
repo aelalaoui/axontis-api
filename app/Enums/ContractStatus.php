@@ -4,10 +4,11 @@ namespace App\Enums;
 
 enum ContractStatus: string
 {
+    case CREATED = 'created';
     case SIGNED = 'signed';
-    case ACTIVE = 'active';
     case PAID = 'paid';
     case PENDING = 'pending';
+    case ACTIVE = 'active';
     case SUSPENDED = 'suspended';
     case TERMINATED = 'terminated';
 

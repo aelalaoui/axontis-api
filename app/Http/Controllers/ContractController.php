@@ -38,7 +38,7 @@ class ContractController extends Controller
         try {
             $client = Client::fromUuid($uuid);
 
-            if ($client->step !== ClientStep::INSTALLATION_STEP) {
+            if ($client->step !== ClientStep::SIGNATURE_STEP) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid action'

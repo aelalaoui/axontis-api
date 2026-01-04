@@ -2,14 +2,11 @@
 
 namespace App\Services;
 
-use App\Helpers\MoneyHelper;
+use App\Enums\ContractStatus;
 use App\Models\Client;
 use App\Models\Contract;
-use App\Models\File;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Str;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class ContractService
 {
@@ -40,9 +37,9 @@ class ContractService
         // For now, we'll create a new pending contract based on client data
         // You might want to adjust this logic based on your specific requirements (e.g. from an offer)
 
-        $contract = Contract::create([
+        $contract = Contract::query()->create([
             'client_uuid' => $client->uuid,
-            'status' => 'pending',
+            'status' => ContractStatus::CREATED->value,
             'start_date' => now(),
             'monthly_amount_cents' => $monthlyAmountCents,
             'subscription_price_cents' => $subscriptionPriceCents,
