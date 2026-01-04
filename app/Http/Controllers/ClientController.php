@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ClientStatus;
 use App\Enums\ClientStep;
+use App\Enums\ContractStatus;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\User;
@@ -320,13 +321,20 @@ class ClientController extends Controller
     /**
      * Display the create account form for a client after payment
      */
-    public function createAccount(string $clientUuid): Response|RedirectResponse
+    public function createAccount(string $clientUuid, string $contractUuid): Response|RedirectResponse
     {
         /** @var Client $client */
         $client = Client::fromUuid($clientUuid);
 
         if (is_null($client)) {
             abort(404, 'Client not found');
+        }
+
+        /** @var Contract $contract */
+        $contract = Contract::fromUuid($contractUuid);
+
+        if (is_null($contract)) {
+            abort(404, 'Contract not found');
         }
 
         // Check if user already exists for this client
@@ -348,6 +356,7 @@ class ClientController extends Controller
                 'last_name' => $client->last_name,
             ],
             'clientUuid' => $clientUuid,
+            'contractUuid' => $contractUuid,
         ]);
     }
 
@@ -358,6 +367,7 @@ class ClientController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'client_uuid' => 'required|string|exists:clients,uuid',
+            'contract_uuid' => 'required|string|exists:contracts,uuid',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
@@ -372,6 +382,15 @@ class ClientController extends Controller
             if (is_null($client)) {
                 return back()->withErrors(['client_uuid' => 'Client introuvable.']);
             }
+
+            /** @var Contract $contract */
+            $contract = Contract::fromUuid($request->contract_uuid);
+
+            if (is_null($contract)) {
+                return back()->withErrors(['contract_uuid' => 'Contrat introuvable.']);
+            }
+
+            $contract->update(['status' => ContractStatus::PENDING->value]);
 
             // Check if user already exists for this email
             $existingUser = User::query()->where('email', $client->email)->first();
@@ -407,8 +426,11 @@ class ClientController extends Controller
             // Login the user
             Auth::login($user);
 
-            // Return redirect response
-            return redirect()->route('client.home');
+            // Return redirect response with contract UUID for installation scheduling
+            return redirect()->route('client.home')->with([
+                'contract_uuid' => $contract->uuid,
+                'message' => 'Compte créé avec succès. Configurez votre installation.'
+            ]);
 
         } catch (\Exception $e) {
             return back()->withErrors(['message' => 'Une erreur est survenue lors de la création du compte.']);

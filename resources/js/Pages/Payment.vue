@@ -138,7 +138,7 @@ async function submit() {
             paymentProcessing.value = false;
             // Redirect after success
             setTimeout(() => {
-                router.visit(`/client/${props.client.uuid}/create-account`);
+                router.visit(`/client/${props.client.uuid}/contract/${props.contract.uuid}/create-account`);
             }, 2500);
         } else if (paymentIntent.status === 'processing') {
             // Payment is being processed
@@ -151,7 +151,7 @@ async function submit() {
                 paymentProcessing.value = false;
                 // Redirect after success
                 setTimeout(() => {
-                    router.visit(`/client/${props.client.uuid}/create-account`);
+                    router.visit(`/client/${props.client.uuid}/contract/${props.contract.uuid}/create-account`);
                 }, 2500);
             }, 3000);
         } else {
@@ -164,7 +164,7 @@ async function submit() {
                 paymentProcessing.value = false;
                 // Redirect after success
                 setTimeout(() => {
-                    router.visit(`/client/${props.client.uuid}/create-account`);
+                    router.visit(`/client/${props.client.uuid}/contract/${props.contract.uuid}/create-account`);
                 }, 2500);
             }, 3000);
         }

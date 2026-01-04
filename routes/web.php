@@ -47,7 +47,7 @@ Route::get(
 
 // Client account creation after payment - no middleware
 Route::get(
-    '/client/{clientUuid}/create-account',
+    '/client/{clientUuid}/contract/{contractUuid}/create-account',
     [\App\Http\Controllers\ClientController::class, 'createAccount']
 )->name('client.create-account');
 

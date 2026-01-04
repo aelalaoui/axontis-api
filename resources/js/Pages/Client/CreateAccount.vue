@@ -9,11 +9,16 @@ const props = defineProps({
     clientUuid: {
         type: String,
         required: true
+    },
+    contractUuid: {
+        type: String,
+        required: true
     }
 });
 
 const form = useForm({
     client_uuid: props.clientUuid,
+    contract_uuid: props.contractUuid,
     password: '',
     password_confirmation: '',
 });
