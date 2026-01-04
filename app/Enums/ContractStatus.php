@@ -6,6 +6,7 @@ enum ContractStatus: string
 {
     case SIGNED = 'signed';
     case ACTIVE = 'active';
+    case PAID = 'paid';
     case PENDING = 'pending';
     case SUSPENDED = 'suspended';
     case TERMINATED = 'terminated';
