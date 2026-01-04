@@ -43,10 +43,8 @@ class InstallationController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'client_uuid' => 'required|exists:clients,uuid',
-            'city' => 'nullable|string|max:255',
-            'address' => 'nullable|string|max:255',
-            'zip_code' => 'nullable|string|max:20',
-            'country' => 'nullable|string|max:255',
+            'city_id' => 'required|integer|exists:cities,id',
+            'address' => 'required|string|min:3|max:255',
         ]);
 
         if ($validator->fails()) {

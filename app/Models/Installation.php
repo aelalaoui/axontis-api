@@ -12,10 +12,13 @@ class Installation extends Model
     protected $fillable = [
         'client_uuid',
         'contract_uuid',
-        'city',
+        'city_id',
         'address',
-        'zip_code',
-        'country',
+        'country_code',
+    ];
+
+    protected $attributes = [
+        'country_code' => 'MA',
     ];
 
     public function client()
@@ -31,5 +34,20 @@ class Installation extends Model
     public function devices()
     {
         return $this->hasMany(Device::class, 'installation_uuid', 'uuid');
+    }
+
+    public function getCityArAttribute()
+    {
+        return City::find($this->city_id)?->name_ar;
+    }
+
+    public function getCityFrAttribute()
+    {
+        return City::find($this->city_id)?->name_fr;
+    }
+
+    public function getCityEnAttribute()
+    {
+        return City::find($this->city_id)?->name_en;
     }
 }
