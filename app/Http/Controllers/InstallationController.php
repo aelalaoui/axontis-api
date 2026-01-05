@@ -7,6 +7,7 @@ use App\Services\InstallationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
 
 class InstallationController extends Controller
 {
@@ -256,5 +257,31 @@ class InstallationController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function toSchedule(string $uuid)
+    {
+        /** @var Installation $installation */
+        $installation = Installation::fromUuid($uuid);
+
+        // Load related data
+        $installation->load(['client', 'contract']);
+
+        return Inertia::render('Client/Operations/Schedule', [
+            'installation' => [
+                'uuid' => $installation->uuid,
+                'address' => $installation->address,
+                'zip_code' => '',
+                'city' => $installation->city_fr,
+            ],
+            'client' => [
+                'uuid' => $installation->client->uuid,
+                'first_name' => $installation->client->first_name,
+                'last_name' => $installation->client->last_name,
+            ],
+            'contract' => [
+                'uuid' => $installation->contract->uuid,
+            ],
+        ]);
     }
 }

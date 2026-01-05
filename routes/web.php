@@ -133,6 +133,6 @@ Route::middleware([
 
     // Installation schedule route - protected by client.active
     Route::middleware('client.active')
-        ->get('/installation/{uuid}/schedule', [InstallationController::class, 'scheduleView'])
+        ->get('/installation/{uuid}/schedule', [InstallationController::class, 'toSchedule'])
         ->name('installation.schedule');
 });
