@@ -60,6 +60,22 @@ CREATE TABLE `arrivals` (
   KEY `arrivals_order_status_index` (`order_id`,`status`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `cities`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cities` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `region_id` bigint unsigned NOT NULL,
+  `name_ar` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_fr` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `country_code` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MA',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `cities_region_id_foreign` (`region_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `claims`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -141,7 +157,7 @@ CREATE TABLE `contracts` (
   `client_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `start_date` date NOT NULL,
   `due_date` varchar(5) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` enum('pending','signed','active','suspended','terminated') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `status` enum('created','signed','paid','pending','active','suspended','terminated') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'created',
   `termination_date` date DEFAULT NULL,
   `monthly_amount_cents` bigint unsigned NOT NULL DEFAULT '0',
   `subscription_price_cents` bigint unsigned NOT NULL DEFAULT '0' COMMENT 'Initial subscription/caution price in cents',
@@ -219,13 +235,13 @@ CREATE TABLE `installations` (
   `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `client_uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `contract_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `city` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `address` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `zip_code` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `country` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MA',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `city_id` int DEFAULT NULL,
+  `country_code` varchar(2) COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `installations_uuid_unique` (`uuid`),
   KEY `installations_client_uuid_foreign` (`client_uuid`),
@@ -392,6 +408,33 @@ CREATE TABLE `properties` (
   KEY `properties_extendable_id_index` (`extendable_id`),
   KEY `properties_property_index` (`property`),
   KEY `properties_type_index` (`type`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `regions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `regions` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name_ar` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_fr` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `country_code` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MA',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `seeder_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `seeder_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `seeder_name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `executed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `seeder_logs_seeder_name_unique` (`seeder_name`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `sessions`;
@@ -593,3 +636,11 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (71,'2025_12_27_230
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (72,'2025_12_30_215242_add_subscription_price_cents_to_contracts_table',18);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (73,'2025_12_31_100000_add_uuid_foreign_keys_to_tables',19);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (74,'2025_12_31_120000_remove_id_foreign_keys_use_uuid_only',19);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (77,'2026_01_01_193935_add_step_to_clients',20);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (78,'2026_01_01_194000_fix_client_status_enum',20);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (79,'2026_01_03_000000_create_cities_table',21);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (80,'2026_01_03_000001_create_seeder_log_table',22);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (81,'2024_01_15_000000_create_regions_table',23);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (82,'2024_01_15_000001_create_cities_table',23);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (83,'2026_01_04_110142_update_columns_to_installations',24);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (84,'2026_01_04_124056_add_paid_status_to_contracts',24);
