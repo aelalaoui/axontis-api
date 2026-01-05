@@ -468,7 +468,7 @@ class ClientController extends Controller
                     'status' => $contract->status,
                     'monthly_ttc' => $contract->monthly_ttc,
                     'created_at' => $contract->created_at->format('d/m/Y'),
-                    'installation' => $contract->installation()
+                    'installation' => $contract->installations()
                         ->where('type', InstallationType::FIRST_INSTALLATION->value)
                         ->first()->uuid ?? null,
                 ];
