@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ClientStatus;
 use App\Enums\ClientStep;
 use App\Enums\ContractStatus;
+use App\Enums\InstallationType;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\User;
@@ -446,7 +447,7 @@ class ClientController extends Controller
         $client = $request->get('client');
 
         // Load client relationships
-        $client->load(['contracts', 'installations']);
+        $client->load(['contracts']);
 
         return Inertia::render('Client/Home', [
             'client' => [
@@ -467,6 +468,9 @@ class ClientController extends Controller
                     'status' => $contract->status,
                     'monthly_ttc' => $contract->monthly_ttc,
                     'created_at' => $contract->created_at->format('d/m/Y'),
+                    'installation' => $contract->installation()
+                        ->where('type', InstallationType::FIRST_INSTALLATION->value)
+                        ->first()->uuid ?? null,
                 ];
             }),
         ]);
