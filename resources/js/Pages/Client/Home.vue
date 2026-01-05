@@ -88,7 +88,7 @@ const hasPendingContracts = computed(() => {
                             <Link
                                 v-for="contract in pendingContracts"
                                 :key="contract.uuid"
-                                :href="`/installation/${contract.installation_uuid}/schedule`"
+                                :href="`/installation/${contract.installation}/schedule`"
                                 class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-colors"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
