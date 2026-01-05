@@ -1,5 +1,6 @@
 <script setup>
 import {Head, Link} from '@inertiajs/vue3';
+import {computed} from 'vue';
 
 const props = defineProps({
     client: {
@@ -10,6 +11,20 @@ const props = defineProps({
         type: Array,
         default: () => []
     }
+});
+
+/**
+ * Get pending contracts
+ */
+const pendingContracts = computed(() => {
+    return props.contracts.filter(contract => contract.status === 'pending');
+});
+
+/**
+ * Check if there are pending contracts
+ */
+const hasPendingContracts = computed(() => {
+    return pendingContracts.value.length > 0;
 });
 </script>
 
@@ -53,6 +68,42 @@ const props = defineProps({
 
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Pending Installation Alert -->
+            <div v-if="hasPendingContracts" class="mb-8 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-2xl p-6 border border-amber-500/30 animate-pulse">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 bg-amber-500/30 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-300">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-bold text-amber-100 mb-1">Planification d'installation en attente</h2>
+                        <p class="text-amber-100/80 mb-4">
+                            Vous avez {{ pendingContracts.length }} contrat{{ pendingContracts.length > 1 ? 's' : '' }} en attente de planification.
+                            Veuillez planifier la date d'installation de votre système de sécurité.
+                        </p>
+                        <div class="flex flex-wrap gap-3">
+                            <Link
+                                v-for="contract in pendingContracts"
+                                :key="contract.uuid"
+                                :href="`/installation/${contract.installation_uuid}/schedule`"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Planifier l'installation</span>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Welcome Card -->
             <div class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-6 mb-8 border border-blue-500/20">
                 <div class="flex items-start gap-4">

@@ -39,6 +39,14 @@ Route::post('/webhooks/stripe', [\App\Http\Controllers\PaymentController::class,
 // Signature webhook endpoint (publicly accessible)
 Route::post('/signature/webhook/{provider}', [\App\Http\Controllers\SignatureController::class, 'handleWebhook']);
 
+// Protected API Routes - Requires authentication and active client status
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'client.active',
+])->group(function () {
+    Route::post('/installations/{uuid}/schedule', [InstallationController::class, 'schedule']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {

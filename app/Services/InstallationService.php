@@ -39,8 +39,22 @@ class InstallationService
         });
     }
 
-    public function deleteInstallation(Installation $installation)
+    public function deleteInstallation(Installation $installation): void
     {
         return $installation->delete();
+    }
+
+    /**
+     * Schedule installation with date and time
+     */
+    public function scheduleInstallation(Installation $installation, string $date, string $time): Installation
+    {
+        $installation->update([
+            'scheduled_date' => $date,
+            'scheduled_time' => $time,
+            'status' => 'scheduled'
+        ]);
+
+        return $installation->refresh();
     }
 }

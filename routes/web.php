@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\InstallationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -129,4 +130,9 @@ Route::middleware([
             Route::apiFileRoutes('orders', \App\Http\Controllers\OrderController::class);
         });
     });
+
+    // Installation schedule route - protected by client.active
+    Route::middleware('client.active')
+        ->get('/installation/{uuid}/schedule', [InstallationController::class, 'scheduleView'])
+        ->name('installation.schedule');
 });
