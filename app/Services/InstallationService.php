@@ -39,7 +39,7 @@ class InstallationService
         });
     }
 
-    public function deleteInstallation(Installation $installation): void
+    public function deleteInstallation(Installation $installation): ?bool
     {
         return $installation->delete();
     }
@@ -52,7 +52,6 @@ class InstallationService
         $installation->update([
             'scheduled_date' => $date,
             'scheduled_time' => $time,
-            'status' => 'scheduled'
         ]);
 
         return $installation->refresh();

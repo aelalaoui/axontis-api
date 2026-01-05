@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ContractStatus;
+use App\Enums\InstallationType;
 use App\Models\Client;
 use App\Models\Contract;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -47,6 +48,10 @@ class ContractService
             'currency' => $currency,
             'description' => 'Contrat de maintenance et télésurveillance'
         ]);
+
+        $client->installations()
+            ->where('type', InstallationType::FIRST_INSTALLATION->value)
+            ->update(['contract_uuid' => $contract->uuid]);
 
         // 2. Generate PDF content
         $pdf = Pdf::loadView('documents.contract', [

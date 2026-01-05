@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\InstallationType;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -14,11 +15,20 @@ class Installation extends Model
         'contract_uuid',
         'city_id',
         'address',
-        'country_code',
+        'country',
+        'type',
+        'scheduled_date',
+        'scheduled_time',
+    ];
+
+    protected $casts = [
+        'type' => InstallationType::class,
+        'scheduled_date' => 'date',
+        'scheduled_time' => 'datetime:H:i',
     ];
 
     protected $attributes = [
-        'country_code' => 'MA',
+        'type' => 'first_installation',
     ];
 
     public function client()

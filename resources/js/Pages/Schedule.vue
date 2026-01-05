@@ -293,4 +293,3 @@ onMounted(() => {
 <style scoped>
 /* Use existing auth styles from the application */
 </style>
-
