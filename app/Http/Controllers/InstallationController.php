@@ -288,7 +288,7 @@ class InstallationController extends Controller
         // Verify that the installation belongs to the authenticated client
         $authenticatedClient = $request->get('client');
 
-        if ($installation->client_id !== $authenticatedClient->id) {
+        if ($installation->client_uuid !== $authenticatedClient->uuid) {
             abort(403, 'Unauthorized: This installation does not belong to your account');
         }
 
