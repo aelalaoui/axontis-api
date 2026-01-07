@@ -1,6 +1,8 @@
 <script setup>
 import {computed, onMounted, ref} from 'vue';
-import {Head, Link, router} from '@inertiajs/vue3';
+import {Head, router} from '@inertiajs/vue3';
+import AppHeader from '@/Components/AppHeader.vue';
+import AppFooter from '@/Components/AppFooter.vue';
 
 const props = defineProps({
     installation: Object,
@@ -150,38 +152,10 @@ onMounted(() => {
 
     <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
         <!-- Header -->
-        <header class="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center py-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h1 class="text-xl font-bold text-white">Espace Sécurité</h1>
-                            <p class="text-sm text-slate-400">Planification d'installation</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <Link
-                            :href="route('logout')"
-                            method="post"
-                            as="button"
-                            class="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                            Déconnexion
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <AppHeader
+            :title="'Espace Sécurité'"
+            :subtitle="'Planification d\'installation'"
+        />
 
         <!-- Main Content -->
         <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -362,59 +336,7 @@ onMounted(() => {
         </main>
 
         <!-- Footer -->
-        <footer class="bg-slate-800/50 backdrop-blur-sm border-t border-slate-700/50 mt-auto">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-                    <!-- About -->
-                    <div>
-                        <h4 class="text-white font-semibold mb-4">À propos</h4>
-                        <p class="text-slate-400 text-sm">Votre plateforme de gestion de sécurité moderne et intuitive.</p>
-                    </div>
-
-                    <!-- Quick Links -->
-                    <div>
-                        <h4 class="text-white font-semibold mb-4">Accès rapide</h4>
-                        <ul class="space-y-2 text-sm">
-                            <li><Link href="/client" class="text-slate-400 hover:text-white transition-colors">Tableau de bord</Link></li>
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Mon installation</a></li>
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Mes contrats</a></li>
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Support</a></li>
-                        </ul>
-                    </div>
-
-                    <!-- Support -->
-                    <div>
-                        <h4 class="text-white font-semibold mb-4">Support</h4>
-                        <ul class="space-y-2 text-sm">
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Centre d'aide</a></li>
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Nous contacter</a></li>
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">FAQ</a></li>
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Signaler un problème</a></li>
-                        </ul>
-                    </div>
-
-                    <!-- Legal -->
-                    <div>
-                        <h4 class="text-white font-semibold mb-4">Légal</h4>
-                        <ul class="space-y-2 text-sm">
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Conditions d'utilisation</a></li>
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Politique de confidentialité</a></li>
-                            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Cookies</a></li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Bottom footer -->
-                <div class="pt-8 border-t border-slate-700/50 flex flex-col md:flex-row justify-between items-center text-sm text-slate-400">
-                    <p>&copy; 2024 Espace Sécurité. Tous droits réservés.</p>
-                    <div class="flex gap-4 mt-4 md:mt-0">
-                        <a href="#" class="hover:text-white transition-colors">Twitter</a>
-                        <a href="#" class="hover:text-white transition-colors">LinkedIn</a>
-                        <a href="#" class="hover:text-white transition-colors">Facebook</a>
-                    </div>
-                </div>
-            </div>
-        </footer>
+        <AppFooter />
     </div>
 </template>
 

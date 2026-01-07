@@ -1,6 +1,8 @@
 <script setup>
 import {Head, Link} from '@inertiajs/vue3';
 import {computed} from 'vue';
+import AppHeader from '@/Components/AppHeader.vue';
+import AppFooter from '@/Components/AppFooter.vue';
 
 const props = defineProps({
     client: {
@@ -31,43 +33,15 @@ const hasPendingContracts = computed(() => {
 <template>
     <Head title="Mon Espace Sécurité" />
 
-    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
         <!-- Header -->
-        <header class="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center py-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h1 class="text-xl font-bold text-white">Espace Sécurité</h1>
-                            <p class="text-sm text-slate-400">Bienvenue, {{ client.full_name }}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <Link
-                            :href="route('logout')"
-                            method="post"
-                            as="button"
-                            class="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                            Déconnexion
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <AppHeader
+            :title="'Espace Sécurité'"
+            :subtitle="`Bienvenue, ${client.full_name}`"
+        />
 
         <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
             <!-- Pending Installation Alert -->
             <div v-if="hasPendingContracts" class="mb-8 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-2xl p-6 border border-amber-500/30 animate-pulse">
                 <div class="flex items-start gap-4">
@@ -224,6 +198,9 @@ const hasPendingContracts = computed(() => {
                 </div>
             </div>
         </main>
+
+        <!-- Footer -->
+        <AppFooter />
     </div>
 </template>
 
