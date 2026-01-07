@@ -1,8 +1,10 @@
 <script setup>
 import {computed, onMounted, ref} from 'vue';
-import {Head, router} from '@inertiajs/vue3';
+import {Head, router, usePage} from '@inertiajs/vue3';
 import AppHeader from '@/Components/AppHeader.vue';
 import AppFooter from '@/Components/AppFooter.vue';
+
+const page = usePage();
 
 const props = defineProps({
     installation: Object,
@@ -28,6 +30,29 @@ const workingHours = [
     '08:00', '09:00', '10:00', '11:00',
     '13:00', '14:00', '15:00', '16:00', '17:00'
 ];
+
+/**
+ * Get CSRF token from multiple sources
+ */
+function getCsrfToken() {
+    // Try getting from meta tag
+    const metaToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (metaToken) return metaToken;
+
+    // Try getting from Inertia props
+    if (page.props.csrf_token) return page.props.csrf_token;
+
+    // Try getting from cookie
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'XSRF-TOKEN') {
+            return decodeURIComponent(value);
+        }
+    }
+
+    return null;
+}
 
 /**
  * Calculate available dates (J+3 to 1 month)
@@ -100,11 +125,16 @@ async function submit() {
     successMessage.value = '';
 
     try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        const csrfToken = getCsrfToken();
 
         if (!csrfToken) {
-            errorMessage.value = 'Erreur de sécurité: Token CSRF manquant';
+            errorMessage.value = 'Erreur de sécurité: Token CSRF manquant. Veuillez rafraîchir la page.';
             scheduling.value = false;
+            console.error('CSRF Token not found. Available data:', {
+                metaTag: document.querySelector('meta[name="csrf-token"]')?.content,
+                pageProps: page.props.csrf_token,
+                cookies: document.cookie
+            });
             return;
         }
 
@@ -114,6 +144,7 @@ async function submit() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
             },
             credentials: 'include',
             body: JSON.stringify({
@@ -184,7 +215,9 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head title="Planifier l'installation" />
+    <Head title="Planifier l'installation">
+        <meta name="csrf-token" :content="page.props.csrf_token || ''" />
+    </Head>
 
     <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
         <!-- Header -->
