@@ -120,6 +120,15 @@ async function submit() {
         return;
     }
 
+    // Check if user is still authenticated
+    if (!page.props.auth?.user) {
+        errorMessage.value = 'Votre session a expiré. Redirection vers la connexion...';
+        setTimeout(() => {
+            router.visit(route('login'));
+        }, 1500);
+        return;
+    }
+
     scheduling.value = true;
     errorMessage.value = '';
     successMessage.value = '';
@@ -130,11 +139,7 @@ async function submit() {
         if (!csrfToken) {
             errorMessage.value = 'Erreur de sécurité: Token CSRF manquant. Veuillez rafraîchir la page.';
             scheduling.value = false;
-            console.error('CSRF Token not found. Available data:', {
-                metaTag: document.querySelector('meta[name="csrf-token"]')?.content,
-                pageProps: page.props.csrf_token,
-                cookies: document.cookie
-            });
+            console.error('CSRF Token not found');
             return;
         }
 
@@ -172,6 +177,17 @@ async function submit() {
 
             if (response.status === 404) {
                 errorMessage.value = 'Installation non trouvée.';
+                scheduling.value = false;
+                return;
+            }
+
+            if (response.status === 422) {
+                try {
+                    const errorData = await response.json();
+                    errorMessage.value = errorData.message || 'Données invalides. Veuillez vérifier vos entrées.';
+                } catch {
+                    errorMessage.value = 'Erreur de validation. Veuillez réessayer.';
+                }
                 scheduling.value = false;
                 return;
             }
@@ -228,8 +244,25 @@ onMounted(() => {
 
         <!-- Main Content -->
         <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- User session check -->
+            <div v-if="!page.props.auth?.user" class="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-red-500/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-400">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-red-100 font-semibold">Session expirée</p>
+                        <p class="text-sm text-red-200">Redirection vers la connexion...</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Back button and breadcrumb -->
-            <div class="mb-6 flex items-center gap-4">
+            <div v-if="page.props.auth?.user" class="mb-6 flex items-center gap-4">
                 <button
                     @click="goBack"
                     class="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
@@ -248,7 +281,7 @@ onMounted(() => {
             </div>
 
             <!-- Schedule Card -->
-            <div class="max-w-2xl mx-auto">
+            <div v-if="page.props.auth?.user" class="max-w-2xl mx-auto">
                 <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700/50">
                     <div class="mb-6">
                         <h2 class="text-3xl font-bold text-white mb-2">Planifier l'installation</h2>

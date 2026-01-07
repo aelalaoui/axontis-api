@@ -270,13 +270,27 @@ class InstallationController extends Controller
         }
     }
 
-    public function toSchedule(string $uuid)
+    /**
+     * Display installation schedule form
+     */
+    public function toSchedule(Request $request, string $uuid)
     {
         /** @var Installation $installation */
         $installation = Installation::fromUuid($uuid);
 
+        if (is_null($installation)) {
+            abort(404, 'Installation not found');
+        }
+
         // Load related data
         $installation->load(['client', 'contract']);
+
+        // Verify that the installation belongs to the authenticated client
+        $authenticatedClient = $request->get('client');
+
+        if ($installation->client_id !== $authenticatedClient->id) {
+            abort(403, 'Unauthorized: This installation does not belong to your account');
+        }
 
         return Inertia::render('Client/Operations/Schedule', [
             'installation' => [
