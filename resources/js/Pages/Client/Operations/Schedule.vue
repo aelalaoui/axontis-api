@@ -100,17 +100,53 @@ async function submit() {
     successMessage.value = '';
 
     try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        if (!csrfToken) {
+            errorMessage.value = 'Erreur de sécurité: Token CSRF manquant';
+            scheduling.value = false;
+            return;
+        }
+
         const response = await fetch(`/api/installations/${props.installation.uuid}/schedule`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
             },
+            credentials: 'include',
             body: JSON.stringify({
                 scheduled_date: selectedDate.value,
                 scheduled_time: selectedTime.value,
             }),
         });
+
+        // Handle non-JSON responses
+        if (!response.ok) {
+            if (response.status === 401) {
+                errorMessage.value = 'Votre session a expiré. Veuillez vous reconnecter.';
+                setTimeout(() => {
+                    router.visit(route('login'));
+                }, 2000);
+                scheduling.value = false;
+                return;
+            }
+
+            if (response.status === 403) {
+                errorMessage.value = 'Vous n\'avez pas accès à cette installation ou votre compte n\'est pas actif.';
+                scheduling.value = false;
+                return;
+            }
+
+            if (response.status === 404) {
+                errorMessage.value = 'Installation non trouvée.';
+                scheduling.value = false;
+                return;
+            }
+
+            throw new Error(`HTTP ${response.status}`);
+        }
 
         const result = await response.json();
 
@@ -130,7 +166,7 @@ async function submit() {
 
     } catch (error) {
         console.error('Schedule error:', error);
-        errorMessage.value = 'Une erreur est survenue lors de la planification';
+        errorMessage.value = 'Une erreur est survenue lors de la planification. Veuillez réessayer.';
         scheduling.value = false;
     }
 }

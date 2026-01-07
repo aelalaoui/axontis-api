@@ -207,18 +207,29 @@ class InstallationController extends Controller
                 ], 404);
             }
 
+            // Get authenticated client from middleware
+            $authenticatedClient = $request->get('client');
+
+            // Verify that the installation belongs to the authenticated client
+            if ($installation->client_id !== $authenticatedClient->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized: This installation does not belong to your account'
+                ], 403);
+            }
+
             // Validate client and contract status
             $client = $installation->client;
             $contract = $installation->contract;
 
-            if (!$client || $client->status !== 'active') {
+            if (!$client || $client->status->value !== 'active') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Client status must be active'
                 ], 403);
             }
 
-            if (is_null($contract) || $contract->status !== 'pending') {
+            if (is_null($contract) || $contract->status->value !== 'pending') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Contract status must be pending'
