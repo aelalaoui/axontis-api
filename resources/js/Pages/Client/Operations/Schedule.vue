@@ -136,7 +136,7 @@ async function submit() {
 }
 
 function goBack() {
-    router.visit(`/client/${props.client.uuid}`);
+    router.visit(route('client.home'));
 }
 
 /**
