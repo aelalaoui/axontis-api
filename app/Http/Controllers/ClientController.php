@@ -6,6 +6,7 @@ use App\Enums\ClientStatus;
 use App\Enums\ClientStep;
 use App\Enums\ContractStatus;
 use App\Enums\InstallationType;
+use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\User;
@@ -73,7 +74,6 @@ class ClientController extends Controller
         }
     }
 
-
     /**
      * Update client status/step
      */
@@ -121,7 +121,6 @@ class ClientController extends Controller
             ], 500);
         }
     }
-
 
     /**
      * Store client criterias as properties
@@ -172,7 +171,6 @@ class ClientController extends Controller
             ], 500);
         }
     }
-
 
     /**
      * Update client details
@@ -228,7 +226,6 @@ class ClientController extends Controller
         }
     }
 
-
     /**
      * Calculate offer prices based on client properties and products
      */
@@ -276,7 +273,6 @@ class ClientController extends Controller
             ], 500);
         }
     }
-
 
     /**
      * Display payment form for a specific contract
@@ -399,6 +395,12 @@ class ClientController extends Controller
             if ($existingUser) {
                 // Link existing user to client
                 $client->update(['user_id' => $existingUser->id]);
+
+                // S'assurer que l'utilisateur existant a le rôle CLIENT
+                if (!$existingUser->isClient()) {
+                    $existingUser->update(['role' => UserRole::CLIENT]);
+                }
+
                 Auth::login($existingUser);
                 return redirect()->route('client.home');
             }
@@ -409,12 +411,13 @@ class ClientController extends Controller
                 return redirect()->route('client.home');
             }
 
-            // Create new user
+            // Create new user with CLIENT role
             $user = User::create([
                 'uuid' => Str::uuid()->toString(),
                 'name' => $client->full_name,
                 'email' => $client->email,
                 'password' => Hash::make($request->password),
+                'role' => UserRole::CLIENT, // Assigner le rôle CLIENT par défaut
             ]);
 
             // Link user to client
@@ -440,6 +443,7 @@ class ClientController extends Controller
 
     /**
      * Display the client security dashboard.
+     * Protected by client.active middleware ensuring only clients with active status can access.
      */
     public function home(Request $request): Response
     {

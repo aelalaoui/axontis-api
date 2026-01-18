@@ -13,8 +13,8 @@ class ClientActiveMiddleware
     /**
      * Handle an incoming request.
      *
-     * Ensures that the authenticated user has an associated client with active status.
-     * Works for both API and Web requests.
+     * Ensures that the authenticated user has an associated client with active status
+     * and proper role permissions for client space access.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -23,16 +23,27 @@ class ClientActiveMiddleware
         $user = $request->user();
 
         if (!$user) {
-            return $this->unauthorized($request, 'Non authentifié');
+            return redirect()
+                ->route('login')
+                ->with('error', 'Veuillez vous connecter pour accéder à cet espace.');
+        }
+
+        // Vérifier que l'utilisateur a bien le rôle CLIENT
+        if (!$user->isClient()) {
+            // Si l'utilisateur a un autre rôle (technician, operator, manager, administrator)
+            // le rediriger vers le dashboard CRM approprié
+            return redirect()
+                ->route('dashboard')
+                ->with('error', 'Cet espace est réservé aux clients. Vous avez été redirigé vers votre tableau de bord.');
         }
 
         // Find client associated with this user
-        $client = Client::query()
-            ->where('user_id', $user->id)
-            ->first();
+        $client = Client::query()->where('user_id', $user->id)->first();
 
         if (!$client) {
-            return $this->forbidden($request, 'Aucun compte client associé à cet utilisateur.');
+            return redirect()
+                ->route('login')
+                ->with('error', 'Aucun compte client associé à votre compte utilisateur.');
         }
 
         // Check if client has active status
@@ -43,46 +54,31 @@ class ClientActiveMiddleware
         ];
 
         if (!in_array($client->status->value, $activeStatuses)) {
-            return $this->forbidden($request, 'Votre compte client n\'est pas actif.');
+            return redirect()
+                ->route('login')
+                ->with('error', 'Votre compte client n\'est pas actif. Veuillez contacter le support.');
         }
 
+        // Si le client a un statut "fermé", bloquer l'accès complètement
         if ($client->status->value === ClientStatus::CLOSED->value) {
-            return $this->forbidden($request, 'Votre compte client est clôturé. Merci de contacter le support technique.');
+            return redirect()
+                ->route('login')
+                ->with('error', 'Votre compte client est clôturé. Merci de contacter le support technique pour plus d\'informations.');
         }
 
-        // Attach client to request for use in controller
+        // Si le client a un statut "désactivé", afficher un avertissement mais permettre l'accès
+        if ($client->status->value === ClientStatus::DISABLED->value) {
+            session()->flash('warning', 'Votre compte est temporairement désactivé. Certaines fonctionnalités peuvent être limitées.');
+        }
+
+        // Si le client a un avis formel, afficher un avertissement
+        if ($client->status->value === ClientStatus::FORMAL_NOTICE->value) {
+            session()->flash('warning', 'Votre compte fait l\'objet d\'une mise en demeure. Veuillez régulariser votre situation.');
+        }
+
+        // Share client data with the request for use in controllers
         $request->merge(['client' => $client]);
 
         return $next($request);
-    }
-
-    /**
-     * Return unauthorized response based on request type
-     */
-    private function unauthorized(Request $request, string $message = 'Non authentifié'): Response
-    {
-        if ($request->expectsJson() || $request->is('api/*')) {
-            return response()->json([
-                'success' => false,
-                'message' => $message
-            ], 401);
-        }
-
-        return redirect()->route('login')->with('error', $message);
-    }
-
-    /**
-     * Return forbidden response based on request type
-     */
-    private function forbidden(Request $request, string $message): Response
-    {
-        if ($request->expectsJson() || $request->is('api/*')) {
-            return response()->json([
-                'success' => false,
-                'message' => $message
-            ], 403);
-        }
-
-        return redirect()->route('login')->with('error', $message);
     }
 }
