@@ -1,6 +1,6 @@
 <script setup>
 import {computed, onMounted, ref} from 'vue';
-import {Head, router, usePage} from '@inertiajs/vue3';
+import {Head, router, useForm, usePage} from '@inertiajs/vue3';
 import AppHeader from '@/Components/AppHeader.vue';
 import AppFooter from '@/Components/AppFooter.vue';
 
@@ -13,17 +13,16 @@ const props = defineProps({
 });
 
 // UI state
-const loading = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
-const scheduling = ref(false);
 const scheduleSuccess = ref(false);
 
-// Form state
-const selectedDate = ref('');
-const selectedTime = ref('');
+// Form using Inertia
+const form = useForm({
+    scheduled_date: '',
+    scheduled_time: '',
+});
+
+// Available dates
 const availableDates = ref([]);
-const timeSlots = ref([]);
 
 // Available time slots (working hours)
 const workingHours = [
@@ -31,28 +30,7 @@ const workingHours = [
     '13:00', '14:00', '15:00', '16:00', '17:00'
 ];
 
-/**
- * Get CSRF token from multiple sources
- */
-function getCsrfToken() {
-    // Try getting from meta tag
-    const metaToken = document.querySelector('meta[name="csrf-token"]')?.content;
-    if (metaToken) return metaToken;
-
-    // Try getting from Inertia props
-    if (page.props.csrf_token) return page.props.csrf_token;
-
-    // Try getting from cookie
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'XSRF-TOKEN') {
-            return decodeURIComponent(value);
-        }
-    }
-
-    return null;
-}
+const timeSlots = ref([]);
 
 /**
  * Calculate available dates (J+3 to 1 month)
@@ -74,9 +52,9 @@ function generateAvailableDates() {
  * Update time slots when date is selected
  */
 function onDateSelected() {
-    if (selectedDate.value) {
+    if (form.scheduled_date) {
         timeSlots.value = workingHours;
-        selectedTime.value = ''; // Reset time selection
+        form.scheduled_time = ''; // Reset time selection
     } else {
         timeSlots.value = [];
     }
@@ -108,114 +86,22 @@ function formatDateForInput(date) {
  * Check if form is valid
  */
 const isFormValid = computed(() => {
-    return selectedDate.value && selectedTime.value && !loading.value;
+    return form.scheduled_date && form.scheduled_time && !form.processing;
 });
 
 /**
  * Handle schedule submission
  */
-async function submit() {
+function submit() {
     if (!isFormValid.value) {
-        errorMessage.value = 'Veuillez sélectionner une date et une heure';
         return;
     }
 
-    // Check if user is still authenticated
-    if (!page.props.auth?.user) {
-        errorMessage.value = 'Votre session a expiré. Redirection vers la connexion...';
-        setTimeout(() => {
-            router.visit(route('login'));
-        }, 1500);
-        return;
-    }
-
-    scheduling.value = true;
-    errorMessage.value = '';
-    successMessage.value = '';
-
-    try {
-        const csrfToken = getCsrfToken();
-
-        if (!csrfToken) {
-            errorMessage.value = 'Erreur de sécurité: Token CSRF manquant. Veuillez rafraîchir la page.';
-            scheduling.value = false;
-            console.error('CSRF Token not found');
-            return;
-        }
-
-        const response = await fetch(`/api/installations/${props.installation.uuid}/schedule`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                scheduled_date: selectedDate.value,
-                scheduled_time: selectedTime.value,
-            }),
-        });
-
-        // Handle non-JSON responses
-        if (!response.ok) {
-            if (response.status === 401) {
-                errorMessage.value = 'Votre session a expiré. Veuillez vous reconnecter.';
-                setTimeout(() => {
-                    router.visit(route('login'));
-                }, 2000);
-                scheduling.value = false;
-                return;
-            }
-
-            if (response.status === 403) {
-                errorMessage.value = 'Vous n\'avez pas accès à cette installation ou votre compte n\'est pas actif.';
-                scheduling.value = false;
-                return;
-            }
-
-            if (response.status === 404) {
-                errorMessage.value = 'Installation non trouvée.';
-                scheduling.value = false;
-                return;
-            }
-
-            if (response.status === 422) {
-                try {
-                    const errorData = await response.json();
-                    errorMessage.value = errorData.message || 'Données invalides. Veuillez vérifier vos entrées.';
-                } catch {
-                    errorMessage.value = 'Erreur de validation. Veuillez réessayer.';
-                }
-                scheduling.value = false;
-                return;
-            }
-
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (!result.success) {
-            errorMessage.value = result.message || 'Erreur lors de la planification';
-            scheduling.value = false;
-            return;
-        }
-
-        scheduleSuccess.value = true;
-        successMessage.value = 'Installation planifiée avec succès !';
-
-        // Redirect after success
-        setTimeout(() => {
-            router.visit(`/client/${props.client.uuid}/contract/${props.contract.uuid}/create-account`);
-        }, 2500);
-
-    } catch (error) {
-        console.error('Schedule error:', error);
-        errorMessage.value = 'Une erreur est survenue lors de la planification. Veuillez réessayer.';
-        scheduling.value = false;
-    }
+    form.post(route('installation.schedule.store', { uuid: props.installation.uuid }), {
+        onSuccess: () => {
+            scheduleSuccess.value = true;
+        },
+    });
 }
 
 function goBack() {
@@ -244,25 +130,8 @@ onMounted(() => {
 
         <!-- Main Content -->
         <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- User session check -->
-            <div v-if="!page.props.auth?.user" class="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
-                <div class="flex items-start gap-3">
-                    <div class="w-10 h-10 bg-red-500/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-400">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="8" x2="12" y2="12"></line>
-                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-red-100 font-semibold">Session expirée</p>
-                        <p class="text-sm text-red-200">Redirection vers la connexion...</p>
-                    </div>
-                </div>
-            </div>
-
             <!-- Back button and breadcrumb -->
-            <div v-if="page.props.auth?.user" class="mb-6 flex items-center gap-4">
+            <div class="mb-6 flex items-center gap-4">
                 <button
                     @click="goBack"
                     class="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
@@ -281,7 +150,7 @@ onMounted(() => {
             </div>
 
             <!-- Schedule Card -->
-            <div v-if="page.props.auth?.user" class="max-w-2xl mx-auto">
+            <div class="max-w-2xl mx-auto">
                 <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700/50">
                     <div class="mb-6">
                         <h2 class="text-3xl font-bold text-white mb-2">Planifier l'installation</h2>
@@ -289,7 +158,7 @@ onMounted(() => {
                     </div>
 
                     <!-- Success state -->
-                    <div v-if="scheduleSuccess" class="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
+                    <div v-if="scheduleSuccess || $page.props.flash?.success" class="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 bg-green-500/30 rounded-full flex items-center justify-center flex-shrink-0">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-400">
@@ -297,14 +166,14 @@ onMounted(() => {
                                 </svg>
                             </div>
                             <div>
-                                <p class="text-green-100 font-semibold">{{ successMessage }}</p>
+                                <p class="text-green-100 font-semibold">{{ $page.props.flash?.success || 'Installation planifiée avec succès !' }}</p>
                                 <p class="text-sm text-green-200">Redirection en cours...</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Error message -->
-                    <div v-if="errorMessage" class="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+                    <div v-if="form.errors.scheduled_date || form.errors.scheduled_time || $page.props.flash?.error" class="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
                         <div class="flex items-start gap-3">
                             <div class="w-10 h-10 bg-red-500/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-400">
@@ -315,13 +184,13 @@ onMounted(() => {
                             </div>
                             <div>
                                 <p class="text-red-100 font-semibold">Erreur</p>
-                                <p class="text-sm text-red-200">{{ errorMessage }}</p>
+                                <p class="text-sm text-red-200">{{ form.errors.scheduled_date || form.errors.scheduled_time || $page.props.flash?.error }}</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Schedule form -->
-                    <form v-if="!scheduleSuccess" @submit.prevent="submit" class="space-y-6">
+                    <form v-if="!scheduleSuccess && !$page.props.flash?.success" @submit.prevent="submit" class="space-y-6">
                         <!-- Installation recap -->
                         <div class="p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
                             <h3 class="font-semibold text-blue-100 mb-3">Récapitulatif de l'installation</h3>
@@ -347,7 +216,7 @@ onMounted(() => {
                                 Date d'installation
                             </label>
                             <select
-                                v-model="selectedDate"
+                                v-model="form.scheduled_date"
                                 @change="onDateSelected"
                                 class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 text-white rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                 style="cursor: pointer;"
@@ -373,10 +242,10 @@ onMounted(() => {
                                 Heure d'installation
                             </label>
                             <select
-                                v-model="selectedTime"
+                                v-model="form.scheduled_time"
                                 class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 text-white rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 style="cursor: pointer;"
-                                :disabled="!selectedDate"
+                                :disabled="!form.scheduled_date"
                                 required
                             >
                                 <option value="">-- Sélectionner une heure --</option>
@@ -394,9 +263,9 @@ onMounted(() => {
                         </div>
 
                         <!-- Confirmation message -->
-                        <div v-if="selectedDate && selectedTime" class="p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
+                        <div v-if="form.scheduled_date && form.scheduled_time" class="p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
                             <p class="text-sm text-green-100">
-                                <strong>Confirmation :</strong> Installation le {{ formatDate(new Date(selectedDate)) }} à {{ selectedTime }}
+                                <strong>Confirmation :</strong> Installation le {{ formatDate(new Date(form.scheduled_date)) }} à {{ form.scheduled_time }}
                             </p>
                         </div>
 
@@ -411,10 +280,10 @@ onMounted(() => {
                             </button>
                             <button
                                 type="submit"
-                                :disabled="!isFormValid || scheduling"
+                                :disabled="!isFormValid"
                                 class="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
-                                <span v-if="scheduling" class="flex items-center justify-center gap-2">
+                                <span v-if="form.processing" class="flex items-center justify-center gap-2">
                                     <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

@@ -57,14 +57,6 @@ Route::post(
     [\App\Http\Controllers\ClientController::class, 'storeAccount']
 )->name('client.create-account.store');
 
-// Security Routes - Client Space (requires authenticated user with active client status)
-Route::middleware([
-    'auth:sanctum',
-    config('jetstream.auth_session'),
-    'client.active',
-])->prefix('client')->name('client.')->group(function () {
-    Route::get('/', [\App\Http\Controllers\ClientController::class, 'home'])->name('home');
-});
 
 Route::middleware([
     'auth:sanctum',
@@ -131,8 +123,16 @@ Route::middleware([
         });
     });
 
-    // Installation schedule route - protected by client.active
-    Route::middleware('client.active')
-        ->get('/installation/{uuid}/schedule', [InstallationController::class, 'toSchedule'])
-        ->name('installation.schedule');
+    // Installation schedule routes - protected by client.active
+    Route::middleware('client.active')->group(function () {
+        Route::prefix('client')->name('client.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ClientController::class, 'home'])
+                ->name('home');
+        });
+
+        Route::get('/installation/{uuid}/schedule', [InstallationController::class, 'toSchedule'])
+            ->name('installation.schedule');
+        Route::post('/installation/{uuid}/schedule', [InstallationController::class, 'storeSchedule'])
+            ->name('installation.schedule.store');
+    });
 });
