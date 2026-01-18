@@ -236,46 +236,18 @@ class InstallationController extends Controller
             return redirect()->back()->with('error', 'Installation non trouvée.');
         }
 
-        // Get authenticated client from middleware
-        $authenticatedClient = $request->get('client');
-
-        // Verify that the installation belongs to the authenticated client
-        if ($installation->client_uuid !== $authenticatedClient->uuid) {
-            return redirect()->back()->with('error', 'Cette installation ne vous appartient pas.');
-        }
-
-        // Validate client and contract status
-        $client = $installation->client;
-        $contract = $installation->contract;
-
-        if (!$client || $client->status->value !== 'active') {
-            return redirect()->back()->with('error', 'Votre compte client doit être actif.');
-        }
-
-        if (is_null($contract) || $contract->status !== 'pending') {
-            return redirect()->back()->with('error', 'Le statut du contrat doit être en attente.');
-        }
-
-        // Validate date is within allowed range (J+3 to 1 month)
-        $scheduledDateTime = new \DateTime($validated['scheduled_date'] . ' ' . $validated['scheduled_time']);
-        $minDate = (new \DateTime())->add(new \DateInterval('P3D'));
-        $maxDate = (new \DateTime())->add(new \DateInterval('P30D'));
-
-        if ($scheduledDateTime < $minDate || $scheduledDateTime > $maxDate) {
-            return redirect()->back()->with('error', 'La date d\'installation doit être entre J+3 et 1 mois.');
-        }
-
         try {
             $this->installationService->scheduleInstallation(
                 $installation,
                 $validated['scheduled_date'],
-                $validated['scheduled_time']
+                $validated['scheduled_time'],
+                $request->get('client')
             );
 
             return redirect()->route('client.home');
 
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Erreur lors de la planification : ' . $e->getMessage());
+            return redirect()->back()->with('error', $e->getMessage());
         }
     }
 }

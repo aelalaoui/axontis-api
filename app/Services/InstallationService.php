@@ -45,15 +45,45 @@ class InstallationService
     }
 
     /**
-     * Schedule installation with date and time
+     * Schedule installation with date, time and business logic validation
      */
-    public function scheduleInstallation(Installation $installation, string $date, string $time): Installation
+    public function scheduleInstallation(Installation $installation, string $date, string $time, $authenticatedClient): Installation
     {
-        $installation->update([
-            'scheduled_date' => $date,
-            'scheduled_time' => $time,
-        ]);
+        return DB::transaction(function () use ($installation, $date, $time, $authenticatedClient) {
+            // Verify installation belongs to authenticated client
+            if ($installation->client_uuid !== $authenticatedClient->uuid) {
+                throw new \Exception('Cette installation ne vous appartient pas.');
+            }
 
-        return $installation->refresh();
+            // Validate client and contract status
+            $client = $installation->client;
+            $contract = $installation->contract;
+
+            if (!$client || $client->status->value !== 'active') {
+                throw new \Exception('Votre compte client doit être actif.');
+            }
+
+            if (is_null($contract) || $contract->status !== 'pending') {
+                throw new \Exception('Le statut du contrat doit être en attente.');
+            }
+
+            // Validate date is within allowed range (J+3 to 1 month)
+            $scheduledDateTime = new \DateTime($date . ' ' . $time);
+            $minDate = (new \DateTime())->add(new \DateInterval('P3D'));
+            $maxDate = (new \DateTime())->add(new \DateInterval('P30D'));
+
+            if ($scheduledDateTime < $minDate || $scheduledDateTime > $maxDate) {
+                throw new \Exception('La date d\'installation doit être entre J+3 et 1 mois.');
+            }
+
+            $installation->update([
+                'scheduled_date' => $date,
+                'scheduled_time' => $time,
+            ]);
+
+            $installation->contract()->update(['status' => 'scheduled']);
+
+            return $installation->refresh();
+        });
     }
 }
