@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ContractStatus;
 use App\Traits\HasUuid;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -38,6 +38,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * - `active`: Filters contracts having a status of 'active'.
  * - `signed`: Filters contracts having a status of 'signed'.
  * - `pending`: Filters contracts having a status of 'pending'.
+ * - `scheduled`: Filters contracts having a status of 'scheduled'.
  * - `terminated`: Filters contracts marked as having a termination date.
  *
  * Accessors:
@@ -83,6 +84,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @method static active()
  * @method static signed()
  * @method static pending()
+ * @method static scheduled()
  * @method static terminated()
  */
 class Contract extends Model
@@ -166,17 +168,22 @@ class Contract extends Model
     // Scopes
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('status', ContractStatus::ACTIVE->value);
     }
 
     public function scopeSigned($query)
     {
-        return $query->where('status', 'signed');
+        return $query->where('status', ContractStatus::SIGNED->value);
     }
 
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', ContractStatus::PENDING->value);
+    }
+
+    public function scopeScheduled($query)
+    {
+        return $query->where('status', ContractStatus::SCHEDULED->value);
     }
 
     public function scopeTerminated($query)
@@ -187,7 +194,7 @@ class Contract extends Model
     // Accessors
     public function getIsActiveAttribute(): bool
     {
-        return $this->status === 'active';
+        return $this->status === ContractStatus::ACTIVE->value;
     }
 
     public function getIsTerminatedAttribute(): bool
