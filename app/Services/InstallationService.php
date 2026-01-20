@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\ClientStatus;
+use App\Enums\ContractStatus;
 use App\Models\Installation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -59,11 +61,17 @@ class InstallationService
             $client = $installation->client;
             $contract = $installation->contract;
 
-            if (!$client || $client->status->value !== 'active') {
+            if (!$client || $client->status->value !== ClientStatus::ACTIVE->value) {
                 throw new \Exception('Votre compte client doit être actif.');
             }
 
-            if (is_null($contract) || $contract->status !== 'pending') {
+            if (
+                is_null($contract)
+                || !in_array(
+                    $contract->status,
+                    [ContractStatus::PENDING->value, ContractStatus::SCHEDULED->value]
+                )
+            ) {
                 throw new \Exception('Le statut du contrat doit être en attente.');
             }
 

@@ -466,15 +466,19 @@ class ClientController extends Controller
                 'step' => $client->step->value,
             ],
             'contracts' => $client->contracts->map(function ($contract) {
+                $installation = $contract->installations()
+                    ->where('type', InstallationType::FIRST_INSTALLATION->value)
+                    ->first();
+
                 return [
                     'uuid' => $contract->uuid,
                     'description' => $contract->description,
                     'status' => $contract->status,
                     'monthly_ttc' => $contract->monthly_ttc,
                     'created_at' => $contract->created_at->format('d/m/Y'),
-                    'installation' => $contract->installations()
-                        ->where('type', InstallationType::FIRST_INSTALLATION->value)
-                        ->first()->uuid ?? null,
+                    'installation' => $installation->uuid ?? null,
+                    'scheduled_date' => $installation?->scheduled_date ? $installation->scheduled_date->format('Y-m-d') : null,
+                    'scheduled_time' => $installation?->scheduled_time ? $installation->scheduled_time->format('H:i') : null,
                 ];
             }),
         ]);

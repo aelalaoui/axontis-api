@@ -206,8 +206,10 @@ class InstallationController extends Controller
             'installation' => [
                 'uuid' => $installation->uuid,
                 'address' => $installation->address,
-                'zip_code' => '',
+                'zip_code' => $installation->zip_code ?? '',
                 'city' => $installation->city_fr,
+                'scheduled_date' => $installation->scheduled_date ? $installation->scheduled_date->format('Y-m-d') : null,
+                'scheduled_time' => $installation->scheduled_time ? $installation->scheduled_time->format('H:i') : null,
             ],
             'client' => [
                 'uuid' => $installation->client->uuid,

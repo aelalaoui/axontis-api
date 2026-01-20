@@ -17,8 +17,8 @@ const scheduleSuccess = ref(false);
 
 // Form using Inertia
 const form = useForm({
-    scheduled_date: '',
-    scheduled_time: '',
+    scheduled_date: props.installation?.scheduled_date ? formatDateForInput(new Date(props.installation.scheduled_date)) : '',
+    scheduled_time: props.installation?.scheduled_time ?? '',
 });
 
 // Available dates
@@ -31,6 +31,34 @@ const workingHours = [
 ];
 
 const timeSlots = ref([]);
+
+/**
+ * Format date for input
+ */
+function formatDateForInput(date) {
+    if (!date) return '';
+
+    if (typeof date === 'string') {
+        // Si c'est déjà au format YYYY-MM-DD, la retourner directement
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return date;
+        }
+        // Si c'est au format DD/MM/YYYY, la convertir
+        const parts = date.split('/');
+        if (parts.length === 3) {
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+    }
+
+    // Si c'est un objet Date
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return '';
+
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
 /**
  * Calculate available dates (J+3 to 1 month)
@@ -54,7 +82,9 @@ function generateAvailableDates() {
 function onDateSelected() {
     if (form.scheduled_date) {
         timeSlots.value = workingHours;
-        form.scheduled_time = ''; // Reset time selection
+        if (!form.scheduled_time) {
+            form.scheduled_time = '';
+        }
     } else {
         timeSlots.value = [];
     }
@@ -64,22 +94,24 @@ function onDateSelected() {
  * Format date for display
  */
 function formatDate(date) {
-    return new Intl.DateTimeFormat('fr-FR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    }).format(date);
-}
+    if (!date) return '';
 
-/**
- * Format date for input
- */
-function formatDateForInput(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    try {
+        const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+        if (isNaN(dateObj.getTime())) {
+            return '';
+        }
+
+        return new Intl.DateTimeFormat('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        }).format(dateObj);
+    } catch (e) {
+        return '';
+    }
 }
 
 /**
@@ -87,6 +119,13 @@ function formatDateForInput(date) {
  */
 const isFormValid = computed(() => {
     return form.scheduled_date && form.scheduled_time && !form.processing;
+});
+
+/**
+ * Check if installation is already scheduled
+ */
+const isRescheduling = computed(() => {
+    return props.installation?.scheduled_date && props.installation?.scheduled_time;
 });
 
 /**
@@ -109,10 +148,15 @@ function goBack() {
 }
 
 /**
- * Initialize available dates
+ * Initialize available dates and populate form on mount
  */
 onMounted(() => {
     generateAvailableDates();
+
+    // Si une date est déjà sélectionnée, initialiser les time slots
+    if (form.scheduled_date) {
+        timeSlots.value = workingHours;
+    }
 });
 </script>
 
@@ -125,7 +169,7 @@ onMounted(() => {
         <!-- Header -->
         <AppHeader
             :title="'Espace Sécurité'"
-            :subtitle="'Planification d\'installation'"
+            :subtitle="isRescheduling ? 'Modification de la planification' : 'Planification d\'installation'"
         />
 
         <!-- Main Content -->
@@ -153,8 +197,15 @@ onMounted(() => {
             <div class="max-w-2xl mx-auto">
                 <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700/50">
                     <div class="mb-6">
-                        <h2 class="text-3xl font-bold text-white mb-2">Planifier l'installation</h2>
-                        <p class="text-slate-300">Choisissez la date et l'heure idéales pour l'installation de votre système de sécurité</p>
+                        <h2 class="text-3xl font-bold text-white mb-2">{{ isRescheduling ? 'Modifier la planification' : 'Planifier l\'installation' }}</h2>
+                        <p class="text-slate-300">{{ isRescheduling ? 'Vous pouvez modifier la date et l\'heure de votre installation.' : 'Choisissez la date et l\'heure idéales pour l\'installation de votre système de sécurité' }}</p>
+                    </div>
+
+                    <!-- Current scheduled info (if rescheduling) -->
+                    <div v-if="isRescheduling" class="mb-6 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+                        <p class="text-sm text-blue-100">
+                            <strong>Installation actuellement prévue :</strong> {{ installation.scheduled_date }} à {{ installation.scheduled_time }}
+                        </p>
                     </div>
 
                     <!-- Success state -->
@@ -265,7 +316,7 @@ onMounted(() => {
                         <!-- Confirmation message -->
                         <div v-if="form.scheduled_date && form.scheduled_time" class="p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
                             <p class="text-sm text-green-100">
-                                <strong>Confirmation :</strong> Installation le {{ formatDate(new Date(form.scheduled_date)) }} à {{ form.scheduled_time }}
+                                <strong>Confirmation :</strong> Installation le {{ formatDate(form.scheduled_date) }} à {{ form.scheduled_time }}
                             </p>
                         </div>
 
@@ -293,11 +344,11 @@ onMounted(() => {
                                 <span v-else class="flex items-center justify-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        <line x="16" y="2" x2="16" y2="6"></line>
+                                        <line x="8" y1="2" x2="8" y2="6"></line>
+                                        <line x="3" y1="10" x2="21" y2="10"></line>
                                     </svg>
-                                    <span>Confirmer la planification</span>
+                                    <span>{{ isRescheduling ? 'Modifier la planification' : 'Confirmer la planification' }}</span>
                                 </span>
                             </button>
                         </div>

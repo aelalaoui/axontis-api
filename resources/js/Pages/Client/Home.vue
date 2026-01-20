@@ -16,6 +16,20 @@ const props = defineProps({
 });
 
 /**
+ * Check if a scheduled date is in the past
+ */
+function isDatePassed(dateString) {
+    if (!dateString) return true;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const scheduledDate = new Date(dateString + 'T00:00:00');
+
+    return scheduledDate < today;
+}
+
+/**
  * Get pending contracts
  */
 const pendingContracts = computed(() => {
@@ -23,10 +37,29 @@ const pendingContracts = computed(() => {
 });
 
 /**
+ * Get scheduled contracts (excluding passed dates)
+ */
+const scheduledContracts = computed(() => {
+    return props.contracts.filter(contract =>
+        contract.status === 'scheduled' &&
+        contract.scheduled_date &&
+        contract.scheduled_time &&
+        !isDatePassed(contract.scheduled_date)
+    );
+});
+
+/**
  * Check if there are pending contracts
  */
 const hasPendingContracts = computed(() => {
     return pendingContracts.value.length > 0;
+});
+
+/**
+ * Check if there are scheduled contracts
+ */
+const hasScheduledContracts = computed(() => {
+    return scheduledContracts.value.length > 0;
 });
 </script>
 
@@ -42,6 +75,53 @@ const hasPendingContracts = computed(() => {
 
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+            <!-- Scheduled Installation Alert -->
+            <div v-if="hasScheduledContracts" class="mb-8 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-2xl p-6 border border-green-500/30">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 bg-green-500/30 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-300">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                            <polyline points="9 16 12 19 15 16"></polyline>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-bold text-green-100 mb-1">Installation planifiée</h2>
+                        <p class="text-green-100/80 mb-4">
+                            Vous avez {{ scheduledContracts.length }} installation{{ scheduledContracts.length > 1 ? 's' : '' }} programmée{{ scheduledContracts.length > 1 ? 's' : '' }}.
+                        </p>
+                        <div class="space-y-3">
+                            <div
+                                v-for="contract in scheduledContracts"
+                                :key="contract.uuid"
+                                class="bg-green-500/10 rounded-lg p-3 border border-green-500/20"
+                            >
+                                <div class="flex items-center justify-between gap-4">
+                                    <div class="flex-1">
+                                        <p class="text-sm text-green-200 font-semibold">{{ contract.description }}</p>
+                                        <p class="text-sm text-green-100/70 mt-1">
+                                            📅 {{ contract.scheduled_date }} à {{ contract.scheduled_time }}
+                                        </p>
+                                    </div>
+                                    <Link
+                                        :href="`/installation/${contract.installation}/schedule`"
+                                        class="inline-flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors flex-shrink-0"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="12 9 19 9 19 20 5 20 5 9 12 9"></polyline>
+                                            <path d="M6 9c0-1 1-2 2-2h8c1 0 2 1 2 2"></path>
+                                        </svg>
+                                        <span>Un imprevu ? changer de date</span>
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Pending Installation Alert -->
             <div v-if="hasPendingContracts" class="mb-8 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-2xl p-6 border border-amber-500/30 animate-pulse">
                 <div class="flex items-start gap-4">
