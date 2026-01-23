@@ -27,6 +27,153 @@ class ContractController extends Controller
     }
 
     /**
+     * Display a listing of contracts for the authenticated client
+     *
+     * @param Request $request
+     * @return \Inertia\Response
+     */
+    public function index(Request $request)
+    {
+        try {
+            $client = $request->user()->client;
+
+            if (!$client) {
+                return redirect()->route('client.create-account')
+                    ->with('error', 'Aucun client associé à ce compte');
+            }
+
+            $contracts = $client->contracts()
+                ->with(['files', 'signatures'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($contract) {
+                    return [
+                        'uuid' => $contract->uuid,
+                        'status' => $contract->status,
+                        'start_date' => $contract->start_date?->format('Y-m-d'),
+                        'due_date' => $contract->due_date,
+                        'termination_date' => $contract->termination_date?->format('Y-m-d'),
+                        'description' => $contract->description,
+                        'monthly_ttc' => $contract->monthly_ttc,
+                        'subscription_ttc' => $contract->subscription_ttc,
+                        'currency' => $contract->currency,
+                        'is_active' => $contract->is_active,
+                        'is_terminated' => $contract->is_terminated,
+                        'files_count' => $contract->files->count(),
+                        'has_signature' => $contract->signatures->isNotEmpty(),
+                        'created_at' => $contract->created_at->format('Y-m-d H:i:s'),
+                    ];
+                });
+
+            return inertia('Client/Contract/Index', [
+                'contracts' => $contracts,
+                'client' => [
+                    'uuid' => $client->uuid,
+                    'name' => $client->company ?? $client->first_name . ' ' . $client->last_name,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Contract listing failed: ' . $e->getMessage());
+            return redirect()->route('client.home')
+                ->with('error', 'Erreur lors de la récupération des contrats');
+        }
+    }
+
+    /**
+     * Display the specified contract
+     *
+     * @param Request $request
+     * @param string $uuid
+     * @return \Inertia\Response
+     */
+    public function show(Request $request, $uuid)
+    {
+        try {
+            $client = $request->user()->client;
+
+            if (!$client) {
+                return redirect()->route('client.create-account')
+                    ->with('error', 'Aucun client associé à ce compte');
+            }
+
+            $contract = $client->contracts()
+                ->with(['files', 'signatures', 'installations', 'payments'])
+                ->where('uuid', $uuid)
+                ->firstOrFail();
+
+            return inertia('Client/Contract/Show', [
+                'contract' => [
+                    'uuid' => $contract->uuid,
+                    'status' => $contract->status,
+                    'start_date' => $contract->start_date?->format('Y-m-d'),
+                    'due_date' => $contract->due_date,
+                    'termination_date' => $contract->termination_date?->format('Y-m-d'),
+                    'description' => $contract->description,
+                    'monthly_ht' => $contract->monthly_ht,
+                    'monthly_tva' => $contract->monthly_tva,
+                    'monthly_ttc' => $contract->monthly_ttc,
+                    'subscription_ht' => $contract->subscription_ht,
+                    'subscription_tva' => $contract->subscription_tva,
+                    'subscription_ttc' => $contract->subscription_ttc,
+                    'vat_rate_percentage' => $contract->vat_rate_percentage,
+                    'currency' => $contract->currency,
+                    'is_active' => $contract->is_active,
+                    'is_terminated' => $contract->is_terminated,
+                    'total_paid' => $contract->total_paid,
+                    'created_at' => $contract->created_at->format('Y-m-d H:i:s'),
+                    'files' => $contract->files->map(function ($file) {
+                        return [
+                            'uuid' => $file->uuid,
+                            'name' => $file->name,
+                            'type' => $file->type,
+                            'url' => $file->url,
+                            'created_at' => $file->created_at->format('Y-m-d H:i:s'),
+                        ];
+                    }),
+                    'signatures' => $contract->signatures->map(function ($signature) {
+                        return [
+                            'uuid' => $signature->uuid,
+                            'status' => $signature->status,
+                            'signed_at' => $signature->signed_at?->format('Y-m-d H:i:s'),
+                            'created_at' => $signature->created_at->format('Y-m-d H:i:s'),
+                        ];
+                    }),
+                    'installations' => $contract->installations->map(function ($installation) {
+                        return [
+                            'uuid' => $installation->uuid,
+                            'type' => $installation->type,
+                            'scheduled_at' => $installation->scheduled_at?->format('Y-m-d H:i:s'),
+                            'status' => $installation->status,
+                        ];
+                    }),
+                    'payments' => $contract->payments->map(function ($payment) {
+                        return [
+                            'uuid' => $payment->uuid,
+                            'amount' => $payment->amount,
+                            'currency' => $payment->currency,
+                            'status' => $payment->status,
+                            'created_at' => $payment->created_at->format('Y-m-d H:i:s'),
+                        ];
+                    }),
+                ],
+                'client' => [
+                    'uuid' => $client->uuid,
+                    'name' => $client->company ?? $client->first_name . ' ' . $client->last_name,
+                ]
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->route('client.contracts.index')
+                ->with('error', 'Contrat non trouvé');
+        } catch (\Exception $e) {
+            Log::error('Contract display failed: ' . $e->getMessage());
+            return redirect()->route('client.contracts.index')
+                ->with('error', 'Erreur lors de la récupération du contrat');
+        }
+    }
+
+    /**
      * Generate a contract for a client
      *
      * @param Request $request

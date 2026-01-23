@@ -191,7 +191,7 @@ const hasScheduledContracts = computed(() => {
                 </div>
 
                 <!-- My Contracts -->
-                <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:border-green-500/50 transition-all group cursor-pointer">
+                <Link :href="route('client.contracts.index')" class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:border-green-500/50 transition-all group cursor-pointer">
                     <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-500/30 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-400">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -203,7 +203,7 @@ const hasScheduledContracts = computed(() => {
                     </div>
                     <h3 class="text-lg font-semibold text-white mb-2">Mes Contrats</h3>
                     <p class="text-slate-400 text-sm">Accédez à vos contrats et documents associés.</p>
-                </div>
+                </Link>
 
                 <!-- Support -->
                 <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:border-purple-500/50 transition-all group cursor-pointer">

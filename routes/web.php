@@ -128,6 +128,12 @@ Route::middleware([
         Route::prefix('client')->name('client.')->group(function () {
             Route::get('/', [\App\Http\Controllers\ClientController::class, 'home'])
                 ->name('home');
+
+            // Contract routes
+            Route::get('/contracts', [\App\Http\Controllers\ContractController::class, 'index'])
+                ->name('contracts.index');
+            Route::get('/contracts/{uuid}', [\App\Http\Controllers\ContractController::class, 'show'])
+                ->name('contracts.show');
         });
 
         Route::get('/installation/{uuid}/schedule', [InstallationController::class, 'toSchedule'])
