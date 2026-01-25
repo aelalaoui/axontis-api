@@ -47,7 +47,7 @@ import {Link} from '@inertiajs/vue3';
 
             <!-- Bottom footer -->
             <div class="pt-8 border-t border-slate-700/50 flex flex-col md:flex-row justify-between items-center text-sm text-slate-400">
-                <p>&copy; 2024 Espace Sécurité. Tous droits réservés.</p>
+                <p>&copy; 2025 - {{ new Date().getFullYear() }} Espace Sécurité. Tous droits réservés.</p>
                 <div class="flex gap-4 mt-4 md:mt-0">
                     <a href="#" class="hover:text-white transition-colors">Twitter</a>
                     <a href="#" class="hover:text-white transition-colors">LinkedIn</a>

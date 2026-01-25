@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,6 +12,15 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 
+/*
+ * @property string $uuid
+ * @property string $name
+ * @property string $email
+ * @property string $role
+ * @property UserRole $role_info
+ * @property Client|null $client
+ * @property Signature[] $signatures
+ */
 class User extends Authenticatable
 {
     use HasApiTokens;
@@ -253,5 +263,13 @@ class User extends Authenticatable
     public function signatures(): MorphMany
     {
         return $this->morphMany(Signature::class, 'signable_by', 'signable_by_type', 'signable_by_uuid');
+    }
+
+    /**
+     * Get the client associated with this user.
+     */
+    public function client(): HasOne
+    {
+        return $this->HasOne(Client::class);
     }
 }

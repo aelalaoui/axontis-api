@@ -37,8 +37,9 @@ class ContractController extends Controller
         try {
             $client = $request->user()->client;
 
-            if (!$client) {
-                return redirect()->route('client.create-account')
+            if (is_null($client)) {
+                return redirect()
+                    ->route('client.create-account')
                     ->with('error', 'Aucun client associé à ce compte');
             }
 
@@ -102,7 +103,7 @@ class ContractController extends Controller
                 ->where('uuid', $uuid)
                 ->firstOrFail();
 
-            return inertia('Client/Contract/Show', [
+            return inertia('Client/Contract/[uuid]', [
                 'contract' => [
                     'uuid' => $contract->uuid,
                     'status' => $contract->status,
@@ -164,11 +165,13 @@ class ContractController extends Controller
             ]);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return redirect()->route('client.contracts.index')
+            return redirect()
+                ->route('client.contracts.index')
                 ->with('error', 'Contrat non trouvé');
         } catch (\Exception $e) {
             Log::error('Contract display failed: ' . $e->getMessage());
-            return redirect()->route('client.contracts.index')
+            return redirect()
+                ->route('client.contracts.index')
                 ->with('error', 'Erreur lors de la récupération du contrat');
         }
     }
