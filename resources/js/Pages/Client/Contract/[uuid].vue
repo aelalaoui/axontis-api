@@ -238,7 +238,7 @@ const totalPayments = computed(() => {
                         <div class="space-y-3">
                             <a v-for="file in contract.files"
                                :key="file.uuid"
-                               :href="file.url"
+                               :href="file.download_url"
                                target="_blank"
                                class="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg hover:bg-slate-900/70 transition-colors group">
                                 <div class="flex items-center gap-3">

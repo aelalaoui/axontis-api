@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ClientStep;
 use App\Models\Client;
+use App\Models\File;
 use App\Services\ClientService;
 use App\Services\ContractService;
 use Illuminate\Http\Request;
@@ -123,12 +124,15 @@ class ContractController extends Controller
                     'is_terminated' => $contract->is_terminated,
                     'total_paid' => $contract->total_paid,
                     'created_at' => $contract->created_at->format('Y-m-d H:i:s'),
+                    /** @var File $file */
                     'files' => $contract->files->map(function ($file) {
                         return [
                             'uuid' => $file->uuid,
                             'name' => $file->name,
                             'type' => $file->type,
                             'url' => $file->url,
+                            'download_url' => $file->getDownloadUrlAttribute(),
+                            'view_url' => $file->getViewUrlAttribute(),
                             'created_at' => $file->created_at->format('Y-m-d H:i:s'),
                         ];
                     }),
