@@ -33,10 +33,13 @@ return [
 
     'docusign' => [
         'base_path' => env('DOCUSIGN_BASE_PATH', 'https://demo.docusign.net/restapi'),
+        'oauth_base_path' => env('DOCUSIGN_OAUTH_BASE_PATH', 'account-d.docusign.com'),
         'account_id' => env('DOCUSIGN_ACCOUNT_ID'),
         'client_id' => env('DOCUSIGN_CLIENT_ID'),
         'user_id' => env('DOCUSIGN_USER_ID'),
         'rsa_key_path' => storage_path('keys/docusign_key.key'),
+        // HMAC key for webhook signature validation (from DocuSign Connect settings)
+        'hmac_key' => env('DOCUSIGN_HMAC_KEY'),
     ],
 
     'stripe' => [
