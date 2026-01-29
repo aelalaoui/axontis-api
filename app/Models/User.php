@@ -40,6 +40,9 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_active',
+        'invitation_token',
+        'invitation_sent_at',
     ];
 
     /**
@@ -53,6 +56,7 @@ class User extends Authenticatable
         'remember_token',
         'two_factor_recovery_codes',
         'two_factor_secret',
+        'invitation_token',
     ];
 
     /**
@@ -66,6 +70,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
+            'is_active' => 'boolean',
+            'invitation_sent_at' => 'datetime',
         ];
     }
 
@@ -77,6 +83,14 @@ class User extends Authenticatable
     protected $appends = [
         'profile_photo_url',
     ];
+
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
 
     // Méthodes de vérification des rôles
     // ==========================================

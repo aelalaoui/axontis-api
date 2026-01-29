@@ -198,8 +198,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Link, router, usePage } from '@inertiajs/vue3'
+import {computed, onMounted, onUnmounted, ref} from 'vue'
+import {Link, router, usePage} from '@inertiajs/vue3'
 
 const props = defineProps({
     title: {
@@ -221,19 +221,34 @@ const toasts = ref([])
 // App configuration
 const appName = computed(() => usePage().props.appName || 'Axontis CRM')
 
+// Check if user has manager or administrator role
+const canManageUsers = computed(() => {
+    const userRole = usePage().props.auth?.user?.role
+    return userRole === 'administrator' || userRole === 'manager'
+})
+
  // Navigation items
- const navigation = ref([
-     { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-home' },
-     { name: 'Clients', href: '/clients', icon: 'fas fa-users', badge: '12' },
-     { name: 'Contracts', href: '/contracts', icon: 'fas fa-file-contract' },
-     { name: 'Products', href: '/crm/products', icon: 'fas fa-box' },
-     { name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart', badge: '3' },
-     { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
-     { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
-     { name: 'Communications', href: '/communications', icon: 'fas fa-comments' },
-     { name: 'Files', href: '/crm/files', icon: 'fas fa-folder' },
-     { name: 'Reports', href: '/reports', icon: 'fas fa-chart-bar' },
- ])
+ const navigation = computed(() => {
+     const items = [
+         { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-home' },
+         { name: 'Clients', href: '/clients', icon: 'fas fa-users', badge: '12' },
+         { name: 'Contracts', href: '/contracts', icon: 'fas fa-file-contract' },
+         { name: 'Products', href: '/crm/products', icon: 'fas fa-box' },
+         { name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart', badge: '3' },
+         { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
+         { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
+         { name: 'Communications', href: '/communications', icon: 'fas fa-comments' },
+         { name: 'Files', href: '/crm/files', icon: 'fas fa-folder' },
+         { name: 'Reports', href: '/reports', icon: 'fas fa-chart-bar' },
+     ]
+
+     // Add Users management for managers and administrators only
+     if (canManageUsers.value) {
+         items.push({ name: 'Utilisateurs', href: '/crm/users', icon: 'fas fa-user-cog' })
+     }
+
+     return items
+ })
 
 // Sample notifications
 const notifications = ref([

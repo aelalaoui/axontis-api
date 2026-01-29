@@ -57,6 +57,17 @@ Route::post(
     [\App\Http\Controllers\ClientController::class, 'storeAccount']
 )->name('client.create-account.store');
 
+// User invitation password setup - no middleware (signed URL)
+Route::get(
+    '/user/setup-password',
+    [\App\Http\Controllers\UserController::class, 'showSetupPassword']
+)->name('user.setup-password')->middleware('signed');
+
+Route::post(
+    '/user/setup-password',
+    [\App\Http\Controllers\UserController::class, 'storePassword']
+)->name('user.store-password');
+
 
 Route::middleware([
     'auth:sanctum',
@@ -79,6 +90,15 @@ Route::middleware([
         Route::get('files/{file}/download', [\App\Http\Controllers\FileController::class, 'download'])->name('files.download');
         Route::get('files/{file}/view', [\App\Http\Controllers\FileController::class, 'view'])->name('files.view');
         Route::post('files/upload-multiple', [\App\Http\Controllers\FileController::class, 'uploadMultiple'])->name('files.upload-multiple');
+
+        // CRM Users Routes - Only accessible by managers and administrators
+        Route::middleware('role:manager,administrator')->group(function () {
+            Route::resource('users', \App\Http\Controllers\UserController::class)->except(['destroy']);
+            Route::patch('users/{user}/toggle-status', [\App\Http\Controllers\UserController::class, 'toggleStatus'])
+                ->name('users.toggle-status');
+            Route::post('users/{user}/resend-invitation', [\App\Http\Controllers\UserController::class, 'resendInvitation'])
+                ->name('users.resend-invitation');
+        });
 
         // CRM Suppliers Routes with file management
         Route::resourceWithFiles('suppliers', \App\Http\Controllers\SupplierController::class);
