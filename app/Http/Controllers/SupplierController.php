@@ -33,8 +33,8 @@ class SupplierController extends Controller
         }
 
         // Sort functionality
-        $sortField = $request->get('sort', 'name');
-        $sortDirection = $request->get('direction', 'asc');
+        $sortField = $request->input('sort', 'name');
+        $sortDirection = $request->input('direction', 'asc');
         $query->orderBy($sortField, $sortDirection);
 
         $suppliers = $query->paginate(15)->withQueryString();
@@ -154,7 +154,7 @@ class SupplierController extends Controller
      */
     public function searchSuppliers(Request $request)
     {
-        $query = $request->get('query', $request->get('q', ''));
+        $query = $request->input('query', $request->input('q', ''));
 
         if (empty($query) || strlen(trim($query)) < 2) {
             return response()->json([]);

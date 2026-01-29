@@ -18,54 +18,71 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::query()->staff(); // Only staff users (not clients)
+        try {
+            $query = User::query()->staff(); // Only staff users (not clients)
 
-        // Search functionality
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
+            // Search functionality
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+
+            // Filter by role - validate the role first
+            if ($request->has('role') && $request->role !== '') {
+                try {
+                    UserRole::from($request->role); // Validate role exists
+                    $query->where('role', $request->role);
+                } catch (\ValueError $e) {
+                    // Invalid role filter, ignore it
+                }
+            }
+
+            // Filter by status
+            if ($request->has('status') && $request->status !== '') {
+                $query->where('is_active', $request->status === 'active');
+            }
+
+            // Sort functionality
+            $sortField = $request->input('sort', 'name');
+            $sortDirection = $request->input('direction', 'asc');
+            $query->orderBy($sortField, $sortDirection);
+
+            $users = $query->paginate(15)->withQueryString();
+
+            // Get available roles for filter (excluding client)
+            $roles = collect(UserRole::cases())
+                ->filter(fn($role) => $role !== UserRole::CLIENT)
+                ->map(fn($role) => [
+                    'value' => $role->value,
+                    'label' => $role->label(),
+                ])
+                ->values();
+
+            return Inertia::render('CRM/Users/Index', [
+                'users' => $users,
+                'roles' => $roles,
+                'filters' => [
+                    'search' => $request->search,
+                    'role' => $request->role,
+                    'status' => $request->status,
+                    'sort' => $sortField,
+                    'direction' => $sortDirection,
+                ],
+            ]);
+        } catch (\ValueError $e) {
+            // Log the error for debugging
+            \Log::error('Invalid user role detected in database', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Redirect with error message
+            return redirect()->route('dashboard')
+                ->with('error', 'Une erreur est survenue lors du chargement des utilisateurs. Veuillez contacter l\'administrateur.');
         }
-
-        // Filter by role
-        if ($request->has('role') && $request->role !== '') {
-            $query->where('role', $request->role);
-        }
-
-        // Filter by status
-        if ($request->has('status') && $request->status !== '') {
-            $query->where('is_active', $request->status === 'active');
-        }
-
-        // Sort functionality
-        $sortField = $request->get('sort', 'name');
-        $sortDirection = $request->get('direction', 'asc');
-        $query->orderBy($sortField, $sortDirection);
-
-        $users = $query->paginate(15)->withQueryString();
-
-        // Get available roles for filter (excluding client)
-        $roles = collect(UserRole::cases())
-            ->filter(fn($role) => $role !== UserRole::CLIENT)
-            ->map(fn($role) => [
-                'value' => $role->value,
-                'label' => $role->label(),
-            ])
-            ->values();
-
-        return Inertia::render('CRM/Users/Index', [
-            'users' => $users,
-            'roles' => $roles,
-            'filters' => [
-                'search' => $request->search,
-                'role' => $request->role,
-                'status' => $request->status,
-                'sort' => $sortField,
-                'direction' => $sortDirection,
-            ],
-        ]);
     }
 
     /**
