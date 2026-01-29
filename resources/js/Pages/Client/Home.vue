@@ -179,16 +179,16 @@ const hasScheduledContracts = computed(() => {
             <!-- Quick Actions Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 <!-- My Installation -->
-                <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:border-blue-500/50 transition-all group cursor-pointer">
+                <Link :href="route('client.installations.index')" class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:border-blue-500/50 transition-all group cursor-pointer">
                     <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-500/30 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400">
                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                             <polyline points="9 22 9 12 15 12 15 22"></polyline>
                         </svg>
                     </div>
-                    <h3 class="text-lg font-semibold text-white mb-2">Mon Installation</h3>
-                    <p class="text-slate-400 text-sm">Consultez les détails de votre installation et les équipements installés.</p>
-                </div>
+                    <h3 class="text-lg font-semibold text-white mb-2">Mes Installations</h3>
+                    <p class="text-slate-400 text-sm">Consultez les détails de vos installations et les équipements installés.</p>
+                </Link>
 
                 <!-- My Contracts -->
                 <Link :href="route('client.contracts.index')" class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:border-green-500/50 transition-all group cursor-pointer">

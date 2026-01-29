@@ -134,6 +134,12 @@ Route::middleware([
                 ->name('contracts.index');
             Route::get('/contracts/{uuid}', [\App\Http\Controllers\ContractController::class, 'show'])
                 ->name('contracts.show');
+
+            // Installation routes
+            Route::get('/installations', [\App\Http\Controllers\ClientInstallationController::class, 'index'])
+                ->name('installations.index');
+            Route::get('/installations/{uuid}', [\App\Http\Controllers\ClientInstallationController::class, 'show'])
+                ->name('installations.show');
         });
 
         Route::get('/installation/{uuid}/schedule', [InstallationController::class, 'toSchedule'])
