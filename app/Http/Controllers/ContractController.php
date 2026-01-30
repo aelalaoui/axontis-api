@@ -233,7 +233,7 @@ class ContractController extends Controller
                 ->appends(request()->query());
 
             return inertia('CRM/Contracts/Index', [
-                'contracts' => $contracts->map(function ($contract) {
+                'contracts' => $contracts->through(function ($contract) {
                     return [
                         'uuid' => $contract->uuid,
                         'description' => $contract->description,

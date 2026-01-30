@@ -75,7 +75,7 @@
                         </thead>
                         <tbody>
                         <tr
-                            v-for="contract in contracts.data"
+                            v-for="contract in contracts?.data || []"
                             :key="contract.uuid"
                             class="border-b border-gray-800 hover:bg-gray-800/50"
                         >
@@ -140,7 +140,7 @@
                     </table>
 
                     <!-- Empty State -->
-                    <div v-if="contracts.data.length === 0" class="text-center py-12">
+                    <div v-if="!contracts?.data || contracts.data.length === 0" class="text-center py-12">
                         <i class="fas fa-file-contract text-4xl text-gray-600 mb-4"></i>
                         <h3 class="text-lg font-medium text-gray-400 mb-2">No contracts found</h3>
                         <p class="text-gray-500">
@@ -150,13 +150,13 @@
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="contracts.data.length > 0" class="mt-6 flex items-center justify-between">
+                <div v-if="contracts?.data && contracts.data.length > 0" class="mt-6 flex items-center justify-between">
                     <div class="text-sm text-gray-400">
                         Showing {{ contracts.from }} to {{ contracts.to }} of {{ contracts.total }} results
                     </div>
                     <div class="flex items-center space-x-2">
                         <Link
-                            v-for="link in contracts.links"
+                            v-for="link in contracts.links || []"
                             :key="link.label"
                             :href="link.url"
                             v-html="link.label"
