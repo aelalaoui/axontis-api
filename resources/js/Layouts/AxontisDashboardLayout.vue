@@ -226,13 +226,16 @@ const canManageUsers = computed(() => {
     return userRole === 'administrator' || userRole === 'manager'
 })
 
+// Check if user has manager or administrator or operator role
+const canManageClients = computed(() => {
+    const userRole = usePage().props.auth?.user?.role
+    return userRole === 'administrator' || userRole === 'manager' || userRole === 'operator'
+})
+
  // Navigation items
  const navigation = computed(() => {
      const items = [
          { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-home' },
-         { name: 'Clients', href: '/crm/clients', icon: 'fas fa-users' },
-         { name: 'Contracts', href: '/crm/contracts', icon: 'fas fa-file-contract' },
-         { name: 'Products', href: '/crm/products', icon: 'fas fa-box' },
          { name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart' },
          { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
          { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
@@ -243,7 +246,14 @@ const canManageUsers = computed(() => {
 
      // Add Users management for managers and administrators only
      if (canManageUsers.value) {
-         items.push({ name: 'Utilisateurs', href: '/crm/users', icon: 'fas fa-user-cog' })
+         items.push({ name: 'Utilisateurs', href: '/crm/users', icon: 'fas fa-user-cog' });
+         items.push({ name: 'Products', href: '/crm/products', icon: 'fas fa-box' });
+     }
+
+     // Add Users management for managers and administrators only
+     if (canManageClients.value) {
+         items.push({ name: 'Clients', href: '/crm/clients', icon: 'fas fa-users' });
+         items.push({ name: 'Contracts', href: '/crm/contracts', icon: 'fas fa-file-contract' });
      }
 
      return items

@@ -119,7 +119,18 @@ Route::middleware([
         Route::patch('suppliers/{supplier}/toggle-status', [\App\Http\Controllers\SupplierController::class, 'toggleStatus'])
             ->name('suppliers.toggle-status');
 
-        // CRM Orders Routes with file management
+        // CRM Contracts Routes - Only for managers, administrators, and operators
+        Route::middleware('role:manager,administrator,operator')->group(function () {
+            Route::get('contracts', [\App\Http\Controllers\ContractController::class, 'crmIndex'])
+                ->name('contracts.index');
+            Route::get('contracts/{uuid}', [\App\Http\Controllers\ContractController::class, 'crmShow'])
+                ->name('contracts.show');
+            Route::get('contracts/{uuid}/edit', [\App\Http\Controllers\ContractController::class, 'edit'])
+                ->name('contracts.edit');
+            Route::put('contracts/{uuid}', [\App\Http\Controllers\ContractController::class, 'update'])
+                ->name('contracts.update');
+        });
+
         Route::resourceWithFiles('orders', \App\Http\Controllers\OrderController::class);
         Route::patch('orders/{order}/approve', [\App\Http\Controllers\OrderController::class, 'approve'])
             ->name('orders.approve');
