@@ -155,7 +155,7 @@ const totalDevices = computed(() => {
 <template>
     <Head :title="`Installation - ${installation.address}`" />
 
-    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
+    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-bleu-900 to-slate-900 flex flex-col">
         <!-- Header -->
         <AppHeader />
 

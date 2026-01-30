@@ -483,4 +483,212 @@ class ClientController extends Controller
             }),
         ]);
     }
+
+    /**
+     * Display a listing of all clients.
+     */
+    public function index(Request $request): Response
+    {
+        $query = Client::query();
+
+        // Search functionality
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('company_name', 'like', "%{$search}%")
+                  ->orWhere('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by status
+        if ($request->has('status') && $request->status !== '') {
+            $query->where('status', $request->status);
+        }
+
+        // Sort functionality
+        $sortField = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+        $query->orderBy($sortField, $sortDirection);
+
+        $clients = $query->paginate(15)->withQueryString();
+
+        return Inertia::render('CRM/Clients/Index', [
+            'clients' => $clients,
+            'filters' => [
+                'search' => $request->search,
+                'status' => $request->status,
+                'sort' => $sortField,
+                'direction' => $sortDirection,
+            ],
+        ]);
+    }
+
+    /**
+     * Display the specified client with all related contracts and installations.
+     */
+    public function show(string $uuid): Response
+    {
+        /** @var Client $client */
+        $client = Client::fromUuid($uuid);
+
+        if (is_null($client)) {
+            abort(404, 'Client not found');
+        }
+
+        // Load relationships
+        $client->load(['contracts', 'installations']);
+
+        return Inertia::render('CRM/Clients/Show', [
+            'client' => [
+                'uuid' => $client->uuid,
+                'type' => $client->type,
+                'company_name' => $client->company_name,
+                'first_name' => $client->first_name,
+                'last_name' => $client->last_name,
+                'full_name' => $client->full_name,
+                'email' => $client->email,
+                'phone' => $client->phone,
+                'address' => $client->address,
+                'city' => $client->city,
+                'country' => $client->country,
+                'status' => $client->status->value,
+                'step' => $client->step->value,
+                'created_at' => $client->created_at->toIso8601String(),
+                'updated_at' => $client->updated_at->toIso8601String(),
+            ],
+            'contracts' => $client->contracts->map(function ($contract) {
+                return [
+                    'uuid' => $contract->uuid,
+                    'description' => $contract->description,
+                    'status' => $contract->status,
+                    'monthly_ht' => $contract->monthly_ht,
+                    'monthly_tva' => $contract->monthly_tva,
+                    'monthly_ttc' => $contract->monthly_ttc,
+                    'subscription_ht' => $contract->subscription_ht,
+                    'subscription_tva' => $contract->subscription_tva,
+                    'subscription_ttc' => $contract->subscription_ttc,
+                    'currency' => $contract->currency,
+                    'created_at' => $contract->created_at->toIso8601String(),
+                ];
+            })->toArray(),
+            'installations' => $client->installations->map(function ($installation) {
+                return [
+                    'uuid' => $installation->uuid,
+                    'type' => $installation->type,
+                    'address' => $installation->address,
+                    'city' => $installation->city,
+                    'postal_code' => $installation->postal_code,
+                    'country' => $installation->country,
+                    'scheduled_date' => $installation->scheduled_date?->toDateString(),
+                    'scheduled_time' => $installation->scheduled_time?->format('H:i'),
+                    'status' => $installation->status,
+                    'created_at' => $installation->created_at->toIso8601String(),
+                ];
+            })->toArray(),
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified client.
+     */
+    public function edit(string $uuid): Response
+    {
+        /** @var Client $client */
+        $client = Client::fromUuid($uuid);
+
+        if (is_null($client)) {
+            abort(404, 'Client not found');
+        }
+
+        return Inertia::render('CRM/Clients/Edit', [
+            'client' => [
+                'uuid' => $client->uuid,
+                'type' => $client->type,
+                'company_name' => $client->company_name,
+                'first_name' => $client->first_name,
+                'last_name' => $client->last_name,
+                'email' => $client->email,
+                'phone' => $client->phone,
+                'address' => $client->address,
+                'city' => $client->city,
+                'postal_code' => $client->postal_code,
+                'country' => $client->country,
+                'status' => $client->status->value,
+            ],
+        ]);
+    }
+
+    /**
+     * Update the specified client in storage.
+     */
+    public function updateCRM(Request $request, string $uuid): RedirectResponse
+    {
+        /** @var Client $client */
+        $client = Client::fromUuid($uuid);
+
+        if (is_null($client)) {
+            abort(404, 'Client not found');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'type' => 'required|string|in:individual,business',
+            'company_name' => 'nullable|string|max:255',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'city' => 'nullable|string|max:100',
+            'postal_code' => 'nullable|string|max:20',
+            'country' => 'nullable|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        try {
+            $client->update($validator->validated());
+
+            return redirect()->route('crm.clients.show', $client->uuid)
+                ->with('success', 'Client updated successfully.');
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['message' => 'Failed to update client.']);
+        }
+    }
+
+    /**
+     * Toggle client active/inactive status.
+     */
+    public function toggleStatus(string $uuid): RedirectResponse
+    {
+        /** @var Client $client */
+        $client = Client::fromUuid($uuid);
+
+        if (is_null($client)) {
+            abort(404, 'Client not found');
+        }
+
+        try {
+            // Toggle between active and disabled statuses
+            $newStatus = $client->status->value === ClientStatus::ACTIVE->value
+                ? ClientStatus::DISABLED->value
+                : ClientStatus::ACTIVE->value;
+
+            $client->update(['status' => $newStatus]);
+
+            $message = $newStatus === ClientStatus::ACTIVE->value
+                ? 'Client reactivated successfully.'
+                : 'Client status changed to disabled.';
+
+            return redirect()->back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['message' => 'Failed to update client status.']);
+        }
+    }
 }

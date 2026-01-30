@@ -231,10 +231,10 @@ const canManageUsers = computed(() => {
  const navigation = computed(() => {
      const items = [
          { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-home' },
-         { name: 'Clients', href: '/clients', icon: 'fas fa-users', badge: '12' },
-         { name: 'Contracts', href: '/contracts', icon: 'fas fa-file-contract' },
+         { name: 'Clients', href: 'crm/clients', icon: 'fas fa-users' },
+         { name: 'Contracts', href: 'crm/contracts', icon: 'fas fa-file-contract' },
          { name: 'Products', href: '/crm/products', icon: 'fas fa-box' },
-         { name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart', badge: '3' },
+         { name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart' },
          { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
          { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
          { name: 'Communications', href: '/communications', icon: 'fas fa-comments' },

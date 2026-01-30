@@ -100,6 +100,20 @@ Route::middleware([
                 ->name('users.resend-invitation');
         });
 
+        // CRM Clients Routes - accessible by managers, administrators, and operators
+        Route::middleware('role:manager,administrator,operator')->group(function () {
+            Route::get('clients', [\App\Http\Controllers\ClientController::class, 'index'])
+                ->name('clients.index');
+            Route::get('clients/{uuid}', [\App\Http\Controllers\ClientController::class, 'show'])
+                ->name('clients.show');
+            Route::get('clients/{uuid}/edit', [\App\Http\Controllers\ClientController::class, 'edit'])
+                ->name('clients.edit');
+            Route::put('clients/{uuid}', [\App\Http\Controllers\ClientController::class, 'updateCRM'])
+                ->name('clients.update');
+            Route::patch('clients/{uuid}/toggle-status', [\App\Http\Controllers\ClientController::class, 'toggleStatus'])
+                ->name('clients.toggle-status');
+        });
+
         // CRM Suppliers Routes with file management
         Route::resourceWithFiles('suppliers', \App\Http\Controllers\SupplierController::class);
         Route::patch('suppliers/{supplier}/toggle-status', [\App\Http\Controllers\SupplierController::class, 'toggleStatus'])
