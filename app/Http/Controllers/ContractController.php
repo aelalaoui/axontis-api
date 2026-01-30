@@ -205,8 +205,7 @@ class ContractController extends Controller
             $sort = $request->query('sort', 'created_at');
             $direction = $request->query('direction', 'desc');
 
-            $query = Contract::with(['client', 'installations'])
-                ->where('deleted_at', null);
+            $query = Contract::with(['client', 'installations']);
 
             // Apply search filter
             if ($search) {
