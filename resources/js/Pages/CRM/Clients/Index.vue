@@ -56,18 +56,19 @@
                                     <i class="fas fa-sort text-xs"></i>
                                 </button>
                             </th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-300">Owner Name</th>
                             <th class="text-left py-3 px-4 font-medium text-gray-300">Type</th>
                             <th class="text-left py-3 px-4 font-medium text-gray-300">Contact</th>
                             <th class="text-left py-3 px-4 font-medium text-gray-300">Location</th>
                             <th class="text-left py-3 px-4 font-medium text-gray-300">Status</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-300">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr
                             v-for="client in clients.data"
                             :key="client.uuid"
-                            class="border-b border-gray-800 hover:bg-gray-800/50"
+                            class="border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors duration-200"
+                            @click="navigateToClient(client.uuid)"
                         >
                             <td class="py-3 px-4">
                                 <div>
@@ -78,6 +79,12 @@
                                     <div v-else class="text-sm text-gray-400">
                                         Individual
                                     </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="text-sm text-white">
+                                    <span v-if="client.type === 'business'">N/A</span>
+                                    <span v-else>{{ formatOwnerName(client.first_name, client.last_name) }}</span>
                                 </div>
                             </td>
                             <td class="py-3 px-4">
@@ -109,40 +116,6 @@
                                 >
                                     {{ getStatusLabel(client.status) }}
                                 </span>
-                            </td>
-                            <td class="py-3 px-4">
-                                <div class="flex items-center space-x-2">
-                                    <!-- View Button -->
-                                    <Link
-                                        :href="route('crm.clients.show', client.uuid)"
-                                        class="text-blue-400 hover:text-blue-300"
-                                        title="View Client"
-                                    >
-                                        <i class="fas fa-eye"></i>
-                                    </Link>
-
-                                    <!-- Edit Button -->
-                                    <Link
-                                        :href="route('crm.clients.edit', client.uuid)"
-                                        class="text-yellow-400 hover:text-yellow-300"
-                                        title="Edit Client"
-                                    >
-                                        <i class="fas fa-edit"></i>
-                                    </Link>
-
-                                    <!-- Toggle Status Button -->
-                                    <button
-                                        @click="toggleStatus(client)"
-                                        :class="[
-                                            client.status === 'active'
-                                                ? 'text-orange-400 hover:text-orange-300'
-                                                : 'text-green-400 hover:text-green-300'
-                                        ]"
-                                        :title="client.status === 'active' ? 'Disable' : 'Activate'"
-                                    >
-                                        <i :class="client.status === 'active' ? 'fas fa-pause' : 'fas fa-play'"></i>
-                                    </button>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
@@ -271,6 +244,17 @@ const toggleStatus = (client) => {
     router.patch(route('crm.clients.toggle-status', client.uuid), {}, {
         preserveScroll: true,
     })
+}
+
+const navigateToClient = (uuid) => {
+    router.visit(route('crm.clients.show', uuid))
+}
+
+const formatOwnerName = (firstName, lastName) => {
+    if (!firstName && !lastName) return 'N/A'
+    if (!firstName) return lastName
+    if (!lastName) return firstName
+    return `${firstName} ${lastName}`
 }
 </script>
 

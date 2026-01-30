@@ -3,7 +3,6 @@
         <!-- Sidebar -->
         <aside class="axontis-sidebar fixed left-0 top-0 w-64 h-full z-40 transform transition-transform duration-300 ease-in-out lg:translate-x-0" :class="{ '-translate-x-full': !sidebarOpen }">
             <!-- Sidebar Header -->
-            <!-- Sidebar Header -->
             <div class="axontis-sidebar-header">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center">
@@ -231,8 +230,8 @@ const canManageUsers = computed(() => {
  const navigation = computed(() => {
      const items = [
          { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-home' },
-         { name: 'Clients', href: 'crm/clients', icon: 'fas fa-users' },
-         { name: 'Contracts', href: 'crm/contracts', icon: 'fas fa-file-contract' },
+         { name: 'Clients', href: '/crm/clients', icon: 'fas fa-users' },
+         { name: 'Contracts', href: '/crm/contracts', icon: 'fas fa-file-contract' },
          { name: 'Products', href: '/crm/products', icon: 'fas fa-box' },
          { name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart' },
          { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
