@@ -33,12 +33,12 @@ function getInstallationTypeLabel(type) {
  */
 function getInstallationTypeColor(type) {
     const colors = {
-        'first_installation': 'blue',
-        'maintenance': 'green',
-        'extension': 'purple',
-        'upgrade': 'amber'
+        'first_installation': 'bg-blue-500/20 text-blue-400 border-blue-500/50',
+        'maintenance': 'bg-green-500/20 text-green-400 border-green-500/50',
+        'extension': 'bg-purple-500/20 text-purple-400 border-purple-500/50',
+        'upgrade': 'bg-amber-500/20 text-amber-400 border-amber-500/50'
     };
-    return colors[type] || 'gray';
+    return colors[type] || 'bg-gray-500/20 text-gray-400 border-gray-500/50';
 }
 
 /**
@@ -66,12 +66,12 @@ const statusLabel = computed(() => {
  */
 const statusColor = computed(() => {
     const colors = {
-        'Non planifiée': 'amber',
-        'Terminée': 'green',
-        'Aujourd\'hui': 'blue',
-        'Planifiée': 'purple'
+        'Non planifiée': 'bg-amber-500/20 text-amber-400 border-amber-500/50',
+        'Terminée': 'bg-green-500/20 text-green-400 border-green-500/50',
+        'Aujourd\'hui': 'bg-blue-500/20 text-blue-400 border-blue-500/50',
+        'Planifiée': 'bg-purple-500/20 text-purple-400 border-purple-500/50'
     };
-    return colors[statusLabel.value] || 'gray';
+    return colors[statusLabel.value] || 'bg-gray-500/20 text-gray-400 border-gray-500/50';
 });
 
 /**
@@ -157,121 +157,116 @@ const totalDevices = computed(() => {
 
     <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
         <!-- Header -->
-        <AppHeader
-            :title="'Détails de l\'Installation'"
-            :subtitle="installation.address"
-        />
+        <AppHeader />
 
         <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
-            <!-- Back Button -->
-            <div class="mb-6">
-                <Link
-                    :href="route('client.installations.index')"
-                    class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 12H5M12 19l-7-7 7-7"/>
-                    </svg>
-                    <span class="font-medium">Retour aux installations</span>
-                </Link>
-            </div>
-
-            <!-- Installation Header Card -->
-            <div class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-6 mb-8 border border-blue-500/20">
-                <div class="flex items-start justify-between mb-4">
-                    <div class="flex items-start gap-4">
-                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center flex-shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                                <polyline points="9 22 9 12 15 12 15 22"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h2 class="text-2xl font-bold text-white mb-2">{{ installation.address }}</h2>
-                            <div class="flex flex-wrap gap-2">
-                                <span :class="`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-${statusColor}-500/20 text-${statusColor}-300 border border-${statusColor}-500/30`">
-                                    {{ statusLabel }}
-                                </span>
-                                <span :class="`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-${getInstallationTypeColor(installation.type)}-500/20 text-${getInstallationTypeColor(installation.type)}-300 border border-${getInstallationTypeColor(installation.type)}-500/30`">
-                                    {{ getInstallationTypeLabel(installation.type) }}
-                                </span>
-                            </div>
-                        </div>
+        <main class="container mx-auto px-4 py-8 flex-1">
+            <!-- Page Header -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2">{{ installation.address }}</h1>
+                        <p class="text-slate-400">Détails et informations de l'installation</p>
                     </div>
+                    <Link :href="route('client.installations.index')"
+                          class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Retour
+                    </Link>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span :class="['px-4 py-2 rounded-full text-sm font-medium border', statusColor]">
+                        {{ statusLabel }}
+                    </span>
+                    <span :class="['px-4 py-2 rounded-full text-sm font-medium border', getInstallationTypeColor(installation.type)]">
+                        {{ getInstallationTypeLabel(installation.type) }}
+                    </span>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Main Information -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Main Content -->
                 <div class="lg:col-span-2 space-y-6">
                     <!-- Installation Details -->
                     <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="16" x2="12" y2="12"/>
-                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
                             </svg>
-                            Informations de l'installation
-                        </h3>
+                            Détails de l'Installation
+                        </h2>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <p class="text-sm text-slate-400 mb-1">Type d'installation</p>
+                                <p class="text-slate-400 text-sm mb-1">Type d'installation</p>
                                 <p class="text-white font-medium">{{ getInstallationTypeLabel(installation.type) }}</p>
                             </div>
 
                             <div>
-                                <p class="text-sm text-slate-400 mb-1">Statut</p>
+                                <p class="text-slate-400 text-sm mb-1">Statut</p>
                                 <p class="text-white font-medium">{{ statusLabel }}</p>
                             </div>
 
                             <div>
-                                <p class="text-sm text-slate-400 mb-1">Adresse</p>
+                                <p class="text-slate-400 text-sm mb-1">Adresse</p>
                                 <p class="text-white font-medium">{{ installation.address }}</p>
                             </div>
 
                             <div v-if="installation.city_fr">
-                                <p class="text-sm text-slate-400 mb-1">Ville</p>
+                                <p class="text-slate-400 text-sm mb-1">Ville</p>
                                 <p class="text-white font-medium">{{ installation.city_fr }}</p>
                             </div>
 
                             <div v-if="installation.country">
-                                <p class="text-sm text-slate-400 mb-1">Pays</p>
+                                <p class="text-slate-400 text-sm mb-1">Pays</p>
                                 <p class="text-white font-medium">{{ installation.country }}</p>
                             </div>
 
                             <div v-if="installation.scheduled_date">
-                                <p class="text-sm text-slate-400 mb-1">Date d'installation</p>
+                                <p class="text-slate-400 text-sm mb-1">Date d'installation</p>
                                 <p class="text-white font-medium">{{ formatDateTime(installation.scheduled_date, installation.scheduled_time) }}</p>
                             </div>
                         </div>
+                    </div>
 
-                        <div v-if="installation.contract" class="mt-6 pt-6 border-t border-slate-700">
-                            <p class="text-sm text-slate-400 mb-2">Contrat associé</p>
+                    <!-- Associated Contract -->
+                    <div v-if="installation.contract" class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
+                        <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            Contrat Associé
+                        </h2>
+
+                        <div class="bg-slate-900/50 rounded-lg p-4">
                             <Link
                                 :href="route('client.contracts.show', installation.contract.uuid)"
-                                class="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
+                                class="flex items-center justify-between hover:opacity-80 transition-opacity"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14 2 14 8 20 8"/>
+                                <div>
+                                    <p class="text-white font-medium">{{ installation.contract.reference || 'Contrat' }}</p>
+                                    <p class="text-slate-400 text-sm mt-1">{{ installation.contract.description }}</p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500">
+                                    <path d="M9 18l6-6-6-6"/>
                                 </svg>
-                                <span class="font-medium">{{ installation.contract.reference || 'Voir le contrat' }}</span>
                             </Link>
                         </div>
                     </div>
 
                     <!-- Devices List -->
                     <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                             </svg>
                             Équipements installés
                             <span class="ml-auto text-sm text-slate-400">{{ totalDevices }} équipement{{ totalDevices > 1 ? 's' : '' }}</span>
-                        </h3>
+                        </h2>
 
                         <div v-if="totalDevices === 0" class="text-center py-8">
                             <div class="w-12 h-12 bg-slate-700/50 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -334,7 +329,7 @@ const totalDevices = computed(() => {
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-slate-400">Type</span>
-                                <span class="text-white font-semibold">{{ getInstallationTypeLabel(installation.type) }}</span>
+                                <span class="text-white font-semibold text-sm">{{ getInstallationTypeLabel(installation.type) }}</span>
                             </div>
                         </div>
                     </div>
@@ -381,21 +376,25 @@ const totalDevices = computed(() => {
                         </div>
                     </div>
 
-                    <!-- Installation Timeline -->
-                    <div v-if="installation.scheduled_date && statusLabel === 'Terminée'" class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-400">
-                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                            </svg>
-                            Historique
-                        </h3>
+                    <!-- Summary Stats -->
+                    <div class="bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30">
+                        <h2 class="text-lg font-bold text-white mb-4">Résumé</h2>
                         <div class="space-y-3">
-                            <div class="flex gap-3">
-                                <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                <div>
-                                    <p class="text-white font-medium">Installation terminée</p>
-                                    <p class="text-sm text-slate-400">{{ formatDate(installation.scheduled_date) }}</p>
-                                </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300 text-sm">Équipements</span>
+                                <span class="text-white font-semibold">{{ totalDevices }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300 text-sm">Statut</span>
+                                <span class="text-white font-semibold">{{ statusLabel }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300 text-sm">Type</span>
+                                <span class="text-white font-semibold text-xs">{{ getInstallationTypeLabel(installation.type) }}</span>
+                            </div>
+                            <div v-if="installation.scheduled_date" class="flex justify-between items-center">
+                                <span class="text-slate-300 text-sm">Date</span>
+                                <span class="text-white font-semibold">{{ formatDate(installation.scheduled_date) }}</span>
                             </div>
                         </div>
                     </div>
