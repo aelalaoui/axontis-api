@@ -83,8 +83,7 @@
                             </td>
                             <td class="py-3 px-4">
                                 <div class="text-sm text-white">
-                                    <span v-if="client.type === 'business'">N/A</span>
-                                    <span v-else>{{ formatOwnerName(client.first_name, client.last_name) }}</span>
+                                    {{ formatOwnerName(client.first_name, client.last_name) }}
                                 </div>
                             </td>
                             <td class="py-3 px-4">
