@@ -112,15 +112,7 @@ Route::middleware([
                 ->name('clients.update');
             Route::patch('clients/{uuid}/toggle-status', [\App\Http\Controllers\ClientController::class, 'toggleStatus'])
                 ->name('clients.toggle-status');
-        });
-
-        // CRM Suppliers Routes with file management
-        Route::resourceWithFiles('suppliers', \App\Http\Controllers\SupplierController::class);
-        Route::patch('suppliers/{supplier}/toggle-status', [\App\Http\Controllers\SupplierController::class, 'toggleStatus'])
-            ->name('suppliers.toggle-status');
-
-        // CRM Contracts Routes - Only for managers, administrators, and operators
-        Route::middleware('role:manager,administrator,operator')->group(function () {
+            // CRM Contracts Routes - Only for managers, administrators, and operators
             Route::get('contracts', [\App\Http\Controllers\ContractController::class, 'crmIndex'])
                 ->name('contracts.index');
             Route::get('contracts/{uuid}', [\App\Http\Controllers\ContractController::class, 'crmShow'])
