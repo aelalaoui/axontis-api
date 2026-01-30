@@ -70,14 +70,14 @@
                             <th class="text-left py-3 px-4 font-medium text-gray-300">Status</th>
                             <th class="text-left py-3 px-4 font-medium text-gray-300">Monthly Amount</th>
                             <th class="text-left py-3 px-4 font-medium text-gray-300">Installations</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-300">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr
                             v-for="contract in contracts?.data || []"
                             :key="contract.uuid"
-                            class="border-b border-gray-800 hover:bg-gray-800/50"
+                            class="border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors duration-200"
+                            @click="navigateToContract(contract.uuid)"
                         >
                             <td class="py-3 px-4">
                                 <div>
@@ -112,27 +112,6 @@
                                 <div class="text-sm text-gray-300">
                                     <i class="fas fa-tools text-warning-400 mr-1"></i>
                                     {{ contract.installations_count }}
-                                </div>
-                            </td>
-                            <td class="py-3 px-4">
-                                <div class="flex items-center space-x-2">
-                                    <!-- View Button -->
-                                    <Link
-                                        :href="route('crm.contracts.show', contract.uuid)"
-                                        class="text-blue-400 hover:text-blue-300"
-                                        title="View Contract"
-                                    >
-                                        <i class="fas fa-eye"></i>
-                                    </Link>
-
-                                    <!-- Edit Button -->
-                                    <Link
-                                        :href="route('crm.contracts.edit', contract.uuid)"
-                                        class="text-yellow-400 hover:text-yellow-300"
-                                        title="Edit Contract"
-                                    >
-                                        <i class="fas fa-edit"></i>
-                                    </Link>
                                 </div>
                             </td>
                         </tr>
@@ -258,6 +237,10 @@ const sort = (field) => {
         preserveState: true,
         replace: true,
     })
+}
+
+const navigateToContract = (uuid) => {
+    router.visit(route('crm.contracts.show', uuid))
 }
 </script>
 
