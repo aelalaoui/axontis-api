@@ -39,8 +39,9 @@ Route::post('/webhooks/stripe', [\App\Http\Controllers\PaymentController::class,
 // Signature webhook endpoint (publicly accessible)
 Route::post('/signature/webhook/{provider}', [\App\Http\Controllers\SignatureController::class, 'handleWebhook']);
 
-// Protected API Routes - Requires authentication and active client status
+// Dashboard routes - Requires authentication and manager/administrator role
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });

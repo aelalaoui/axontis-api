@@ -1,12 +1,11 @@
 <template>
     <AxontisDashboardLayout title="Dashboard" subtitle="Welcome to your Axontis CRM">
         <!-- Stats Grid -->
-        <div class="axontis-stats-grid">
+        <div class="axontis-stats-grid" v-if="hasAccess">
             <AxontisStatCard
-                label="Total Clients"
-                :value="stats.totalClients"
+                label="Converted Clients"
+                :value="stats.convertedClients"
                 icon="fas fa-users"
-                :change="stats.clientsChange"
                 change-type="positive"
                 format="compact"
             />
@@ -14,24 +13,33 @@
                 label="Active Contracts"
                 :value="stats.activeContracts"
                 icon="fas fa-file-contract"
-                :change="stats.contractsChange"
                 change-type="positive"
             />
             <AxontisStatCard
                 label="Monthly Revenue"
                 :value="stats.monthlyRevenue"
                 icon="fas fa-euro-sign"
-                :change="stats.revenueChange"
                 change-type="positive"
                 format="currency"
             />
             <AxontisStatCard
-                label="Pending Orders"
-                :value="stats.pendingOrders"
-                icon="fas fa-shopping-cart"
-                :change="stats.ordersChange"
-                change-type="negative"
+                label="Total Clients"
+                :value="stats.totalClients"
+                icon="fas fa-user-circle"
+                change-type="positive"
+                format="compact"
             />
+        </div>
+
+        <!-- Unauthorized Message -->
+        <div v-else class="bg-red-900/20 border border-red-500/50 rounded-lg p-6 mb-6">
+            <div class="flex items-center gap-4">
+                <i class="fas fa-lock text-red-500 text-2xl"></i>
+                <div>
+                    <h3 class="text-lg font-semibold text-red-400">Access Denied</h3>
+                    <p class="text-red-300 mt-1">You don't have permission to view dashboard statistics. Only managers and administrators can access this information.</p>
+                </div>
+            </div>
         </div>
 
         <!-- Charts Section -->
@@ -230,8 +238,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import {nextTick, onMounted, ref} from 'vue'
+import {Link, router} from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 import AxontisButton from '@/Components/AxontisButton.vue'
@@ -241,16 +249,15 @@ import AxontisStatCard from '@/Components/AxontisStatCard.vue'
 const revenueChart = ref(null)
 const clientChart = ref(null)
 
+// Authorization state
+const hasAccess = ref(true)
+
 // Sample data
 const stats = ref({
-    totalClients: 1247,
-    clientsChange: '+12.5%',
-    activeContracts: 89,
-    contractsChange: '+8.3%',
-    monthlyRevenue: 125430,
-    revenueChange: '+15.2%',
-    pendingOrders: 23,
-    ordersChange: '-5.1%',
+    convertedClients: 0,
+    activeContracts: 0,
+    monthlyRevenue: 0,
+    totalClients: 0,
     newClientsThisMonth: 34
 })
 
@@ -342,10 +349,41 @@ const editTask = (taskId) => {
     router.visit(`/tasks/${taskId}/edit`)
 }
 
+// Load dashboard statistics from API
+const loadDashboardStats = async () => {
+    try {
+        const response = await fetch('/api/dashboard/stats')
+        const result = await response.json()
+
+        if (response.ok && result.success && result.data) {
+            hasAccess.value = true
+            stats.value = {
+                convertedClients: result.data.convertedClients || 0,
+                activeContracts: result.data.activeContracts || 0,
+                monthlyRevenue: result.data.monthlyRevenue || 0,
+                totalClients: result.data.totalClients || 0,
+                newClientsThisMonth: 34
+            }
+        } else if (response.status === 401) {
+            hasAccess.value = false
+            console.warn('Dashboard stats: Authentication required')
+        } else if (response.status === 403) {
+            hasAccess.value = false
+            console.warn('Dashboard stats: Access forbidden - only managers and administrators can view statistics')
+        } else {
+            hasAccess.value = false
+            console.error('Error loading dashboard statistics:', result.message || 'Unknown error')
+        }
+    } catch (error) {
+        hasAccess.value = false
+        console.error('Error loading dashboard statistics:', error)
+    }
+}
+
 // Initialize charts
 const initializeCharts = async () => {
     await nextTick()
-    
+
     if (typeof Chart !== 'undefined') {
         // Revenue Chart
         if (revenueChart.value) {
@@ -419,6 +457,9 @@ const initializeCharts = async () => {
 }
 
 onMounted(() => {
+    // Load dashboard statistics
+    loadDashboardStats()
+
     // Load Chart.js if not already loaded
     if (typeof Chart === 'undefined') {
         const script = document.createElement('script')
