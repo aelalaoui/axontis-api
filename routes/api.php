@@ -41,7 +41,6 @@ Route::post('/signature/webhook/{provider}', [\App\Http\Controllers\SignatureCon
 
 // Dashboard routes - Requires authentication and manager/administrator role
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
@@ -49,6 +48,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Entity search routes - accessible for authenticated web users
 Route::middleware('web')->group(function () {
+    Route::middleware('role:manager,administrator')->group(function () {
+        Route::get('/dashboard/charts', [\App\Http\Controllers\Api\DashboardController::class, 'getChartData']);
+        Route::get('/dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
+    });
     Route::prefix('entities')->group(function () {
         Route::get('/types', [\App\Http\Controllers\Api\EntitySearchController::class, 'getEntityTypes']);
         Route::get('/search', [\App\Http\Controllers\Api\EntitySearchController::class, 'search']);

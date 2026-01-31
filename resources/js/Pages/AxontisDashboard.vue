@@ -43,29 +43,57 @@
         </div>
 
         <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div v-if="hasAccess" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Revenue Chart -->
-            <AxontisCard title="Revenue Trend" subtitle="Last 12 months">
+            <AxontisCard title="Revenue Trend" subtitle="Active Contracts Revenue">
+                <div class="flex justify-end gap-2 mb-4">
+                    <button
+                        @click="revenueView = 'day'"
+                        :class="['px-3 py-1 rounded text-sm', revenueView === 'day' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70']"
+                    >
+                        Daily
+                    </button>
+                    <button
+                        @click="revenueView = 'month'"
+                        :class="['px-3 py-1 rounded text-sm', revenueView === 'month' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70']"
+                    >
+                        Monthly
+                    </button>
+                </div>
                 <div class="h-80">
                     <canvas ref="revenueChart"></canvas>
                 </div>
                 <template #footer>
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-white/70">Total: €{{ totalRevenue.toLocaleString() }}</span>
-                        <span class="text-success-400">+12.5% vs last year</span>
+                        <span class="text-success-400">Active contracts</span>
                     </div>
                 </template>
             </AxontisCard>
 
             <!-- Client Growth Chart -->
-            <AxontisCard title="Client Growth" subtitle="New clients per month">
+            <AxontisCard title="Client Growth" subtitle="Converted Clients">
+                <div class="flex justify-end gap-2 mb-4">
+                    <button
+                        @click="clientView = 'day'"
+                        :class="['px-3 py-1 rounded text-sm', clientView === 'day' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70']"
+                    >
+                        Daily
+                    </button>
+                    <button
+                        @click="clientView = 'month'"
+                        :class="['px-3 py-1 rounded text-sm', clientView === 'month' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70']"
+                    >
+                        Monthly
+                    </button>
+                </div>
                 <div class="h-80">
                     <canvas ref="clientChart"></canvas>
                 </div>
                 <template #footer>
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-white/70">This month: {{ stats.newClientsThisMonth }}</span>
-                        <span class="text-success-400">+8.3% vs last month</span>
+                        <span class="text-white/70">Status: paid, active, formal_notice</span>
+                        <span class="text-success-400">{{ stats.convertedClients }} converted</span>
                     </div>
                 </template>
             </AxontisCard>
@@ -238,7 +266,7 @@
 </template>
 
 <script setup>
-import {nextTick, onMounted, ref} from 'vue'
+import {nextTick, onMounted, ref, watch} from 'vue'
 import {Link, router} from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
@@ -249,8 +277,20 @@ import AxontisStatCard from '@/Components/AxontisStatCard.vue'
 const revenueChart = ref(null)
 const clientChart = ref(null)
 
+// Chart view states
+const revenueView = ref('month')
+const clientView = ref('month')
+
 // Authorization state
 const hasAccess = ref(true)
+
+// Chart data
+const chartData = ref({
+    revenueDay: [],
+    revenueMonth: [],
+    clientGrowthDay: [],
+    clientGrowthMonth: []
+})
 
 // Sample data
 const stats = ref({
@@ -261,8 +301,9 @@ const stats = ref({
     newClientsThisMonth: 34
 })
 
-const totalRevenue = ref(1504560)
+const totalRevenue = ref(0)
 
+// Recent Activity
 const recentActivity = ref([
     {
         id: 1,
@@ -380,31 +421,72 @@ const loadDashboardStats = async () => {
     }
 }
 
+// Load chart data from API
+const loadChartData = async () => {
+    try {
+        const response = await fetch('/api/dashboard/charts')
+        const result = await response.json()
+
+        if (response.ok && result.success && result.data) {
+            chartData.value = {
+                revenueDay: result.data.revenueDay || [],
+                revenueMonth: result.data.revenueMonth || [],
+                clientGrowthDay: result.data.clientGrowthDay || [],
+                clientGrowthMonth: result.data.clientGrowthMonth || []
+            }
+            // Initialize charts after data is loaded
+            await nextTick()
+            initializeCharts()
+        } else if (response.status === 401 || response.status === 403) {
+            console.warn('Chart data: Access denied')
+        } else {
+            console.error('Error loading chart data:', result.message || 'Unknown error')
+        }
+    } catch (error) {
+        console.error('Error loading chart data:', error)
+    }
+}
+
 // Initialize charts
 const initializeCharts = async () => {
     await nextTick()
 
     if (typeof Chart !== 'undefined') {
+        // Get current data based on selected view
+        const revenueData = revenueView.value === 'day' ? chartData.value.revenueDay : chartData.value.revenueMonth
+        const clientData = clientView.value === 'day' ? chartData.value.clientGrowthDay : chartData.value.clientGrowthMonth
+
+        // Calculate total revenue for current view
+        totalRevenue.value = revenueData.reduce((sum, item) => sum + (item.revenue || 0), 0)
+
         // Revenue Chart
         if (revenueChart.value) {
+            // Destroy previous chart if it exists
+            const chartInstance = Chart.getChart(revenueChart.value)
+            if (chartInstance) {
+                chartInstance.destroy()
+            }
+
             new Chart(revenueChart.value, {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    labels: revenueData.map(d => d.label),
                     datasets: [{
-                        label: 'Revenue',
-                        data: [85000, 92000, 78000, 105000, 98000, 112000, 125000, 118000, 135000, 142000, 128000, 155000],
+                        label: 'Revenue (€)',
+                        data: revenueData.map(d => d.revenue),
                         borderColor: '#f59e0b',
                         backgroundColor: 'rgba(245, 158, 11, 0.1)',
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#f59e0b'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: true, labels: { color: 'rgba(255, 255, 255, 0.7)' } }
                     },
                     scales: {
                         x: {
@@ -422,13 +504,19 @@ const initializeCharts = async () => {
 
         // Client Chart
         if (clientChart.value) {
+            // Destroy previous chart if it exists
+            const chartInstance = Chart.getChart(clientChart.value)
+            if (chartInstance) {
+                chartInstance.destroy()
+            }
+
             new Chart(clientChart.value, {
                 type: 'bar',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    labels: clientData.map(d => d.label),
                     datasets: [{
                         label: 'New Clients',
-                        data: [12, 19, 15, 25, 22, 30, 28, 35, 32, 38, 29, 34],
+                        data: clientData.map(d => d.count),
                         backgroundColor: '#f59e0b',
                         borderColor: '#d97706',
                         borderWidth: 2
@@ -438,7 +526,7 @@ const initializeCharts = async () => {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: true, labels: { color: 'rgba(255, 255, 255, 0.7)' } }
                     },
                     scales: {
                         x: {
@@ -456,18 +544,31 @@ const initializeCharts = async () => {
     }
 }
 
+// Watch for changes in revenue view
+watch(() => revenueView.value, () => {
+    initializeCharts()
+})
+
+// Watch for changes in client view
+watch(() => clientView.value, () => {
+    initializeCharts()
+})
+
 onMounted(() => {
     // Load dashboard statistics
     loadDashboardStats()
+
+    // Load chart data
+    loadChartData()
 
     // Load Chart.js if not already loaded
     if (typeof Chart === 'undefined') {
         const script = document.createElement('script')
         script.src = 'https://cdn.jsdelivr.net/npm/chart.js'
-        script.onload = initializeCharts
+        script.onload = () => {
+            loadChartData()
+        }
         document.head.appendChild(script)
-    } else {
-        initializeCharts()
     }
 })
 </script>
