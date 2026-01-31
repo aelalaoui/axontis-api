@@ -47,8 +47,8 @@
                 :month-data="chartData.revenueMonth"
                 data-label-key="label"
                 data-value-key="revenue"
-                :footer-text="`Total: €${totalRevenue.toLocaleString()}`"
-                footer-status="Active contracts"
+                footer-text="Total: "
+                :footer-status="`${totalRevenue.toLocaleString()} Dh/mois`"
                 @view-changed="onRevenueViewChanged"
             />
 
@@ -62,8 +62,8 @@
                 :month-data="chartData.clientGrowthMonth"
                 data-label-key="label"
                 data-value-key="count"
-                :footer-text="`Status: paid, active, formal_notice`"
-                :footer-status="`${stats.convertedClients} converted`"
+                footer-text="Total: "
+                :footer-status="`${stats.convertedClients} active clients`"
                 @view-changed="onClientViewChanged"
             />
         </div>
