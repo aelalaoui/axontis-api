@@ -49,88 +49,34 @@
         <!-- Charts Section -->
         <div v-if="hasAccess" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Revenue Chart -->
-            <AxontisCard title="Revenue Trend" subtitle="Active Contracts Revenue">
-                <div class="flex justify-end gap-2 mb-4">
-                    <button
-                        @click="revenueView = 'day'"
-                        :disabled="chartsLoading"
-                        :class="['px-3 py-1 rounded text-sm transition-all', revenueView === 'day' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70', chartsLoading && 'opacity-50 cursor-not-allowed']"
-                    >
-                        Daily
-                    </button>
-                    <button
-                        @click="revenueView = 'month'"
-                        :disabled="chartsLoading"
-                        :class="['px-3 py-1 rounded text-sm transition-all', revenueView === 'month' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70', chartsLoading && 'opacity-50 cursor-not-allowed']"
-                    >
-                        Monthly
-                    </button>
-                </div>
-                <div class="h-80">
-                    <!-- Skeleton Loading -->
-                    <template v-if="chartsLoading">
-                        <div class="space-y-3">
-                            <div class="h-64 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded-lg animate-pulse"></div>
-                            <div class="flex gap-2">
-                                <div class="flex-1 h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded animate-pulse"></div>
-                                <div class="flex-1 h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded animate-pulse"></div>
-                            </div>
-                        </div>
-                    </template>
-                    <!-- Loaded Chart -->
-                    <template v-else>
-                        <canvas ref="revenueChart" :key="revenueChartKey"></canvas>
-                    </template>
-                </div>
-                <template #footer>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-white/70">Total: €{{ totalRevenue.toLocaleString() }}</span>
-                        <span class="text-success-400">Active contracts</span>
-                    </div>
-                </template>
-            </AxontisCard>
+            <AxontisChartCard
+                title="Revenue Trend"
+                subtitle="Active Contracts Revenue"
+                chart-type="line"
+                :loading="chartsLoading"
+                :day-data="chartData.revenueDay"
+                :month-data="chartData.revenueMonth"
+                data-label-key="label"
+                data-value-key="revenue"
+                :footer-text="`Total: €${totalRevenue.toLocaleString()}`"
+                footer-status="Active contracts"
+                @view-changed="onRevenueViewChanged"
+            />
 
             <!-- Client Growth Chart -->
-            <AxontisCard title="Client Growth" subtitle="Converted Clients">
-                <div class="flex justify-end gap-2 mb-4">
-                    <button
-                        @click="clientView = 'day'"
-                        :disabled="chartsLoading"
-                        :class="['px-3 py-1 rounded text-sm transition-all', clientView === 'day' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70', chartsLoading && 'opacity-50 cursor-not-allowed']"
-                    >
-                        Daily
-                    </button>
-                    <button
-                        @click="clientView = 'month'"
-                        :disabled="chartsLoading"
-                        :class="['px-3 py-1 rounded text-sm transition-all', clientView === 'month' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70', chartsLoading && 'opacity-50 cursor-not-allowed']"
-                    >
-                        Monthly
-                    </button>
-                </div>
-                <div class="h-80">
-                    <!-- Skeleton Loading -->
-                    <template v-if="chartsLoading">
-                        <div class="space-y-3">
-                            <div class="h-64 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded-lg animate-pulse"></div>
-                            <div class="flex gap-2">
-                                <div class="flex-1 h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded animate-pulse"></div>
-                                <div class="flex-1 h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded animate-pulse"></div>
-                            </div>
-                        </div>
-                    </template>
-                    <!-- Loaded Chart -->
-                    <template v-else>
-                        <canvas ref="clientChart" :key="clientChartKey"></canvas>
-                    </template>
-                </div>
-                <template #footer>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-white/70">Status: paid, active, formal_notice</span>
-                        <span class="text-success-400">{{ stats.convertedClients }} converted</span>
-                    </div>
-                </template>
-            </AxontisCard>
+            <AxontisChartCard
+                title="Client Growth"
+                subtitle="Converted Clients"
+                chart-type="bar"
+                :loading="chartsLoading"
+                :day-data="chartData.clientGrowthDay"
+                :month-data="chartData.clientGrowthMonth"
+                data-label-key="label"
+                data-value-key="count"
+                :footer-text="`Status: paid, active, formal_notice`"
+                :footer-status="`${stats.convertedClients} converted`"
+                @view-changed="onClientViewChanged"
+            />
         </div>
 
         <!-- Recent Activity & Quick Actions -->
@@ -300,29 +246,13 @@
 </template>
 
 <script setup>
-import {nextTick, onMounted, ref, watch} from 'vue'
+import {onMounted, ref} from 'vue'
 import {Link, router} from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 import AxontisButton from '@/Components/AxontisButton.vue'
 import AxontisStatCard from '@/Components/AxontisStatCard.vue'
-
-// Chart references
-const revenueChart = ref(null)
-const clientChart = ref(null)
-
-// Force re-render des charts avec keys
-const revenueChartKey = ref(0)
-const clientChartKey = ref(0)
-
-// Chart instances (pour destruction)
-let revenueChartInstance = null
-let clientChartInstance = null
-let Chart = null
-
-// Chart view states
-const revenueView = ref('month')
-const clientView = ref('month')
+import AxontisChartCard from '@/Components/AxontisChartCard.vue'
 
 // Authorization state
 const hasAccess = ref(true)
@@ -330,7 +260,6 @@ const hasAccess = ref(true)
 // Loading states
 const statsLoading = ref(true)
 const chartsLoading = ref(true)
-const chartJsLoading = ref(true)
 
 // Chart data
 const chartData = ref({
@@ -438,13 +367,27 @@ const editTask = (taskId) => {
     router.visit(`/tasks/${taskId}/edit`)
 }
 
+const onRevenueViewChanged = (view) => {
+    // Handle revenue view change if needed
+    console.log('Revenue view changed to:', view)
+}
+
+const onClientViewChanged = (view) => {
+    // Handle client view change if needed
+    console.log('Client view changed to:', view)
+}
+
+// Calculate total revenue based on current data
+const calculateTotalRevenue = () => {
+    // This will be updated when chart data changes
+    // The calculation happens in the component based on selected view
+}
+
 // Load Chart.js dynamically
 const loadChartJs = async () => {
     return new Promise((resolve) => {
         // Check if Chart.js is already loaded
         if (window.Chart) {
-            Chart = window.Chart
-            chartJsLoading.value = false
             resolve()
             return
         }
@@ -454,13 +397,10 @@ const loadChartJs = async () => {
         script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js'
         script.async = true
         script.onload = () => {
-            Chart = window.Chart
-            chartJsLoading.value = false
             resolve()
         }
         script.onerror = () => {
             console.error('✗ Failed to load Chart.js')
-            chartJsLoading.value = false
             resolve()
         }
         document.head.appendChild(script)
@@ -507,9 +447,7 @@ const loadChartData = async () => {
         chartsLoading.value = true
 
         // Wait for Chart.js to load first
-        if (!Chart) {
-            await loadChartJs()
-        }
+        await loadChartJs()
 
         const response = await fetch('/api/dashboard/charts')
         const result = await response.json()
@@ -522,17 +460,12 @@ const loadChartData = async () => {
                 clientGrowthMonth: result.data.clientGrowthMonth || []
             }
 
-            // 1. Wait for nextTick to ensure data is reactive
-            await nextTick()
+            // Calculate total revenue
+            const currentRevenueData = chartData.value.revenueMonth
+            totalRevenue.value = currentRevenueData.reduce((sum, item) => sum + (item.revenue || 0), 0)
 
-            // 2. Set to false so template renders canvas elements
+            // Let the component handle loading state
             chartsLoading.value = false
-
-            // 3. Wait for template to render canvas (v-else condition)
-            await nextTick()
-
-            // 4. Now refs should be available, initialize charts
-            await initializeCharts()
         } else if (response.status === 401 || response.status === 403) {
             console.warn('Chart data: Access denied')
             chartsLoading.value = false
@@ -541,133 +474,15 @@ const loadChartData = async () => {
             chartsLoading.value = false
         }
     } catch (error) {
+        console.error('Error loading chart data:', error)
         chartsLoading.value = false
     }
 }
 
-// Initialize charts
-const initializeCharts = async () => {
-    // Ensure DOM is fully updated
-    await nextTick()
-
-    // Add delay to ensure canvas elements are fully mounted in DOM
-    await new Promise(resolve => setTimeout(resolve, 300))
-
-    // Check if Chart.js is available
-    if (!Chart) {
-        return
-    }
-
-    try {
-        // Get current data based on selected view
-        const revenueData = revenueView.value === 'day' ? chartData.value.revenueDay : chartData.value.revenueMonth
-        const clientData = clientView.value === 'day' ? chartData.value.clientGrowthDay : chartData.value.clientGrowthMonth
-
-        // Calculate total revenue for current view
-        totalRevenue.value = revenueData.reduce((sum, item) => sum + (item.revenue || 0), 0)
-
-        // Revenue Chart
-        if (revenueChart.value) {
-            // Destroy previous chart if it exists
-            if (revenueChartInstance) {
-                revenueChartInstance.destroy()
-            }
-
-            revenueChartInstance = new Chart(revenueChart.value, {
-                type: 'line',
-                data: {
-                    labels: revenueData.map(d => d.label),
-                    datasets: [{
-                        label: 'Revenue (€)',
-                        data: revenueData.map(d => d.revenue),
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#f59e0b'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: true, labels: { color: 'rgba(255, 255, 255, 0.7)' } }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(245, 158, 11, 0.1)' },
-                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
-                        },
-                        y: {
-                            grid: { color: 'rgba(245, 158, 11, 0.1)' },
-                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
-                        }
-                    }
-                }
-            })
-        }
-
-        // Client Chart
-        if (clientChart.value) {
-            // Destroy previous chart if it exists
-            if (clientChartInstance) {
-                clientChartInstance.destroy()
-            }
-
-            clientChartInstance = new Chart(clientChart.value, {
-                type: 'bar',
-                data: {
-                    labels: clientData.map(d => d.label),
-                    datasets: [{
-                        label: 'New Clients',
-                        data: clientData.map(d => d.count),
-                        backgroundColor: '#f59e0b',
-                        borderColor: '#d97706',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: true, labels: { color: 'rgba(255, 255, 255, 0.7)' } }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(245, 158, 11, 0.1)' },
-                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
-                        },
-                        y: {
-                            grid: { color: 'rgba(245, 158, 11, 0.1)' },
-                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
-                        }
-                    }
-                }
-            })
-        }
-    } catch (error) {
-        console.error('Error during chart initialization:', error)
-    }
-}
-
-// Watch for changes in revenue view
-watch(() => revenueView.value, async () => {
-    await initializeCharts()
-})
-
-// Watch for changes in client view
-watch(() => clientView.value, async () => {
-    await initializeCharts()
-})
-
 onMounted(() => {
-    // Load Chart.js first
-    loadChartJs().then(() => {
-        // Load dashboard statistics
-        loadDashboardStats()
-        // Load chart data (which will now have Chart.js available)
-        loadChartData()
-    })
+    // Load dashboard statistics
+    loadDashboardStats()
+    // Load chart data
+    loadChartData()
 })
 </script>
