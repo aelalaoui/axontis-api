@@ -19,9 +19,9 @@ class DashboardController extends Controller
     public function getStats(Request $request)
     {
         try {
-            // Cache key for dashboard stats (4 hours = 14400 seconds)
+            // Cache key for dashboard stats (1 hours = 3600 seconds)
             $cacheKey = 'dashboard_stats';
-            $cacheDuration = 14400; // 4 hours in seconds
+            $cacheDuration = 3600; // 1 hour in seconds
 
             // Try to get from cache first
             $cachedData = Cache::get($cacheKey);
