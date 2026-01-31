@@ -1,31 +1,53 @@
 <template>
     <div class="axontis-stat-card animate-fade-in">
-        <!-- Icon -->
-        <div class="axontis-stat-icon">
-            <i :class="icon"></i>
-        </div>
+        <!-- Skeleton Loading State -->
+        <template v-if="loading">
+            <div class="space-y-4">
+                <!-- Icon Skeleton -->
+                <div class="axontis-stat-icon opacity-50">
+                    <div class="w-12 h-12 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded-lg animate-pulse"></div>
+                </div>
 
-        <!-- Value -->
-        <div class="axontis-stat-value">{{ formattedValue }}</div>
+                <!-- Value Skeleton -->
+                <div class="h-8 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded-lg w-3/4 animate-pulse"></div>
 
-        <!-- Label -->
-        <div class="axontis-stat-label">{{ label }}</div>
+                <!-- Label Skeleton -->
+                <div class="h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded w-1/2 animate-pulse"></div>
 
-        <!-- Change Indicator -->
-        <div v-if="change !== null" :class="changeClasses">
-            <i :class="changeIcon"></i>
-            <span>{{ change }}</span>
-        </div>
+                <!-- Change Indicator Skeleton -->
+                <div class="h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded w-1/3 animate-pulse"></div>
+            </div>
+        </template>
 
-        <!-- Additional Info -->
-        <div v-if="info" class="text-xs text-white/50 mt-2">
-            {{ info }}
-        </div>
+        <!-- Loaded State -->
+        <template v-else>
+            <!-- Icon -->
+            <div class="axontis-stat-icon">
+                <i :class="icon"></i>
+            </div>
+
+            <!-- Value -->
+            <div class="axontis-stat-value">{{ formattedValue }}</div>
+
+            <!-- Label -->
+            <div class="axontis-stat-label">{{ label }}</div>
+
+            <!-- Change Indicator -->
+            <div v-if="change !== null" :class="changeClasses">
+                <i :class="changeIcon"></i>
+                <span>{{ change }}</span>
+            </div>
+
+            <!-- Additional Info -->
+            <div v-if="info" class="text-xs text-white/50 mt-2">
+                {{ info }}
+            </div>
+        </template>
     </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import {computed} from 'vue'
 
 const props = defineProps({
     label: {
@@ -61,6 +83,10 @@ const props = defineProps({
     info: {
         type: String,
         default: null
+    },
+    loading: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -81,7 +107,7 @@ const formattedValue = computed(() => {
                 maximumFractionDigits: 1
             }).format(value)
         default:
-            return typeof value === 'number' 
+            return typeof value === 'number'
                 ? new Intl.NumberFormat('fr-FR').format(value)
                 : value
     }
@@ -89,7 +115,7 @@ const formattedValue = computed(() => {
 
 const changeClasses = computed(() => {
     let classes = 'axontis-stat-change '
-    
+
     if (props.changeType === 'positive') {
         classes += 'positive'
     } else if (props.changeType === 'negative') {
@@ -97,7 +123,7 @@ const changeClasses = computed(() => {
     } else {
         classes += 'neutral'
     }
-    
+
     return classes
 })
 

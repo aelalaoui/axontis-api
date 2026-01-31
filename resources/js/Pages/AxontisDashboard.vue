@@ -8,12 +8,14 @@
                 icon="fas fa-users"
                 change-type="positive"
                 format="compact"
+                :loading="statsLoading"
             />
             <AxontisStatCard
                 label="Active Contracts"
                 :value="stats.activeContracts"
                 icon="fas fa-file-contract"
                 change-type="positive"
+                :loading="statsLoading"
             />
             <AxontisStatCard
                 label="Monthly Revenue"
@@ -21,6 +23,7 @@
                 icon="fas fa-euro-sign"
                 change-type="positive"
                 format="currency"
+                :loading="statsLoading"
             />
             <AxontisStatCard
                 label="Total Clients"
@@ -28,6 +31,7 @@
                 icon="fas fa-user-circle"
                 change-type="positive"
                 format="compact"
+                :loading="statsLoading"
             />
         </div>
 
@@ -49,19 +53,34 @@
                 <div class="flex justify-end gap-2 mb-4">
                     <button
                         @click="revenueView = 'day'"
-                        :class="['px-3 py-1 rounded text-sm', revenueView === 'day' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70']"
+                        :disabled="chartsLoading"
+                        :class="['px-3 py-1 rounded text-sm transition-all', revenueView === 'day' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70', chartsLoading && 'opacity-50 cursor-not-allowed']"
                     >
                         Daily
                     </button>
                     <button
                         @click="revenueView = 'month'"
-                        :class="['px-3 py-1 rounded text-sm', revenueView === 'month' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70']"
+                        :disabled="chartsLoading"
+                        :class="['px-3 py-1 rounded text-sm transition-all', revenueView === 'month' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70', chartsLoading && 'opacity-50 cursor-not-allowed']"
                     >
                         Monthly
                     </button>
                 </div>
                 <div class="h-80">
-                    <canvas ref="revenueChart"></canvas>
+                    <!-- Skeleton Loading -->
+                    <template v-if="chartsLoading">
+                        <div class="space-y-3">
+                            <div class="h-64 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded-lg animate-pulse"></div>
+                            <div class="flex gap-2">
+                                <div class="flex-1 h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded animate-pulse"></div>
+                                <div class="flex-1 h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded animate-pulse"></div>
+                            </div>
+                        </div>
+                    </template>
+                    <!-- Loaded Chart -->
+                    <template v-else>
+                        <canvas ref="revenueChart" :key="revenueChartKey"></canvas>
+                    </template>
                 </div>
                 <template #footer>
                     <div class="flex items-center justify-between text-sm">
@@ -76,19 +95,34 @@
                 <div class="flex justify-end gap-2 mb-4">
                     <button
                         @click="clientView = 'day'"
-                        :class="['px-3 py-1 rounded text-sm', clientView === 'day' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70']"
+                        :disabled="chartsLoading"
+                        :class="['px-3 py-1 rounded text-sm transition-all', clientView === 'day' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70', chartsLoading && 'opacity-50 cursor-not-allowed']"
                     >
                         Daily
                     </button>
                     <button
                         @click="clientView = 'month'"
-                        :class="['px-3 py-1 rounded text-sm', clientView === 'month' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70']"
+                        :disabled="chartsLoading"
+                        :class="['px-3 py-1 rounded text-sm transition-all', clientView === 'month' ? 'bg-primary-500 text-white' : 'bg-dark-700 text-white/70', chartsLoading && 'opacity-50 cursor-not-allowed']"
                     >
                         Monthly
                     </button>
                 </div>
                 <div class="h-80">
-                    <canvas ref="clientChart"></canvas>
+                    <!-- Skeleton Loading -->
+                    <template v-if="chartsLoading">
+                        <div class="space-y-3">
+                            <div class="h-64 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded-lg animate-pulse"></div>
+                            <div class="flex gap-2">
+                                <div class="flex-1 h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded animate-pulse"></div>
+                                <div class="flex-1 h-4 bg-gradient-to-r from-dark-700 via-dark-600 to-dark-700 rounded animate-pulse"></div>
+                            </div>
+                        </div>
+                    </template>
+                    <!-- Loaded Chart -->
+                    <template v-else>
+                        <canvas ref="clientChart" :key="clientChartKey"></canvas>
+                    </template>
                 </div>
                 <template #footer>
                     <div class="flex items-center justify-between text-sm">
@@ -206,24 +240,24 @@
             <div class="overflow-x-auto">
                 <table class="axontis-table">
                     <thead>
-                        <tr>
-                            <th>Task</th>
-                            <th>Client</th>
-                            <th>Due Date</th>
-                            <th>Priority</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
+                    <tr>
+                        <th>Task</th>
+                        <th>Client</th>
+                        <th>Due Date</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="task in upcomingTasks" :key="task.id">
-                            <td>
-                                <div class="font-medium text-white">{{ task.title }}</div>
-                                <div class="text-xs text-white/60">{{ task.description }}</div>
-                            </td>
-                            <td class="text-white/80">{{ task.client }}</td>
-                            <td class="text-white/80">{{ task.dueDate }}</td>
-                            <td>
+                    <tr v-for="task in upcomingTasks" :key="task.id">
+                        <td>
+                            <div class="font-medium text-white">{{ task.title }}</div>
+                            <div class="text-xs text-white/60">{{ task.description }}</div>
+                        </td>
+                        <td class="text-white/80">{{ task.client }}</td>
+                        <td class="text-white/80">{{ task.dueDate }}</td>
+                        <td>
                                 <span :class="[
                                     'axontis-badge',
                                     task.priority === 'high' ? 'error' :
@@ -231,8 +265,8 @@
                                 ]">
                                     {{ task.priority }}
                                 </span>
-                            </td>
-                            <td>
+                        </td>
+                        <td>
                                 <span :class="[
                                     'axontis-badge',
                                     task.status === 'completed' ? 'success' :
@@ -240,24 +274,24 @@
                                 ]">
                                     {{ task.status }}
                                 </span>
-                            </td>
-                            <td>
-                                <div class="flex items-center gap-2">
-                                    <AxontisButton
-                                        variant="icon"
-                                        size="sm"
-                                        icon="fas fa-eye"
-                                        @click="viewTask(task.id)"
-                                    />
-                                    <AxontisButton
-                                        variant="icon"
-                                        size="sm"
-                                        icon="fas fa-edit"
-                                        @click="editTask(task.id)"
-                                    />
-                                </div>
-                            </td>
-                        </tr>
+                        </td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <AxontisButton
+                                    variant="icon"
+                                    size="sm"
+                                    icon="fas fa-eye"
+                                    @click="viewTask(task.id)"
+                                />
+                                <AxontisButton
+                                    variant="icon"
+                                    size="sm"
+                                    icon="fas fa-edit"
+                                    @click="editTask(task.id)"
+                                />
+                            </div>
+                        </td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -277,12 +311,26 @@ import AxontisStatCard from '@/Components/AxontisStatCard.vue'
 const revenueChart = ref(null)
 const clientChart = ref(null)
 
+// Force re-render des charts avec keys
+const revenueChartKey = ref(0)
+const clientChartKey = ref(0)
+
+// Chart instances (pour destruction)
+let revenueChartInstance = null
+let clientChartInstance = null
+let Chart = null
+
 // Chart view states
 const revenueView = ref('month')
 const clientView = ref('month')
 
 // Authorization state
 const hasAccess = ref(true)
+
+// Loading states
+const statsLoading = ref(true)
+const chartsLoading = ref(true)
+const chartJsLoading = ref(true)
 
 // Chart data
 const chartData = ref({
@@ -390,9 +438,39 @@ const editTask = (taskId) => {
     router.visit(`/tasks/${taskId}/edit`)
 }
 
+// Load Chart.js dynamically
+const loadChartJs = async () => {
+    return new Promise((resolve) => {
+        // Check if Chart.js is already loaded
+        if (window.Chart) {
+            Chart = window.Chart
+            chartJsLoading.value = false
+            resolve()
+            return
+        }
+
+        // Load Chart.js from CDN
+        const script = document.createElement('script')
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js'
+        script.async = true
+        script.onload = () => {
+            Chart = window.Chart
+            chartJsLoading.value = false
+            resolve()
+        }
+        script.onerror = () => {
+            console.error('✗ Failed to load Chart.js')
+            chartJsLoading.value = false
+            resolve()
+        }
+        document.head.appendChild(script)
+    })
+}
+
 // Load dashboard statistics from API
 const loadDashboardStats = async () => {
     try {
+        statsLoading.value = true
         const response = await fetch('/api/dashboard/stats')
         const result = await response.json()
 
@@ -418,12 +496,21 @@ const loadDashboardStats = async () => {
     } catch (error) {
         hasAccess.value = false
         console.error('Error loading dashboard statistics:', error)
+    } finally {
+        statsLoading.value = false
     }
 }
 
 // Load chart data from API
 const loadChartData = async () => {
     try {
+        chartsLoading.value = true
+
+        // Wait for Chart.js to load first
+        if (!Chart) {
+            await loadChartJs()
+        }
+
         const response = await fetch('/api/dashboard/charts')
         const result = await response.json()
 
@@ -434,24 +521,44 @@ const loadChartData = async () => {
                 clientGrowthDay: result.data.clientGrowthDay || [],
                 clientGrowthMonth: result.data.clientGrowthMonth || []
             }
-            // Initialize charts after data is loaded
+
+            // 1. Wait for nextTick to ensure data is reactive
             await nextTick()
-            initializeCharts()
+
+            // 2. Set to false so template renders canvas elements
+            chartsLoading.value = false
+
+            // 3. Wait for template to render canvas (v-else condition)
+            await nextTick()
+
+            // 4. Now refs should be available, initialize charts
+            await initializeCharts()
         } else if (response.status === 401 || response.status === 403) {
             console.warn('Chart data: Access denied')
+            chartsLoading.value = false
         } else {
             console.error('Error loading chart data:', result.message || 'Unknown error')
+            chartsLoading.value = false
         }
     } catch (error) {
-        console.error('Error loading chart data:', error)
+        chartsLoading.value = false
     }
 }
 
 // Initialize charts
 const initializeCharts = async () => {
+    // Ensure DOM is fully updated
     await nextTick()
 
-    if (typeof Chart !== 'undefined') {
+    // Add delay to ensure canvas elements are fully mounted in DOM
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    // Check if Chart.js is available
+    if (!Chart) {
+        return
+    }
+
+    try {
         // Get current data based on selected view
         const revenueData = revenueView.value === 'day' ? chartData.value.revenueDay : chartData.value.revenueMonth
         const clientData = clientView.value === 'day' ? chartData.value.clientGrowthDay : chartData.value.clientGrowthMonth
@@ -462,12 +569,11 @@ const initializeCharts = async () => {
         // Revenue Chart
         if (revenueChart.value) {
             // Destroy previous chart if it exists
-            const chartInstance = Chart.getChart(revenueChart.value)
-            if (chartInstance) {
-                chartInstance.destroy()
+            if (revenueChartInstance) {
+                revenueChartInstance.destroy()
             }
 
-            new Chart(revenueChart.value, {
+            revenueChartInstance = new Chart(revenueChart.value, {
                 type: 'line',
                 data: {
                     labels: revenueData.map(d => d.label),
@@ -505,12 +611,11 @@ const initializeCharts = async () => {
         // Client Chart
         if (clientChart.value) {
             // Destroy previous chart if it exists
-            const chartInstance = Chart.getChart(clientChart.value)
-            if (chartInstance) {
-                chartInstance.destroy()
+            if (clientChartInstance) {
+                clientChartInstance.destroy()
             }
 
-            new Chart(clientChart.value, {
+            clientChartInstance = new Chart(clientChart.value, {
                 type: 'bar',
                 data: {
                     labels: clientData.map(d => d.label),
@@ -541,34 +646,28 @@ const initializeCharts = async () => {
                 }
             })
         }
+    } catch (error) {
+        console.error('Error during chart initialization:', error)
     }
 }
 
 // Watch for changes in revenue view
-watch(() => revenueView.value, () => {
-    initializeCharts()
+watch(() => revenueView.value, async () => {
+    await initializeCharts()
 })
 
 // Watch for changes in client view
-watch(() => clientView.value, () => {
-    initializeCharts()
+watch(() => clientView.value, async () => {
+    await initializeCharts()
 })
 
 onMounted(() => {
-    // Load dashboard statistics
-    loadDashboardStats()
-
-    // Load chart data
-    loadChartData()
-
-    // Load Chart.js if not already loaded
-    if (typeof Chart === 'undefined') {
-        const script = document.createElement('script')
-        script.src = 'https://cdn.jsdelivr.net/npm/chart.js'
-        script.onload = () => {
-            loadChartData()
-        }
-        document.head.appendChild(script)
-    }
+    // Load Chart.js first
+    loadChartJs().then(() => {
+        // Load dashboard statistics
+        loadDashboardStats()
+        // Load chart data (which will now have Chart.js available)
+        loadChartData()
+    })
 })
 </script>
