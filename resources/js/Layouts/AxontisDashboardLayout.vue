@@ -235,7 +235,7 @@ const canManageClients = computed(() => {
  // Navigation items
  const navigation = computed(() => {
      const items = [
-         { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-home' },
+         { name: 'Dashboard', href: '/crm', icon: 'fas fa-home' },
          { name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart' },
          { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
          { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
