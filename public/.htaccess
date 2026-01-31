@@ -1,21 +1,42 @@
+# PWA Routing
 <IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
-
     RewriteEngine On
+    RewriteBase /
 
-    # Handle Authorization Header
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # Redirect Trailing Slashes If Not A Folder...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
+    # Permettre les fichiers et répertoires existants
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Service Worker
+    RewriteRule ^sw\.js$ - [L]
+
+    # Manifest
+    RewriteRule ^manifest\.webmanifest$ - [L]
+
+    # PWA Icons
+    RewriteRule ^(pwa-.*\.png|apple-touch-icon\.png|favicon-.*\.png)$ - [L]
+
+    # Rediriger vers index.php pour les routes
+    RewriteRule ^ index.php [QSA,L]
 </IfModule>
+
+# Cache Headers pour les assets
+<FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|webp|woff|woff2|ttf|eot)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
+
+# Cache Headers pour Service Worker (court cache)
+<FilesMatch "^sw\.js$">
+    Header set Cache-Control "public, max-age=3600"
+</FilesMatch>
+
+# Cache Headers pour Manifest
+<FilesMatch "^manifest\.webmanifest$">
+    Header set Cache-Control "public, max-age=3600"
+</FilesMatch>
+
+# MIME types
+AddType application/manifest+json .webmanifest
+AddType application/javascript .js
+AddType text/css .css
+
