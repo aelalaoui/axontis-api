@@ -1,7 +1,7 @@
 <template>
     <AxontisDashboardLayout title="Dashboard" subtitle="Welcome to your Axontis CRM">
         <!-- Stats Grid -->
-        <div class="axontis-stats-grid" v-if="hasAccess">
+        <div class="axontis-stats-grid" v-if="userIsManager || userIsAdmin">
             <AxontisStatCard
                 label="Converted Clients"
                 :value="stats.convertedClients"
@@ -35,19 +35,8 @@
             />
         </div>
 
-        <!-- Unauthorized Message -->
-        <div v-else class="bg-red-900/20 border border-red-500/50 rounded-lg p-6 mb-6">
-            <div class="flex items-center gap-4">
-                <i class="fas fa-lock text-red-500 text-2xl"></i>
-                <div>
-                    <h3 class="text-lg font-semibold text-red-400">Access Denied</h3>
-                    <p class="text-red-300 mt-1">You don't have permission to view dashboard statistics. Only managers and administrators can access this information.</p>
-                </div>
-            </div>
-        </div>
-
         <!-- Charts Section -->
-        <div v-if="hasAccess" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div v-if="userIsManager || userIsAdmin" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Revenue Chart -->
             <AxontisChartCard
                 title="Revenue Trend"
@@ -246,16 +235,27 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue'
-import {Link, router} from '@inertiajs/vue3'
+import {computed, onMounted, ref} from 'vue'
+import {Link, router, usePage} from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 import AxontisButton from '@/Components/AxontisButton.vue'
 import AxontisStatCard from '@/Components/AxontisStatCard.vue'
 import AxontisChartCard from '@/Components/AxontisChartCard.vue'
 
-// Authorization state
-const hasAccess = ref(true)
+const page = usePage()
+
+const userIsManager = computed(() => {
+    const user = page.props.auth?.user
+    if (!user) return false
+    return user.role === 'manager'
+})
+
+const userIsAdmin = computed(() => {
+    const user = page.props.auth?.user
+    if (!user) return false
+    return user.role === 'administrator'
+})
 
 // Loading states
 const statsLoading = ref(true)
@@ -415,7 +415,6 @@ const loadDashboardStats = async () => {
         const result = await response.json()
 
         if (response.ok && result.success && result.data) {
-            hasAccess.value = true
             stats.value = {
                 convertedClients: result.data.convertedClients || 0,
                 activeContracts: result.data.activeContracts || 0,
@@ -423,18 +422,8 @@ const loadDashboardStats = async () => {
                 totalClients: result.data.totalClients || 0,
                 newClientsThisMonth: 34
             }
-        } else if (response.status === 401) {
-            hasAccess.value = false
-            console.warn('Dashboard stats: Authentication required')
-        } else if (response.status === 403) {
-            hasAccess.value = false
-            console.warn('Dashboard stats: Access forbidden - only managers and administrators can view statistics')
-        } else {
-            hasAccess.value = false
-            console.error('Error loading dashboard statistics:', result.message || 'Unknown error')
         }
     } catch (error) {
-        hasAccess.value = false
         console.error('Error loading dashboard statistics:', error)
     } finally {
         statsLoading.value = false
@@ -480,9 +469,12 @@ const loadChartData = async () => {
 }
 
 onMounted(() => {
-    // Load dashboard statistics
-    loadDashboardStats()
-    // Load chart data
-    loadChartData()
+    if (userIsManager.value || userIsAdmin.value) {
+        loadDashboardStats()
+        loadChartData()
+    } else {
+        statsLoading.value = false
+        chartsLoading.value = false
+    }
 })
 </script>
