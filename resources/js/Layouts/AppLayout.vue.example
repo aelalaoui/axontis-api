@@ -1,0 +1,80 @@
+<template>
+    <div class="min-h-screen bg-gray-50">
+        <!-- Composant PWA Notifications (en haut) -->
+        <PWANotification />
+
+        <!-- Header/Navigation -->
+        <nav class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <span class="text-2xl font-bold text-gray-900">AXONTIS</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <!-- Liens de navigation -->
+                        <Link href="/dashboard" class="text-gray-600 hover:text-gray-900">
+                            Tableau de bord
+                        </Link>
+                        <Link href="/profile" class="text-gray-600 hover:text-gray-900">
+                            Profil
+                        </Link>
+                        <button @click="logout" class="text-gray-600 hover:text-gray-900">
+                            Déconnexion
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Contenu Principal -->
+        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <!-- Slot pour le contenu des pages -->
+            <slot />
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t mt-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="text-center text-gray-500 text-sm">
+                    <p>&copy; 2026 AXONTIS. Tous droits réservés.</p>
+                    <p v-if="isOnline" class="mt-2 text-green-600">
+                        ✓ Application en ligne
+                    </p>
+                    <p v-else class="mt-2 text-orange-600">
+                        ⚠ Vous êtes hors ligne - Mode lecture seule
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
+import PWANotification from '@/components/PWANotification.vue';
+
+const isOnline = ref(navigator.onLine);
+
+onMounted(() => {
+    // Écouter les changements de connexion
+    window.addEventListener('online', () => {
+        isOnline.value = true;
+        console.log('✓ Application back online');
+    });
+
+    window.addEventListener('offline', () => {
+        isOnline.value = false;
+        console.log('⚠ Application is offline');
+    });
+});
+
+const logout = () => {
+    router.post(route('logout'));
+};
+</script>
+
+<style scoped>
+/* Styles personnalisés si besoin */
+</style>
+
