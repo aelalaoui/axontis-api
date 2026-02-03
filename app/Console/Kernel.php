@@ -12,7 +12,33 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // =============================================================================
+        // HIKVISION ALARM INTEGRATION SCHEDULED TASKS
+        // =============================================================================
+
+        // Vérifier le statut des centrales "stale" toutes les 5 minutes
+        if (config('hikvision.heartbeat.enabled', true)) {
+            $schedule->command('hikvision:sync-devices --stale --async')
+                ->everyFiveMinutes()
+                ->withoutOverlapping()
+                ->runInBackground();
+        }
+
+        // Purger les anciens événements chaque dimanche à 3h du matin
+        $schedule->command('hikvision:prune-events --keep-alerts')
+            ->weekly()
+            ->sundays()
+            ->at('03:00')
+            ->withoutOverlapping();
+
+        // Poll des événements (fallback si webhooks désactivés)
+        if (config('hikvision.polling.enabled', false)) {
+            $interval = config('hikvision.polling.interval', 30);
+            $schedule->command('hikvision:poll-events')
+                ->everyThirtySeconds()
+                ->withoutOverlapping()
+                ->runInBackground();
+        }
     }
 
     /**

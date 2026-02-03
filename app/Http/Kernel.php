@@ -63,6 +63,7 @@ class Kernel extends HttpKernel
         'client.active' => \App\Http\Middleware\ClientActiveMiddleware::class,
         'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+        'hikvision.webhook' => \App\Http\Middleware\VerifyHikvisionWebhook::class,
         'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
         'precognitive' => \Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests::class,
         'signed' => \App\Http\Middleware\ValidateSignature::class,
