@@ -48,22 +48,19 @@ jobs:
           npm ci
           npm run build
 
-      - name: 🧹 Clean up unnecessary files
-        run: |
-          rm -rf node_modules
-          rm -rf tests
-          rm -rf .git
-          rm -rf .github
-          rm -f .env
-          rm -f .env.example
-          rm -f .env.production.example
-
       # =========================================================================
       # 3. CREATE RELEASE ARCHIVE
       # =========================================================================
       - name: 🗂️ Create release archive
         run: |
           tar -czf release.tar.gz \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.env' \
+            --exclude='.env.example' \
+            --exclude='.env.production.example' \
             --exclude='storage/logs/*' \
             --exclude='storage/framework/cache/data/*' \
             --exclude='storage/framework/sessions/*' \
