@@ -1,0 +1,457 @@
+name: 🚀 Deploy to Vultr VPS
+
+on:
+  push:
+    branches: [ "feature/migration" ]
+  workflow_dispatch:  # Permet le déploiement manuel
+
+env:
+  APP_PATH: /var/www/axontis
+  PHP_VERSION: '8.3'
+  NODE_VERSION: '22'
+
+jobs:
+  deploy:
+    name: 🚀 Build & Deploy to Vultr
+    runs-on: ubuntu-latest
+
+    steps:
+      # =========================================================================
+      # 1. CHECKOUT & SETUP
+      # =========================================================================
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 🐘 Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, intl, zip, bcmath, gd, pdo, pdo_mysql, fileinfo
+          coverage: none
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      # =========================================================================
+      # 2. BUILD
+      # =========================================================================
+      - name: 🔧 Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --prefer-dist
+
+      - name: 🔧 Install Node dependencies & Build assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: 🧹 Clean up unnecessary files
+        run: |
+          rm -rf node_modules
+          rm -rf tests
+          rm -rf .git
+          rm -rf .github
+          rm -f .env
+          rm -f .env.example
+          rm -f .env.production.example
+
+      # =========================================================================
+      # 3. CREATE RELEASE ARCHIVE
+      # =========================================================================
+      - name: 🗂️ Create release archive
+        run: |
+          tar -czf release.tar.gz \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/data/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/views/*' \
+            .
+
+      # =========================================================================
+      # 4. SSH SETUP
+      # =========================================================================
+      - name: 🔐 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VULTR_SSH_PRIVATE_KEY }}
+
+      - name: 📋 Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VULTR_HOST }} >> ~/.ssh/known_hosts
+
+      # =========================================================================
+      # 5. UPLOAD TO SERVER
+      # =========================================================================
+      - name: 📤 Upload release to server
+        run: |
+          scp release.tar.gz ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }}:/tmp/release.tar.gz
+
+      # =========================================================================
+      # 6. DEPLOY ON SERVER WITH SECRETS
+      # =========================================================================
+      - name: 🚀 Deploy on server
+        env:
+          # Database
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          # App
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_URL: ${{ secrets.APP_URL }}
+          # Cloudflare R2
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+          CLOUDFLARE_R2_ENDPOINT: ${{ secrets.CLOUDFLARE_R2_ENDPOINT }}
+          CLOUDFLARE_R2_URL: ${{ secrets.CLOUDFLARE_R2_URL }}
+          # DocuSign
+          DOCUSIGN_CLIENT_ID: ${{ secrets.DOCUSIGN_CLIENT_ID }}
+          DOCUSIGN_USER_ID: ${{ secrets.DOCUSIGN_USER_ID }}
+          DOCUSIGN_ACCOUNT_ID: ${{ secrets.DOCUSIGN_ACCOUNT_ID }}
+          DOCUSIGN_BASE_PATH: ${{ secrets.DOCUSIGN_BASE_PATH }}
+          DOCUSIGN_OAUTH_BASE_PATH: ${{ secrets.DOCUSIGN_OAUTH_BASE_PATH }}
+          DOCUSIGN_HMAC_KEY: ${{ secrets.DOCUSIGN_HMAC_KEY }}
+          # Stripe
+          STRIPE_PUBLIC_KEY: ${{ secrets.STRIPE_PUBLIC_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          # Sentry
+          SENTRY_LARAVEL_DSN: ${{ secrets.SENTRY_LARAVEL_DSN }}
+          # Mail
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
+        run: |
+          ssh ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} \
+          "export DB_HOST='$DB_HOST' \
+          DB_PORT='$DB_PORT' \
+          DB_DATABASE='$DB_DATABASE' \
+          DB_USERNAME='$DB_USERNAME' \
+          DB_PASSWORD='$DB_PASSWORD' \
+          APP_KEY='$APP_KEY' \
+          APP_URL='$APP_URL' \
+          CLOUDFLARE_R2_ACCESS_KEY_ID='$CLOUDFLARE_R2_ACCESS_KEY_ID' \
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY='$CLOUDFLARE_R2_SECRET_ACCESS_KEY' \
+          CLOUDFLARE_R2_BUCKET='$CLOUDFLARE_R2_BUCKET' \
+          CLOUDFLARE_R2_ENDPOINT='$CLOUDFLARE_R2_ENDPOINT' \
+          CLOUDFLARE_R2_URL='$CLOUDFLARE_R2_URL' \
+          DOCUSIGN_CLIENT_ID='$DOCUSIGN_CLIENT_ID' \
+          DOCUSIGN_USER_ID='$DOCUSIGN_USER_ID' \
+          DOCUSIGN_ACCOUNT_ID='$DOCUSIGN_ACCOUNT_ID' \
+          DOCUSIGN_BASE_PATH='$DOCUSIGN_BASE_PATH' \
+          DOCUSIGN_OAUTH_BASE_PATH='$DOCUSIGN_OAUTH_BASE_PATH' \
+          DOCUSIGN_HMAC_KEY='$DOCUSIGN_HMAC_KEY' \
+          STRIPE_PUBLIC_KEY='$STRIPE_PUBLIC_KEY' \
+          STRIPE_SECRET_KEY='$STRIPE_SECRET_KEY' \
+          STRIPE_WEBHOOK_SECRET='$STRIPE_WEBHOOK_SECRET' \
+          SENTRY_LARAVEL_DSN='$SENTRY_LARAVEL_DSN' \
+          MAIL_HOST='$MAIL_HOST' \
+          MAIL_PORT='$MAIL_PORT' \
+          MAIL_USERNAME='$MAIL_USERNAME' \
+          MAIL_PASSWORD='$MAIL_PASSWORD' \
+          MAIL_FROM_ADDRESS='$MAIL_FROM_ADDRESS'; /bin/bash" << 'DEPLOY_SCRIPT'
+          set -e
+
+          echo "=========================================="
+          echo "🚀 DÉPLOIEMENT AXONTIS - $(date)"
+          echo "=========================================="
+
+          APP_PATH="/var/www/axontis"
+          BACKUP_PATH="/var/backups/axontis"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+          # Créer les dossiers nécessaires
+          mkdir -p $BACKUP_PATH
+          mkdir -p $APP_PATH
+
+          # ============================================
+          # 1. BACKUP DU CODE ACTUEL
+          # ============================================
+          echo "📦 Backup du code actuel..."
+          if [ -d "$APP_PATH" ] && [ -f "$APP_PATH/artisan" ]; then
+            tar -czf "$BACKUP_PATH/backup_${TIMESTAMP}.tar.gz" \
+              -C /var/www axontis \
+              --exclude='storage/logs/*' \
+              --exclude='storage/framework/cache/*' \
+              --exclude='vendor' \
+              --exclude='node_modules' 2>/dev/null || true
+            echo "✅ Backup créé: backup_${TIMESTAMP}.tar.gz"
+
+            # Garder seulement les 5 derniers backups
+            cd $BACKUP_PATH && ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -- 2>/dev/null || true
+          fi
+
+          # ============================================
+          # 2. MODE MAINTENANCE
+          # ============================================
+          echo "🔧 Activation du mode maintenance..."
+          cd $APP_PATH 2>/dev/null && php artisan down --retry=60 2>/dev/null || true
+
+          # ============================================
+          # 3. SAUVEGARDE DES FICHIERS IMPORTANTS
+          # ============================================
+          echo "💾 Sauvegarde des fichiers persistants..."
+          cp $APP_PATH/.env /tmp/.env.backup 2>/dev/null || true
+          cp -r $APP_PATH/storage/app /tmp/storage_app_backup 2>/dev/null || true
+
+          # ============================================
+          # 4. EXTRACTION DU NOUVEAU CODE
+          # ============================================
+          echo "📥 Extraction du nouveau code..."
+          cd $APP_PATH
+          tar -xzf /tmp/release.tar.gz --overwrite
+          rm -f /tmp/release.tar.gz
+          echo "✅ Code extrait"
+
+          # ============================================
+          # 5. CONFIGURATION DU .ENV
+          # ============================================
+          echo "⚙️ Configuration de l'environnement..."
+
+          # Si .env n'existe pas, le créer depuis .env.example
+          if [ ! -f "$APP_PATH/.env" ]; then
+            if [ -f "$APP_PATH/.env.example" ]; then
+              cp $APP_PATH/.env.example $APP_PATH/.env
+              echo "✅ .env créé depuis .env.example"
+            else
+              touch $APP_PATH/.env
+              echo "✅ .env vide créé"
+            fi
+          else
+            # Restaurer le .env sauvegardé
+            cp /tmp/.env.backup $APP_PATH/.env 2>/dev/null || true
+            echo "✅ .env restauré depuis backup"
+          fi
+
+          # Configurer les variables d'application
+          echo "=== APP CONFIGURATION ==="
+          sed -i "s|APP_ENV=.*|APP_ENV=production|" $APP_PATH/.env
+          sed -i "s|APP_DEBUG=.*|APP_DEBUG=false|" $APP_PATH/.env
+          if [ -n "$APP_KEY" ]; then
+            sed -i "s|APP_KEY=.*|APP_KEY=$APP_KEY|" $APP_PATH/.env
+          fi
+          if [ -n "$APP_URL" ]; then
+            sed -i "s|APP_URL=.*|APP_URL=$APP_URL|" $APP_PATH/.env
+          fi
+
+          # Configurer la base de données
+          echo "=== DATABASE CONFIGURATION ==="
+          sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|" $APP_PATH/.env
+          if [ -n "$DB_HOST" ]; then
+            sed -i "s|DB_HOST=.*|DB_HOST=$DB_HOST|" $APP_PATH/.env
+          fi
+          if [ -n "$DB_PORT" ]; then
+            sed -i "s|DB_PORT=.*|DB_PORT=$DB_PORT|" $APP_PATH/.env
+          fi
+          if [ -n "$DB_DATABASE" ]; then
+            sed -i "s|DB_DATABASE=.*|DB_DATABASE=$DB_DATABASE|" $APP_PATH/.env
+          fi
+          if [ -n "$DB_USERNAME" ]; then
+            sed -i "s|DB_USERNAME=.*|DB_USERNAME=$DB_USERNAME|" $APP_PATH/.env
+          fi
+          if [ -n "$DB_PASSWORD" ]; then
+            sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" $APP_PATH/.env
+          fi
+          echo "✅ Database configuration updated"
+
+          # Configurer Cloudflare R2
+          echo "=== CLOUDFLARE R2 CONFIGURATION ==="
+          if [ -n "$CLOUDFLARE_R2_ACCESS_KEY_ID" ]; then
+            grep -q "^CLOUDFLARE_R2_ACCESS_KEY_ID=" $APP_PATH/.env || echo "CLOUDFLARE_R2_ACCESS_KEY_ID=" >> $APP_PATH/.env
+            sed -i "s|CLOUDFLARE_R2_ACCESS_KEY_ID=.*|CLOUDFLARE_R2_ACCESS_KEY_ID=$CLOUDFLARE_R2_ACCESS_KEY_ID|" $APP_PATH/.env
+          fi
+          if [ -n "$CLOUDFLARE_R2_SECRET_ACCESS_KEY" ]; then
+            grep -q "^CLOUDFLARE_R2_SECRET_ACCESS_KEY=" $APP_PATH/.env || echo "CLOUDFLARE_R2_SECRET_ACCESS_KEY=" >> $APP_PATH/.env
+            sed -i "s|CLOUDFLARE_R2_SECRET_ACCESS_KEY=.*|CLOUDFLARE_R2_SECRET_ACCESS_KEY=$CLOUDFLARE_R2_SECRET_ACCESS_KEY|" $APP_PATH/.env
+          fi
+          if [ -n "$CLOUDFLARE_R2_BUCKET" ]; then
+            grep -q "^CLOUDFLARE_R2_BUCKET=" $APP_PATH/.env || echo "CLOUDFLARE_R2_BUCKET=" >> $APP_PATH/.env
+            sed -i "s|CLOUDFLARE_R2_BUCKET=.*|CLOUDFLARE_R2_BUCKET=$CLOUDFLARE_R2_BUCKET|" $APP_PATH/.env
+          fi
+          if [ -n "$CLOUDFLARE_R2_ENDPOINT" ]; then
+            grep -q "^CLOUDFLARE_R2_ENDPOINT=" $APP_PATH/.env || echo "CLOUDFLARE_R2_ENDPOINT=" >> $APP_PATH/.env
+            sed -i "s|CLOUDFLARE_R2_ENDPOINT=.*|CLOUDFLARE_R2_ENDPOINT=$CLOUDFLARE_R2_ENDPOINT|" $APP_PATH/.env
+          fi
+          if [ -n "$CLOUDFLARE_R2_URL" ]; then
+            grep -q "^CLOUDFLARE_R2_URL=" $APP_PATH/.env || echo "CLOUDFLARE_R2_URL=" >> $APP_PATH/.env
+            sed -i "s|CLOUDFLARE_R2_URL=.*|CLOUDFLARE_R2_URL=$CLOUDFLARE_R2_URL|" $APP_PATH/.env
+          fi
+          echo "✅ Cloudflare R2 configuration updated"
+
+          # Configurer DocuSign
+          echo "=== DOCUSIGN CONFIGURATION ==="
+          if [ -n "$DOCUSIGN_CLIENT_ID" ]; then
+            grep -q "^DOCUSIGN_CLIENT_ID=" $APP_PATH/.env || echo "DOCUSIGN_CLIENT_ID=" >> $APP_PATH/.env
+            sed -i "s|DOCUSIGN_CLIENT_ID=.*|DOCUSIGN_CLIENT_ID=$DOCUSIGN_CLIENT_ID|" $APP_PATH/.env
+          fi
+          if [ -n "$DOCUSIGN_USER_ID" ]; then
+            grep -q "^DOCUSIGN_USER_ID=" $APP_PATH/.env || echo "DOCUSIGN_USER_ID=" >> $APP_PATH/.env
+            sed -i "s|DOCUSIGN_USER_ID=.*|DOCUSIGN_USER_ID=$DOCUSIGN_USER_ID|" $APP_PATH/.env
+          fi
+          if [ -n "$DOCUSIGN_ACCOUNT_ID" ]; then
+            grep -q "^DOCUSIGN_ACCOUNT_ID=" $APP_PATH/.env || echo "DOCUSIGN_ACCOUNT_ID=" >> $APP_PATH/.env
+            sed -i "s|DOCUSIGN_ACCOUNT_ID=.*|DOCUSIGN_ACCOUNT_ID=$DOCUSIGN_ACCOUNT_ID|" $APP_PATH/.env
+          fi
+          if [ -n "$DOCUSIGN_BASE_PATH" ]; then
+            grep -q "^DOCUSIGN_BASE_PATH=" $APP_PATH/.env || echo "DOCUSIGN_BASE_PATH=" >> $APP_PATH/.env
+            sed -i "s|DOCUSIGN_BASE_PATH=.*|DOCUSIGN_BASE_PATH=$DOCUSIGN_BASE_PATH|" $APP_PATH/.env
+          fi
+          if [ -n "$DOCUSIGN_OAUTH_BASE_PATH" ]; then
+            grep -q "^DOCUSIGN_OAUTH_BASE_PATH=" $APP_PATH/.env || echo "DOCUSIGN_OAUTH_BASE_PATH=" >> $APP_PATH/.env
+            sed -i "s|DOCUSIGN_OAUTH_BASE_PATH=.*|DOCUSIGN_OAUTH_BASE_PATH=$DOCUSIGN_OAUTH_BASE_PATH|" $APP_PATH/.env
+          fi
+          if [ -n "$DOCUSIGN_HMAC_KEY" ]; then
+            grep -q "^DOCUSIGN_HMAC_KEY=" $APP_PATH/.env || echo "DOCUSIGN_HMAC_KEY=" >> $APP_PATH/.env
+            sed -i "s|DOCUSIGN_HMAC_KEY=.*|DOCUSIGN_HMAC_KEY=$DOCUSIGN_HMAC_KEY|" $APP_PATH/.env
+          fi
+          echo "✅ DocuSign configuration updated"
+
+          # Configurer Stripe
+          echo "=== STRIPE CONFIGURATION ==="
+          if [ -n "$STRIPE_PUBLIC_KEY" ]; then
+            grep -q "^STRIPE_PUBLIC_KEY=" $APP_PATH/.env || echo "STRIPE_PUBLIC_KEY=" >> $APP_PATH/.env
+            sed -i "s|STRIPE_PUBLIC_KEY=.*|STRIPE_PUBLIC_KEY=$STRIPE_PUBLIC_KEY|" $APP_PATH/.env
+          fi
+          if [ -n "$STRIPE_SECRET_KEY" ]; then
+            grep -q "^STRIPE_SECRET_KEY=" $APP_PATH/.env || echo "STRIPE_SECRET_KEY=" >> $APP_PATH/.env
+            sed -i "s|STRIPE_SECRET_KEY=.*|STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY|" $APP_PATH/.env
+          fi
+          if [ -n "$STRIPE_WEBHOOK_SECRET" ]; then
+            grep -q "^STRIPE_WEBHOOK_SECRET=" $APP_PATH/.env || echo "STRIPE_WEBHOOK_SECRET=" >> $APP_PATH/.env
+            sed -i "s|STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET|" $APP_PATH/.env
+          fi
+          echo "✅ Stripe configuration updated"
+
+          # Configurer Sentry
+          echo "=== SENTRY CONFIGURATION ==="
+          if [ -n "$SENTRY_LARAVEL_DSN" ]; then
+            grep -q "^SENTRY_LARAVEL_DSN=" $APP_PATH/.env || echo "SENTRY_LARAVEL_DSN=" >> $APP_PATH/.env
+            sed -i "s|SENTRY_LARAVEL_DSN=.*|SENTRY_LARAVEL_DSN=$SENTRY_LARAVEL_DSN|" $APP_PATH/.env
+          fi
+          echo "✅ Sentry configuration updated"
+
+          # Configurer Mail
+          echo "=== MAIL CONFIGURATION ==="
+          if [ -n "$MAIL_HOST" ]; then
+            sed -i "s|MAIL_HOST=.*|MAIL_HOST=$MAIL_HOST|" $APP_PATH/.env
+          fi
+          if [ -n "$MAIL_PORT" ]; then
+            sed -i "s|MAIL_PORT=.*|MAIL_PORT=$MAIL_PORT|" $APP_PATH/.env
+          fi
+          if [ -n "$MAIL_USERNAME" ]; then
+            sed -i "s|MAIL_USERNAME=.*|MAIL_USERNAME=$MAIL_USERNAME|" $APP_PATH/.env
+          fi
+          if [ -n "$MAIL_PASSWORD" ]; then
+            sed -i "s|MAIL_PASSWORD=.*|MAIL_PASSWORD=$MAIL_PASSWORD|" $APP_PATH/.env
+          fi
+          if [ -n "$MAIL_FROM_ADDRESS" ]; then
+            sed -i "s|MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS|" $APP_PATH/.env
+          fi
+          echo "✅ Mail configuration updated"
+
+          # Configurer les queues et sessions pour Vultr
+          sed -i "s|QUEUE_CONNECTION=.*|QUEUE_CONNECTION=database|" $APP_PATH/.env
+          sed -i "s|SESSION_DRIVER=.*|SESSION_DRIVER=database|" $APP_PATH/.env
+          sed -i "s|CACHE_DRIVER=.*|CACHE_DRIVER=file|" $APP_PATH/.env
+
+          # ============================================
+          # 6. RESTAURER LES FICHIERS PERSISTANTS
+          # ============================================
+          echo "📂 Restauration des fichiers uploadés..."
+          if [ -d "/tmp/storage_app_backup" ]; then
+            cp -r /tmp/storage_app_backup/* $APP_PATH/storage/app/ 2>/dev/null || true
+            rm -rf /tmp/storage_app_backup
+          fi
+
+          # ============================================
+          # 7. INSTALLATION DES DÉPENDANCES
+          # ============================================
+          echo "📦 Vérification des dépendances Composer..."
+          cd $APP_PATH
+          composer install --no-dev --optimize-autoloader --no-interaction
+
+          # ============================================
+          # 8. MIGRATIONS
+          # ============================================
+          echo "🗄️ Exécution des migrations..."
+          php artisan migrate --force || echo "⚠️ Migration failed or no migrations"
+
+          # ============================================
+          # 9. OPTIMISATIONS LARAVEL
+          # ============================================
+          echo "⚡ Optimisation de Laravel..."
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan event:cache
+
+          # S'assurer que le lien storage existe
+          php artisan storage:link 2>/dev/null || true
+
+          # ============================================
+          # 10. PERMISSIONS
+          # ============================================
+          echo "🔒 Configuration des permissions..."
+          chown -R www-data:www-data $APP_PATH
+          chmod -R 755 $APP_PATH
+          chmod -R 775 $APP_PATH/storage
+          chmod -R 775 $APP_PATH/bootstrap/cache
+
+          # ============================================
+          # 11. REDÉMARRAGE DES SERVICES
+          # ============================================
+          echo "🔄 Redémarrage des services..."
+          systemctl reload php8.3-fpm
+          php artisan queue:restart
+          supervisorctl restart axontis-worker:* 2>/dev/null || true
+
+          # ============================================
+          # 12. DÉSACTIVATION DU MODE MAINTENANCE
+          # ============================================
+          echo "✅ Désactivation du mode maintenance..."
+          php artisan up
+
+          # ============================================
+          # 13. VÉRIFICATION
+          # ============================================
+          echo "🔍 Vérification du déploiement..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
+            echo "✅ Application accessible (HTTP $HTTP_CODE)"
+          else
+            echo "⚠️ L'application répond avec HTTP $HTTP_CODE"
+          fi
+
+          echo ""
+          echo "=========================================="
+          echo "🎉 DÉPLOIEMENT TERMINÉ AVEC SUCCÈS!"
+          echo "=========================================="
+
+          DEPLOY_SCRIPT
+
+  # =============================================================================
+  # Job 2: Notify (optionnel)
+  # =============================================================================
+  notify:
+    name: 📢 Notify
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()
+
+    steps:
+      - name: 📊 Deployment Status
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Déploiement réussi sur Vultr VPS"
+          else
+            echo "❌ Échec du déploiement"
+            exit 1
+          fi
