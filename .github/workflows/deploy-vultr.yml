@@ -91,6 +91,17 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VULTR_HOST }} >> ~/.ssh/known_hosts
 
+      - name: 🔍 Test SSH connection
+        run: |
+          echo "Testing SSH connection to ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }}..."
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -v ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} "echo 'SSH connection successful'" || {
+            echo "❌ SSH connection failed!"
+            echo ""
+            echo "Please ensure the following public key is added to ~/.ssh/authorized_keys on your Vultr server:"
+            ssh-add -L
+            exit 1
+          }
+
       # =========================================================================
       # 5. UPLOAD TO SERVER
       # =========================================================================
