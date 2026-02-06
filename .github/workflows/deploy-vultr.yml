@@ -365,13 +365,64 @@ jobs:
           composer install --no-dev --optimize-autoloader --no-interaction
 
           # ============================================
-          # 8. MIGRATIONS
+          # 8. VÉRIFICATION DE LA CONNEXION DB
+          # ============================================
+          echo "🔍 Test de la connexion à la base de données..."
+
+          # Récupérer les valeurs du .env
+          DB_HOST_VAL=$(grep "^DB_HOST=" $APP_PATH/.env | cut -d'=' -f2)
+          DB_PORT_VAL=$(grep "^DB_PORT=" $APP_PATH/.env | cut -d'=' -f2)
+          DB_PORT_VAL=${DB_PORT_VAL:-3306}
+
+          if [ -n "$DB_HOST_VAL" ]; then
+            echo "DB_HOST = $DB_HOST_VAL"
+
+            # Si c'est localhost, vérifier que MySQL est installé localement
+            if [ "$DB_HOST_VAL" = "localhost" ] || [ "$DB_HOST_VAL" = "127.0.0.1" ]; then
+              echo "📍 Base de données locale détectée"
+              if systemctl is-active --quiet mysql; then
+                echo "✅ MySQL est actif sur ce serveur"
+              else
+                echo "⚠️ MySQL n'est pas actif! Tentative de démarrage..."
+                systemctl start mysql || echo "❌ Impossible de démarrer MySQL"
+              fi
+            else
+              # Base externe - vérifier la résolution DNS
+              echo "🌐 Base de données externe: $DB_HOST_VAL"
+              if nslookup $DB_HOST_VAL > /dev/null 2>&1 || host $DB_HOST_VAL > /dev/null 2>&1; then
+                echo "✅ DNS resolution OK"
+              else
+                if [[ $DB_HOST_VAL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                  echo "✅ $DB_HOST_VAL est une adresse IP"
+                else
+                  echo "❌ Impossible de résoudre $DB_HOST_VAL"
+                fi
+              fi
+
+              # Test TCP
+              echo "Testing TCP connection to $DB_HOST_VAL:$DB_PORT_VAL..."
+              if timeout 5 bash -c "cat < /dev/null > /dev/tcp/$DB_HOST_VAL/$DB_PORT_VAL" 2>/dev/null; then
+                echo "✅ TCP connection OK"
+              else
+                echo "⚠️ Cannot connect to $DB_HOST_VAL:$DB_PORT_VAL"
+              fi
+            fi
+
+            # Test de connexion MySQL via PHP/Laravel
+            echo "Testing MySQL connection via Laravel..."
+            php artisan tinker --execute="try { DB::connection()->getPdo(); echo '✅ MySQL connection successful!'; } catch(\Exception \$e) { echo '❌ MySQL error: '.\$e->getMessage(); }" 2>/dev/null || echo "⚠️ Could not test via Laravel"
+          else
+            echo "⚠️ DB_HOST is not set!"
+          fi
+
+          # ============================================
+          # 9. MIGRATIONS
           # ============================================
           echo "🗄️ Exécution des migrations..."
           php artisan migrate --force || echo "⚠️ Migration failed or no migrations"
 
           # ============================================
-          # 9. OPTIMISATIONS LARAVEL
+          # 10. OPTIMISATIONS LARAVEL
           # ============================================
           echo "⚡ Optimisation de Laravel..."
           php artisan config:cache
@@ -383,7 +434,7 @@ jobs:
           php artisan storage:link 2>/dev/null || true
 
           # ============================================
-          # 10. PERMISSIONS
+          # 11. PERMISSIONS
           # ============================================
           echo "🔒 Configuration des permissions..."
           chown -R www-data:www-data $APP_PATH
@@ -392,7 +443,7 @@ jobs:
           chmod -R 775 $APP_PATH/bootstrap/cache
 
           # ============================================
-          # 11. REDÉMARRAGE DES SERVICES
+          # 12. REDÉMARRAGE DES SERVICES
           # ============================================
           echo "🔄 Redémarrage des services..."
           systemctl reload php8.3-fpm
@@ -400,13 +451,13 @@ jobs:
           supervisorctl restart axontis-worker:* 2>/dev/null || true
 
           # ============================================
-          # 12. DÉSACTIVATION DU MODE MAINTENANCE
+          # 13. DÉSACTIVATION DU MODE MAINTENANCE
           # ============================================
           echo "✅ Désactivation du mode maintenance..."
           php artisan up
 
           # ============================================
-          # 13. VÉRIFICATION
+          # 14. VÉRIFICATION
           # ============================================
           echo "🔍 Vérification du déploiement..."
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
