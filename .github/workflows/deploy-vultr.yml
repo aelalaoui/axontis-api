@@ -250,136 +250,103 @@ jobs:
             echo "✅ .env restauré depuis backup"
           fi
 
+          # Fonction pour ajouter ou mettre à jour une variable
+          update_env() {
+            local key=$1
+            local value=$2
+            if [ -n "$value" ]; then
+              if grep -q "^${key}=" $APP_PATH/.env; then
+                sed -i "s|^${key}=.*|${key}=${value}|" $APP_PATH/.env
+              else
+                echo "${key}=${value}" >> $APP_PATH/.env
+              fi
+            fi
+          }
+
           # Configurer les variables d'application
           echo "=== APP CONFIGURATION ==="
-          sed -i "s|APP_ENV=.*|APP_ENV=production|" $APP_PATH/.env
-          sed -i "s|APP_DEBUG=.*|APP_DEBUG=false|" $APP_PATH/.env
-          if [ -n "$APP_KEY" ]; then
-            sed -i "s|APP_KEY=.*|APP_KEY=$APP_KEY|" $APP_PATH/.env
-          fi
-          if [ -n "$APP_URL" ]; then
-            sed -i "s|APP_URL=.*|APP_URL=$APP_URL|" $APP_PATH/.env
-          fi
+          update_env "APP_ENV" "production"
+          update_env "APP_DEBUG" "false"
+          update_env "APP_KEY" "$APP_KEY"
+          update_env "APP_URL" "$APP_URL"
 
           # Configurer la base de données
           echo "=== DATABASE CONFIGURATION ==="
-          sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|" $APP_PATH/.env
-          if [ -n "$DB_HOST" ]; then
-            sed -i "s|DB_HOST=.*|DB_HOST=$DB_HOST|" $APP_PATH/.env
-          fi
-          if [ -n "$DB_PORT" ]; then
-            sed -i "s|DB_PORT=.*|DB_PORT=$DB_PORT|" $APP_PATH/.env
-          fi
-          if [ -n "$DB_DATABASE" ]; then
-            sed -i "s|DB_DATABASE=.*|DB_DATABASE=$DB_DATABASE|" $APP_PATH/.env
-          fi
-          if [ -n "$DB_USERNAME" ]; then
-            sed -i "s|DB_USERNAME=.*|DB_USERNAME=$DB_USERNAME|" $APP_PATH/.env
-          fi
-          if [ -n "$DB_PASSWORD" ]; then
-            sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" $APP_PATH/.env
-          fi
+          update_env "DB_CONNECTION" "mysql"
+          update_env "DB_HOST" "$DB_HOST"
+          update_env "DB_PORT" "$DB_PORT"
+          update_env "DB_DATABASE" "$DB_DATABASE"
+          update_env "DB_USERNAME" "$DB_USERNAME"
+          update_env "DB_PASSWORD" "$DB_PASSWORD"
           echo "✅ Database configuration updated"
 
           # Configurer Cloudflare R2
           echo "=== CLOUDFLARE R2 CONFIGURATION ==="
-          if [ -n "$CLOUDFLARE_R2_ACCESS_KEY_ID" ]; then
-            grep -q "^CLOUDFLARE_R2_ACCESS_KEY_ID=" $APP_PATH/.env || echo "CLOUDFLARE_R2_ACCESS_KEY_ID=" >> $APP_PATH/.env
-            sed -i "s|CLOUDFLARE_R2_ACCESS_KEY_ID=.*|CLOUDFLARE_R2_ACCESS_KEY_ID=$CLOUDFLARE_R2_ACCESS_KEY_ID|" $APP_PATH/.env
-          fi
-          if [ -n "$CLOUDFLARE_R2_SECRET_ACCESS_KEY" ]; then
-            grep -q "^CLOUDFLARE_R2_SECRET_ACCESS_KEY=" $APP_PATH/.env || echo "CLOUDFLARE_R2_SECRET_ACCESS_KEY=" >> $APP_PATH/.env
-            sed -i "s|CLOUDFLARE_R2_SECRET_ACCESS_KEY=.*|CLOUDFLARE_R2_SECRET_ACCESS_KEY=$CLOUDFLARE_R2_SECRET_ACCESS_KEY|" $APP_PATH/.env
-          fi
-          if [ -n "$CLOUDFLARE_R2_BUCKET" ]; then
-            grep -q "^CLOUDFLARE_R2_BUCKET=" $APP_PATH/.env || echo "CLOUDFLARE_R2_BUCKET=" >> $APP_PATH/.env
-            sed -i "s|CLOUDFLARE_R2_BUCKET=.*|CLOUDFLARE_R2_BUCKET=$CLOUDFLARE_R2_BUCKET|" $APP_PATH/.env
-          fi
-          if [ -n "$CLOUDFLARE_R2_ENDPOINT" ]; then
-            grep -q "^CLOUDFLARE_R2_ENDPOINT=" $APP_PATH/.env || echo "CLOUDFLARE_R2_ENDPOINT=" >> $APP_PATH/.env
-            sed -i "s|CLOUDFLARE_R2_ENDPOINT=.*|CLOUDFLARE_R2_ENDPOINT=$CLOUDFLARE_R2_ENDPOINT|" $APP_PATH/.env
-          fi
-          if [ -n "$CLOUDFLARE_R2_URL" ]; then
-            grep -q "^CLOUDFLARE_R2_URL=" $APP_PATH/.env || echo "CLOUDFLARE_R2_URL=" >> $APP_PATH/.env
-            sed -i "s|CLOUDFLARE_R2_URL=.*|CLOUDFLARE_R2_URL=$CLOUDFLARE_R2_URL|" $APP_PATH/.env
-          fi
+          update_env "CLOUDFLARE_R2_ACCESS_KEY_ID" "$CLOUDFLARE_R2_ACCESS_KEY_ID"
+          update_env "CLOUDFLARE_R2_SECRET_ACCESS_KEY" "$CLOUDFLARE_R2_SECRET_ACCESS_KEY"
+          update_env "CLOUDFLARE_R2_BUCKET" "$CLOUDFLARE_R2_BUCKET"
+          update_env "CLOUDFLARE_R2_ENDPOINT" "$CLOUDFLARE_R2_ENDPOINT"
+          update_env "CLOUDFLARE_R2_URL" "$CLOUDFLARE_R2_URL"
           echo "✅ Cloudflare R2 configuration updated"
 
           # Configurer DocuSign
           echo "=== DOCUSIGN CONFIGURATION ==="
-          if [ -n "$DOCUSIGN_CLIENT_ID" ]; then
-            grep -q "^DOCUSIGN_CLIENT_ID=" $APP_PATH/.env || echo "DOCUSIGN_CLIENT_ID=" >> $APP_PATH/.env
-            sed -i "s|DOCUSIGN_CLIENT_ID=.*|DOCUSIGN_CLIENT_ID=$DOCUSIGN_CLIENT_ID|" $APP_PATH/.env
-          fi
-          if [ -n "$DOCUSIGN_USER_ID" ]; then
-            grep -q "^DOCUSIGN_USER_ID=" $APP_PATH/.env || echo "DOCUSIGN_USER_ID=" >> $APP_PATH/.env
-            sed -i "s|DOCUSIGN_USER_ID=.*|DOCUSIGN_USER_ID=$DOCUSIGN_USER_ID|" $APP_PATH/.env
-          fi
-          if [ -n "$DOCUSIGN_ACCOUNT_ID" ]; then
-            grep -q "^DOCUSIGN_ACCOUNT_ID=" $APP_PATH/.env || echo "DOCUSIGN_ACCOUNT_ID=" >> $APP_PATH/.env
-            sed -i "s|DOCUSIGN_ACCOUNT_ID=.*|DOCUSIGN_ACCOUNT_ID=$DOCUSIGN_ACCOUNT_ID|" $APP_PATH/.env
-          fi
-          if [ -n "$DOCUSIGN_BASE_PATH" ]; then
-            grep -q "^DOCUSIGN_BASE_PATH=" $APP_PATH/.env || echo "DOCUSIGN_BASE_PATH=" >> $APP_PATH/.env
-            sed -i "s|DOCUSIGN_BASE_PATH=.*|DOCUSIGN_BASE_PATH=$DOCUSIGN_BASE_PATH|" $APP_PATH/.env
-          fi
-          if [ -n "$DOCUSIGN_OAUTH_BASE_PATH" ]; then
-            grep -q "^DOCUSIGN_OAUTH_BASE_PATH=" $APP_PATH/.env || echo "DOCUSIGN_OAUTH_BASE_PATH=" >> $APP_PATH/.env
-            sed -i "s|DOCUSIGN_OAUTH_BASE_PATH=.*|DOCUSIGN_OAUTH_BASE_PATH=$DOCUSIGN_OAUTH_BASE_PATH|" $APP_PATH/.env
-          fi
-          if [ -n "$DOCUSIGN_HMAC_KEY" ]; then
-            grep -q "^DOCUSIGN_HMAC_KEY=" $APP_PATH/.env || echo "DOCUSIGN_HMAC_KEY=" >> $APP_PATH/.env
-            sed -i "s|DOCUSIGN_HMAC_KEY=.*|DOCUSIGN_HMAC_KEY=$DOCUSIGN_HMAC_KEY|" $APP_PATH/.env
-          fi
+          update_env "DOCUSIGN_CLIENT_ID" "$DOCUSIGN_CLIENT_ID"
+          update_env "DOCUSIGN_USER_ID" "$DOCUSIGN_USER_ID"
+          update_env "DOCUSIGN_ACCOUNT_ID" "$DOCUSIGN_ACCOUNT_ID"
+          update_env "DOCUSIGN_BASE_PATH" "$DOCUSIGN_BASE_PATH"
+          update_env "DOCUSIGN_OAUTH_BASE_PATH" "$DOCUSIGN_OAUTH_BASE_PATH"
+          update_env "DOCUSIGN_HMAC_KEY" "$DOCUSIGN_HMAC_KEY"
           echo "✅ DocuSign configuration updated"
 
           # Configurer Stripe
           echo "=== STRIPE CONFIGURATION ==="
-          if [ -n "$STRIPE_PUBLIC_KEY" ]; then
-            grep -q "^STRIPE_PUBLIC_KEY=" $APP_PATH/.env || echo "STRIPE_PUBLIC_KEY=" >> $APP_PATH/.env
-            sed -i "s|STRIPE_PUBLIC_KEY=.*|STRIPE_PUBLIC_KEY=$STRIPE_PUBLIC_KEY|" $APP_PATH/.env
-          fi
-          if [ -n "$STRIPE_SECRET_KEY" ]; then
-            grep -q "^STRIPE_SECRET_KEY=" $APP_PATH/.env || echo "STRIPE_SECRET_KEY=" >> $APP_PATH/.env
-            sed -i "s|STRIPE_SECRET_KEY=.*|STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY|" $APP_PATH/.env
-          fi
-          if [ -n "$STRIPE_WEBHOOK_SECRET" ]; then
-            grep -q "^STRIPE_WEBHOOK_SECRET=" $APP_PATH/.env || echo "STRIPE_WEBHOOK_SECRET=" >> $APP_PATH/.env
-            sed -i "s|STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET|" $APP_PATH/.env
-          fi
+          update_env "STRIPE_PUBLIC_KEY" "$STRIPE_PUBLIC_KEY"
+          update_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET_KEY"
+          update_env "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET"
           echo "✅ Stripe configuration updated"
 
           # Configurer Sentry
           echo "=== SENTRY CONFIGURATION ==="
-          if [ -n "$SENTRY_LARAVEL_DSN" ]; then
-            grep -q "^SENTRY_LARAVEL_DSN=" $APP_PATH/.env || echo "SENTRY_LARAVEL_DSN=" >> $APP_PATH/.env
-            sed -i "s|SENTRY_LARAVEL_DSN=.*|SENTRY_LARAVEL_DSN=$SENTRY_LARAVEL_DSN|" $APP_PATH/.env
-          fi
+          update_env "SENTRY_LARAVEL_DSN" "$SENTRY_LARAVEL_DSN"
           echo "✅ Sentry configuration updated"
 
           # Configurer Mail
           echo "=== MAIL CONFIGURATION ==="
-          if [ -n "$MAIL_HOST" ]; then
-            sed -i "s|MAIL_HOST=.*|MAIL_HOST=$MAIL_HOST|" $APP_PATH/.env
-          fi
-          if [ -n "$MAIL_PORT" ]; then
-            sed -i "s|MAIL_PORT=.*|MAIL_PORT=$MAIL_PORT|" $APP_PATH/.env
-          fi
-          if [ -n "$MAIL_USERNAME" ]; then
-            sed -i "s|MAIL_USERNAME=.*|MAIL_USERNAME=$MAIL_USERNAME|" $APP_PATH/.env
-          fi
-          if [ -n "$MAIL_PASSWORD" ]; then
-            sed -i "s|MAIL_PASSWORD=.*|MAIL_PASSWORD=$MAIL_PASSWORD|" $APP_PATH/.env
-          fi
-          if [ -n "$MAIL_FROM_ADDRESS" ]; then
-            sed -i "s|MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS|" $APP_PATH/.env
-          fi
+          update_env "MAIL_HOST" "$MAIL_HOST"
+          update_env "MAIL_PORT" "$MAIL_PORT"
+          update_env "MAIL_USERNAME" "$MAIL_USERNAME"
+          update_env "MAIL_PASSWORD" "$MAIL_PASSWORD"
+          update_env "MAIL_FROM_ADDRESS" "$MAIL_FROM_ADDRESS"
           echo "✅ Mail configuration updated"
 
           # Configurer les queues et sessions pour Vultr
-          sed -i "s|QUEUE_CONNECTION=.*|QUEUE_CONNECTION=database|" $APP_PATH/.env
-          sed -i "s|SESSION_DRIVER=.*|SESSION_DRIVER=database|" $APP_PATH/.env
-          sed -i "s|CACHE_DRIVER=.*|CACHE_DRIVER=file|" $APP_PATH/.env
+          update_env "QUEUE_CONNECTION" "database"
+          update_env "SESSION_DRIVER" "database"
+          update_env "CACHE_DRIVER" "file"
+
+          # Debug: afficher les variables configurées (sans les valeurs sensibles)
+          echo "=== .ENV VERIFICATION ==="
+          echo "Variables defined in .env:"
+          grep -E "^[A-Z_]+=" $APP_PATH/.env | cut -d'=' -f1 | sort
+          echo ""
+
+          # Vérifier les variables critiques
+          echo "=== CRITICAL VARIABLES CHECK ==="
+          check_var() {
+            if grep -q "^$1=.\+" $APP_PATH/.env; then
+              echo "✅ $1 is set"
+            else
+              echo "⚠️ $1 is EMPTY or missing"
+            fi
+          }
+          check_var "APP_KEY"
+          check_var "APP_URL"
+          check_var "DB_HOST"
+          check_var "DB_PORT"
+          check_var "DB_DATABASE"
+          check_var "DB_USERNAME"
+          check_var "DB_PASSWORD"
 
           # ============================================
           # 6. RESTAURER LES FICHIERS PERSISTANTS
