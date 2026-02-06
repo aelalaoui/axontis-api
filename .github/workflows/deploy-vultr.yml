@@ -422,6 +422,19 @@ jobs:
           php artisan migrate --force || echo "⚠️ Migration failed or no migrations"
 
           # ============================================
+          # 9.1 SEEDERS (uniquement si première installation)
+          # ============================================
+          echo "🌱 Vérification des seeders..."
+          # Vérifier si la table users est vide (première installation)
+          USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1)
+          if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
+            echo "📦 Première installation détectée - Exécution des seeders..."
+            php artisan db:seed --force || echo "⚠️ Seeding failed"
+          else
+            echo "✅ Base de données déjà peuplée ($USER_COUNT utilisateurs) - Seeders ignorés"
+          fi
+
+          # ============================================
           # 10. OPTIMISATIONS LARAVEL
           # ============================================
           echo "⚡ Optimisation de Laravel..."
@@ -430,8 +443,12 @@ jobs:
           php artisan view:cache
           php artisan event:cache
 
-          # S'assurer que le lien storage existe
-          php artisan storage:link 2>/dev/null || true
+          # S'assurer que le lien storage existe (ignorer si déjà créé)
+          if [ ! -L "$APP_PATH/public/storage" ]; then
+            php artisan storage:link
+          else
+            echo "✅ Lien storage déjà existant"
+          fi
 
           # ============================================
           # 11. PERMISSIONS
@@ -448,7 +465,38 @@ jobs:
           echo "🔄 Redémarrage des services..."
           systemctl reload php8.3-fpm
           php artisan queue:restart
-          supervisorctl restart axontis-worker:* 2>/dev/null || true
+
+          # Vérifier et configurer Supervisor si nécessaire
+          if [ ! -f /etc/supervisor/conf.d/axontis-worker.conf ]; then
+            echo "📝 Création de la configuration Supervisor..."
+            cat > /etc/supervisor/conf.d/axontis-worker.conf << 'SUPERVISOR_EOF'
+          [program:axontis-worker]
+          process_name=%(program_name)s_%(process_num)02d
+          command=php /var/www/axontis/artisan queue:work database --sleep=3 --tries=3 --max-time=3600
+          autostart=true
+          autorestart=true
+          stopasgroup=true
+          killasgroup=true
+          user=www-data
+          numprocs=2
+          redirect_stderr=true
+          stdout_logfile=/var/www/axontis/storage/logs/worker.log
+          stopwaitsecs=3600
+          SUPERVISOR_EOF
+            supervisorctl reread
+            supervisorctl update
+          fi
+
+          # Redémarrer les workers si le groupe existe
+          if supervisorctl status axontis-worker:* > /dev/null 2>&1; then
+            supervisorctl restart axontis-worker:*
+            echo "✅ Workers redémarrés"
+          else
+            echo "⚠️ Workers non configurés, tentative de démarrage..."
+            supervisorctl reread
+            supervisorctl update
+            supervisorctl start axontis-worker:* 2>/dev/null || echo "⚠️ Impossible de démarrer les workers"
+          fi
 
           # ============================================
           # 13. DÉSACTIVATION DU MODE MAINTENANCE
