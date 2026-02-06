@@ -71,7 +71,6 @@ cat > /etc/mysql/mysql.conf.d/axontis.cnf << 'EOF'
 [mysqld]
 # Performance
 innodb_buffer_pool_size = 256M
-innodb_log_file_size = 64M
 innodb_flush_log_at_trx_commit = 2
 innodb_flush_method = O_DIRECT
 
@@ -81,12 +80,10 @@ wait_timeout = 600
 interactive_timeout = 600
 
 # Cache
-query_cache_type = 0
-query_cache_size = 0
 table_open_cache = 2000
 thread_cache_size = 50
 
-# Logs (désactivés en production pour performance)
+# Logs
 slow_query_log = 1
 slow_query_log_file = /var/log/mysql/slow.log
 long_query_time = 2

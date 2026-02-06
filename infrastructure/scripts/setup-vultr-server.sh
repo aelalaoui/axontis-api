@@ -153,6 +153,14 @@ nginx -t && systemctl reload nginx
 # 10. CONFIGURATION DE PHP-FPM
 # ============================================
 echo "🐘 Configuration de PHP-FPM..."
+
+# Désactiver le pool par défaut pour éviter les conflits
+if [ -f /etc/php/8.3/fpm/pool.d/www.conf ]; then
+  mv /etc/php/8.3/fpm/pool.d/www.conf /etc/php/8.3/fpm/pool.d/www.conf.disabled
+  echo "✅ Pool www.conf désactivé"
+fi
+
+# Créer le pool axontis
 cat > /etc/php/8.3/fpm/pool.d/axontis.conf << 'EOF'
 [axontis]
 user = www-data
@@ -160,6 +168,7 @@ group = www-data
 listen = /var/run/php/php8.3-fpm.sock
 listen.owner = www-data
 listen.group = www-data
+listen.mode = 0660
 
 pm = dynamic
 pm.max_children = 20
@@ -172,9 +181,29 @@ php_admin_value[memory_limit] = 256M
 php_admin_value[upload_max_filesize] = 100M
 php_admin_value[post_max_size] = 100M
 php_admin_value[max_execution_time] = 300
+
+; Logs
+php_admin_value[error_log] = /var/log/php8.3-fpm-axontis.log
+php_admin_flag[log_errors] = on
 EOF
 
+# S'assurer que le répertoire du socket existe
+mkdir -p /var/run/php
+chown www-data:www-data /var/run/php
+
+# Tester la configuration PHP-FPM
+echo "🔍 Test de la configuration PHP-FPM..."
+php-fpm8.3 -t
+
+# Redémarrer PHP-FPM
 systemctl restart php8.3-fpm
+if systemctl is-active --quiet php8.3-fpm; then
+  echo "✅ PHP-FPM démarré avec succès"
+else
+  echo "❌ Erreur PHP-FPM, vérification des logs..."
+  journalctl -xeu php8.3-fpm.service --no-pager -n 20
+  exit 1
+fi
 
 # ============================================
 # 11. CONFIGURATION DE SUPERVISOR (Queue Worker)
