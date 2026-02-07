@@ -64,7 +64,14 @@ fi
 # Backup de Redis (si utilisé)
 echo "Backup de Redis..."
 if systemctl is-active --quiet redis-server; then
-    redis-cli BGSAVE >/dev/null 2>&1 || true
+    REDIS_PASSWORD=$(grep -E "^REDIS_PASSWORD=" $APP_PATH/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'" | tr -d ' ')
+
+    if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
+        redis-cli -a "$REDIS_PASSWORD" BGSAVE --no-auth-warning >/dev/null 2>&1 || true
+    else
+        redis-cli BGSAVE >/dev/null 2>&1 || true
+    fi
+
     sleep 2
     if [ -f /var/lib/redis/dump.rdb ]; then
         cp /var/lib/redis/dump.rdb "$BACKUP_PATH/redis_${TIMESTAMP}.rdb" 2>/dev/null || true
@@ -125,12 +132,16 @@ echo -e "\n${YELLOW}⚡ Optimisation de Laravel...${NC}"
 if systemctl is-active --quiet redis-server; then
     echo "Vidage du cache Redis..."
     REDIS_PASSWORD=$(grep -E "^REDIS_PASSWORD=" $APP_PATH/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'" | tr -d ' ')
+
     if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
-        redis-cli -a "$REDIS_PASSWORD" -n 1 FLUSHDB >/dev/null 2>&1 || true
+        # Vider les différentes bases Redis
+        redis-cli -a "$REDIS_PASSWORD" -n 1 FLUSHDB --no-auth-warning >/dev/null 2>&1 || true
+        redis-cli -a "$REDIS_PASSWORD" -n 2 FLUSHDB --no-auth-warning >/dev/null 2>&1 || true
+        redis-cli -a "$REDIS_PASSWORD" -n 3 FLUSHDB --no-auth-warning >/dev/null 2>&1 || true
+        echo -e "${GREEN}✅ Cache Redis vidé${NC}"
     else
-        redis-cli -n 1 FLUSHDB >/dev/null 2>&1 || true
+        echo -e "${YELLOW}⚠️ Pas de mot de passe Redis configuré dans .env - cache non vidé${NC}"
     fi
-    echo -e "${GREEN}✅ Cache Redis vidé${NC}"
 fi
 
 php artisan config:cache
@@ -176,14 +187,27 @@ fi
 
 # Vérifier Redis
 if systemctl is-active --quiet redis-server; then
-    REDIS_PING=$(redis-cli ping 2>/dev/null || echo "ERROR")
+    REDIS_PASSWORD=$(grep -E "^REDIS_PASSWORD=" $APP_PATH/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'" | tr -d ' ')
+
+    if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
+        REDIS_PING=$(redis-cli -a "$REDIS_PASSWORD" ping --no-auth-warning 2>/dev/null || echo "ERROR")
+    else
+        REDIS_PING=$(redis-cli ping 2>/dev/null || echo "ERROR")
+    fi
+
     if [[ "$REDIS_PING" == "PONG" ]]; then
         echo -e "${GREEN}✅ Redis opérationnel${NC}"
 
         # Afficher les statistiques Redis
-        CACHE_KEYS=$(redis-cli -n 1 DBSIZE 2>/dev/null | awk '{print $1}')
-        SESSION_KEYS=$(redis-cli -n 2 DBSIZE 2>/dev/null | awk '{print $1}')
-        QUEUE_KEYS=$(redis-cli -n 3 DBSIZE 2>/dev/null | awk '{print $1}')
+        if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
+            CACHE_KEYS=$(redis-cli -a "$REDIS_PASSWORD" -n 1 DBSIZE --no-auth-warning 2>/dev/null | awk '{print $2}')
+            SESSION_KEYS=$(redis-cli -a "$REDIS_PASSWORD" -n 2 DBSIZE --no-auth-warning 2>/dev/null | awk '{print $2}')
+            QUEUE_KEYS=$(redis-cli -a "$REDIS_PASSWORD" -n 3 DBSIZE --no-auth-warning 2>/dev/null | awk '{print $2}')
+        else
+            CACHE_KEYS=$(redis-cli -n 1 DBSIZE 2>/dev/null | awk '{print $2}')
+            SESSION_KEYS=$(redis-cli -n 2 DBSIZE 2>/dev/null | awk '{print $2}')
+            QUEUE_KEYS=$(redis-cli -n 3 DBSIZE 2>/dev/null | awk '{print $2}')
+        fi
         echo -e "   Cache: ${CACHE_KEYS} clés | Sessions: ${SESSION_KEYS} | Queues: ${QUEUE_KEYS}"
     else
         echo -e "${RED}⚠️ Redis ne répond pas correctement${NC}"
