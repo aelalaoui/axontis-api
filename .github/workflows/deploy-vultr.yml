@@ -142,6 +142,8 @@ jobs:
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           # Sentry
           SENTRY_LARAVEL_DSN: ${{ secrets.SENTRY_LARAVEL_DSN }}
+          # Redis
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           # Mail
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_PORT: ${{ secrets.MAIL_PORT }}
@@ -172,6 +174,7 @@ jobs:
           STRIPE_SECRET_KEY='$STRIPE_SECRET_KEY' \
           STRIPE_WEBHOOK_SECRET='$STRIPE_WEBHOOK_SECRET' \
           SENTRY_LARAVEL_DSN='$SENTRY_LARAVEL_DSN' \
+          REDIS_PASSWORD='$REDIS_PASSWORD' \
           MAIL_HOST='$MAIL_HOST' \
           MAIL_PORT='$MAIL_PORT' \
           MAIL_USERNAME='$MAIL_USERNAME' \
@@ -320,10 +323,20 @@ jobs:
           update_env "MAIL_FROM_ADDRESS" "$MAIL_FROM_ADDRESS"
           echo "✅ Mail configuration updated"
 
-          # Configurer les queues et sessions pour Vultr
-          update_env "QUEUE_CONNECTION" "database"
-          update_env "SESSION_DRIVER" "database"
-          update_env "CACHE_DRIVER" "file"
+          # Configurer Redis
+          echo "=== REDIS CONFIGURATION ==="
+          update_env "CACHE_DRIVER" "redis"
+          update_env "SESSION_DRIVER" "redis"
+          update_env "QUEUE_CONNECTION" "redis"
+          update_env "REDIS_CLIENT" "phpredis"
+          update_env "REDIS_HOST" "127.0.0.1"
+          update_env "REDIS_PASSWORD" "$REDIS_PASSWORD"
+          update_env "REDIS_PORT" "6379"
+          update_env "REDIS_DB" "0"
+          update_env "REDIS_CACHE_DB" "1"
+          update_env "REDIS_SESSION_DB" "2"
+          update_env "REDIS_QUEUE_DB" "3"
+          echo "✅ Redis configuration updated"
 
           # Debug: afficher les variables configurées (sans les valeurs sensibles)
           echo "=== .ENV VERIFICATION ==="
@@ -472,7 +485,7 @@ jobs:
             cat > /etc/supervisor/conf.d/axontis-worker.conf << 'SUPERVISOR_EOF'
           [program:axontis-worker]
           process_name=%(program_name)s_%(process_num)02d
-          command=php /var/www/axontis/artisan queue:work database --sleep=3 --tries=3 --max-time=3600
+          command=php /var/www/axontis/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
           autostart=true
           autorestart=true
           stopasgroup=true
