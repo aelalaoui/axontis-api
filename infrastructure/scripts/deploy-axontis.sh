@@ -61,10 +61,6 @@ if [ -f "$APP_PATH/.env" ]; then
     mysqldump -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_PATH/db_${TIMESTAMP}.sql" 2>/dev/null || true
 fi
 
-# Backup de Redis (si utilisé)
-echo "Backup de Redis..."
-if systemctl is-active --quiet redis-server; then
-    REDIS_PASSWORD=$(grep -E "^REDIS_PASSWORD=" $APP_PATH/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'" | tr -d ' ')
 
     if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
         redis-cli -a "$REDIS_PASSWORD" BGSAVE --no-auth-warning >/dev/null 2>&1 || true
