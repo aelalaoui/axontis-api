@@ -36,7 +36,7 @@ class RedirectIfAuthenticated
                     return redirect()->route('crm.dashboard');
                 }
                 if ($user->isAdministrator()) {
-                    return redirect()->route('home');
+                    return redirect(RouteServiceProvider::HOME);
                 }
 
                 return redirect(RouteServiceProvider::HOME);
