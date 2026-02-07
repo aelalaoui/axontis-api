@@ -48,11 +48,37 @@ if ! systemctl is-active --quiet redis-server; then
     exit 1
 fi
 
-if redis-cli ping >/dev/null 2>&1; then
-    echo -e "${GREEN}✅ Redis est opérationnel${NC}\n"
+# Détecter si Redis nécessite un mot de passe
+echo -e "${YELLOW}🔐 Détection du mot de passe Redis...${NC}"
+REDIS_HAS_PASSWORD=false
+REDIS_SERVER_PASSWORD=""
+
+# Vérifier si requirepass est configuré dans redis.conf
+if [ -f /etc/redis/redis.conf ]; then
+    REDIS_SERVER_PASSWORD=$(grep "^requirepass" /etc/redis/redis.conf | awk '{print $2}' | head -1)
+    if [ -n "$REDIS_SERVER_PASSWORD" ]; then
+        REDIS_HAS_PASSWORD=true
+        echo -e "${YELLOW}⚠️  Redis nécessite un mot de passe${NC}"
+    fi
+fi
+
+# Test de connexion Redis
+if [ "$REDIS_HAS_PASSWORD" = true ]; then
+    if redis-cli -a "$REDIS_SERVER_PASSWORD" ping --no-auth-warning >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Redis est opérationnel (avec mot de passe)${NC}\n"
+    else
+        echo -e "${RED}❌ Redis ne répond pas avec le mot de passe détecté!${NC}"
+        exit 1
+    fi
 else
-    echo -e "${RED}❌ Redis ne répond pas!${NC}"
-    exit 1
+    if redis-cli ping >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Redis est opérationnel (sans mot de passe)${NC}\n"
+    else
+        # Peut-être qu'il y a un mot de passe mais pas dans le fichier
+        echo -e "${RED}❌ Redis ne répond pas!${NC}"
+        echo "Vérifiez la configuration Redis"
+        exit 1
+    fi
 fi
 
 # Créer une sauvegarde du .env
@@ -89,7 +115,16 @@ fi
 
 update_env "REDIS_CLIENT" "phpredis"
 update_env "REDIS_HOST" "127.0.0.1"
-update_env "REDIS_PASSWORD" "null"
+
+# Configurer le mot de passe Redis selon la détection
+if [ "$REDIS_HAS_PASSWORD" = true ] && [ -n "$REDIS_SERVER_PASSWORD" ]; then
+    update_env "REDIS_PASSWORD" "$REDIS_SERVER_PASSWORD"
+    echo -e "${GREEN}  ✓ REDIS_PASSWORD=${REDIS_SERVER_PASSWORD:0:10}... (mot de passe configuré)${NC}"
+else
+    update_env "REDIS_PASSWORD" "null"
+    echo -e "${GREEN}  ✓ REDIS_PASSWORD=null${NC}"
+fi
+
 update_env "REDIS_PORT" "6379"
 update_env "REDIS_DB" "0"
 update_env "REDIS_CACHE_DB" "1"
@@ -146,13 +181,24 @@ supervisorctl status axontis-worker:* 2>/dev/null || echo "Aucun worker configur
 
 echo ""
 echo "3. Redis:"
-if redis-cli ping >/dev/null 2>&1; then
-    CACHE_KEYS=$(redis-cli -n 1 DBSIZE 2>/dev/null | awk '{print $2}')
-    SESSION_KEYS=$(redis-cli -n 2 DBSIZE 2>/dev/null | awk '{print $2}')
-    QUEUE_KEYS=$(redis-cli -n 3 DBSIZE 2>/dev/null | awk '{print $2}')
-    echo -e "${GREEN}✅ Redis OK - Cache: ${CACHE_KEYS}, Sessions: ${SESSION_KEYS}, Queues: ${QUEUE_KEYS}${NC}"
+if [ "$REDIS_HAS_PASSWORD" = true ]; then
+    if redis-cli -a "$REDIS_SERVER_PASSWORD" ping --no-auth-warning >/dev/null 2>&1; then
+        CACHE_KEYS=$(redis-cli -a "$REDIS_SERVER_PASSWORD" -n 1 DBSIZE --no-auth-warning 2>/dev/null | awk '{print $2}')
+        SESSION_KEYS=$(redis-cli -a "$REDIS_SERVER_PASSWORD" -n 2 DBSIZE --no-auth-warning 2>/dev/null | awk '{print $2}')
+        QUEUE_KEYS=$(redis-cli -a "$REDIS_SERVER_PASSWORD" -n 3 DBSIZE --no-auth-warning 2>/dev/null | awk '{print $2}')
+        echo -e "${GREEN}✅ Redis OK (avec mot de passe) - Cache: ${CACHE_KEYS}, Sessions: ${SESSION_KEYS}, Queues: ${QUEUE_KEYS}${NC}"
+    else
+        echo -e "${RED}❌ Redis ne répond pas${NC}"
+    fi
 else
-    echo -e "${RED}❌ Redis ne répond pas${NC}"
+    if redis-cli ping >/dev/null 2>&1; then
+        CACHE_KEYS=$(redis-cli -n 1 DBSIZE 2>/dev/null | awk '{print $2}')
+        SESSION_KEYS=$(redis-cli -n 2 DBSIZE 2>/dev/null | awk '{print $2}')
+        QUEUE_KEYS=$(redis-cli -n 3 DBSIZE 2>/dev/null | awk '{print $2}')
+        echo -e "${GREEN}✅ Redis OK (sans mot de passe) - Cache: ${CACHE_KEYS}, Sessions: ${SESSION_KEYS}, Queues: ${QUEUE_KEYS}${NC}"
+    else
+        echo -e "${RED}❌ Redis ne répond pas${NC}"
+    fi
 fi
 
 echo ""
