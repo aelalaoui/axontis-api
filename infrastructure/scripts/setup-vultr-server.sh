@@ -206,13 +206,73 @@ else
 fi
 
 # ============================================
-# 11. CONFIGURATION DE SUPERVISOR (Queue Worker)
+# 11. INSTALLATION ET CONFIGURATION DE REDIS
+# ============================================
+echo "🔴 Installation de Redis..."
+apt install -y redis-server redis-tools
+
+# Configuration de Redis pour la production
+cat > /etc/redis/redis.conf << 'REDISEOF'
+# Configuration Redis pour Axontis
+bind 127.0.0.1 ::1
+protected-mode yes
+port 6379
+timeout 300
+tcp-keepalive 300
+daemonize no
+supervised systemd
+loglevel notice
+logfile /var/log/redis/redis-server.log
+databases 16
+
+# Persistence
+save 900 1
+save 300 10
+save 60 10000
+rdbcompression yes
+dbfilename dump.rdb
+dir /var/lib/redis
+
+# Memory
+maxmemory 512mb
+maxmemory-policy allkeys-lru
+
+# AOF
+appendonly yes
+appendfilename "appendonly.aof"
+appendfsync everysec
+REDISEOF
+
+# Optimisations système pour Redis
+sysctl -w net.core.somaxconn=65535
+sysctl -w vm.overcommit_memory=1
+echo "net.core.somaxconn=65535" >> /etc/sysctl.conf
+echo "vm.overcommit_memory=1" >> /etc/sysctl.conf
+
+# Désactiver THP
+echo never > /sys/kernel/mm/transparent_hugepage/enabled
+echo never > /sys/kernel/mm/transparent_hugepage/defrag
+
+# Redémarrer Redis
+systemctl enable redis-server
+systemctl restart redis-server
+
+if systemctl is-active --quiet redis-server; then
+  echo "✅ Redis démarré avec succès"
+  redis-cli ping
+else
+  echo "❌ Erreur Redis"
+  exit 1
+fi
+
+# ============================================
+# 12. CONFIGURATION DE SUPERVISOR (Queue Worker)
 # ============================================
 echo "👷 Configuration de Supervisor pour les queues..."
 cat > /etc/supervisor/conf.d/axontis-worker.conf << 'EOF'
 [program:axontis-worker]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/axontis/artisan queue:work database --sleep=3 --tries=3 --max-time=3600
+command=php /var/www/axontis/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -228,7 +288,7 @@ supervisorctl reread
 supervisorctl update
 
 # ============================================
-# 12. CONFIGURATION DU PARE-FEU
+# 13. CONFIGURATION DU PARE-FEU
 # ============================================
 echo "🔥 Configuration du pare-feu..."
 ufw default deny incoming
@@ -238,7 +298,7 @@ ufw allow 'Nginx Full'
 ufw --force enable
 
 # ============================================
-# 13. CONFIGURATION DE FAIL2BAN
+# 14. CONFIGURATION DE FAIL2BAN
 # ============================================
 echo "🛡️ Configuration de Fail2Ban..."
 systemctl enable fail2ban
@@ -257,6 +317,7 @@ echo "   ✅ PHP 8.3-FPM"
 echo "   ✅ Nginx"
 echo "   ✅ Composer"
 echo "   ✅ Node.js 22"
+echo "   ✅ Redis"
 echo "   ✅ Supervisor"
 echo "   ✅ Certbot (SSL)"
 echo "   ✅ UFW (Firewall)"

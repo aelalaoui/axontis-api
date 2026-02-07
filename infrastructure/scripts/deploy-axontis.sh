@@ -61,6 +61,17 @@ if [ -f "$APP_PATH/.env" ]; then
     mysqldump -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_PATH/db_${TIMESTAMP}.sql" 2>/dev/null || true
 fi
 
+# Backup de Redis (si utilisé)
+echo "Backup de Redis..."
+if systemctl is-active --quiet redis-server; then
+    redis-cli BGSAVE >/dev/null 2>&1 || true
+    sleep 2
+    if [ -f /var/lib/redis/dump.rdb ]; then
+        cp /var/lib/redis/dump.rdb "$BACKUP_PATH/redis_${TIMESTAMP}.rdb" 2>/dev/null || true
+        echo -e "${GREEN}✅ Redis dump sauvegardé${NC}"
+    fi
+fi
+
 # Backup des fichiers
 tar -czf "$BACKUP_PATH/files_${TIMESTAMP}_${CURRENT_COMMIT}.tar.gz" \
     -C /var/www axontis \
@@ -75,6 +86,7 @@ echo -e "${GREEN}✅ Backup créé: files_${TIMESTAMP}_${CURRENT_COMMIT}.tar.gz$
 cd $BACKUP_PATH
 ls -t files_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm --
 ls -t db_*.sql 2>/dev/null | tail -n +6 | xargs -r rm --
+ls -t redis_*.rdb 2>/dev/null | tail -n +6 | xargs -r rm --
 
 # ============================================
 # 3. MODE MAINTENANCE
@@ -108,6 +120,19 @@ php artisan migrate --force
 # 7. OPTIMISATIONS
 # ============================================
 echo -e "\n${YELLOW}⚡ Optimisation de Laravel...${NC}"
+
+# Vider le cache Redis si actif
+if systemctl is-active --quiet redis-server; then
+    echo "Vidage du cache Redis..."
+    REDIS_PASSWORD=$(grep -E "^REDIS_PASSWORD=" $APP_PATH/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'" | tr -d ' ')
+    if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
+        redis-cli -a "$REDIS_PASSWORD" -n 1 FLUSHDB >/dev/null 2>&1 || true
+    else
+        redis-cli -n 1 FLUSHDB >/dev/null 2>&1 || true
+    fi
+    echo -e "${GREEN}✅ Cache Redis vidé${NC}"
+fi
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -147,6 +172,32 @@ if [[ "$HTTP_CODE" == "200" ]] || [[ "$HTTP_CODE" == "302" ]]; then
     echo -e "${GREEN}✅ Application accessible (HTTP $HTTP_CODE)${NC}"
 else
     echo -e "${RED}⚠️ L'application répond avec HTTP $HTTP_CODE${NC}"
+fi
+
+# Vérifier Redis
+if systemctl is-active --quiet redis-server; then
+    REDIS_PING=$(redis-cli ping 2>/dev/null || echo "ERROR")
+    if [[ "$REDIS_PING" == "PONG" ]]; then
+        echo -e "${GREEN}✅ Redis opérationnel${NC}"
+
+        # Afficher les statistiques Redis
+        CACHE_KEYS=$(redis-cli -n 1 DBSIZE 2>/dev/null | awk '{print $1}')
+        SESSION_KEYS=$(redis-cli -n 2 DBSIZE 2>/dev/null | awk '{print $1}')
+        QUEUE_KEYS=$(redis-cli -n 3 DBSIZE 2>/dev/null | awk '{print $1}')
+        echo -e "   Cache: ${CACHE_KEYS} clés | Sessions: ${SESSION_KEYS} | Queues: ${QUEUE_KEYS}"
+    else
+        echo -e "${RED}⚠️ Redis ne répond pas correctement${NC}"
+    fi
+else
+    echo -e "${YELLOW}ℹ️  Redis n'est pas actif (normal si non utilisé)${NC}"
+fi
+
+# Vérifier les workers Supervisor
+WORKER_STATUS=$(supervisorctl status axontis-worker:* 2>/dev/null | grep -c "RUNNING" || echo "0")
+if [[ "$WORKER_STATUS" -gt 0 ]]; then
+    echo -e "${GREEN}✅ ${WORKER_STATUS} worker(s) actif(s)${NC}"
+else
+    echo -e "${YELLOW}⚠️ Aucun worker actif${NC}"
 fi
 
 # Afficher les logs récents
