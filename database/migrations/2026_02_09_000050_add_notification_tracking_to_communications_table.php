@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -53,10 +54,13 @@ return new class extends Migration
                 ->nullable()
                 ->after('retry_count')
                 ->comment('Date d\'échec définitif');
+        });
 
-            // Index pour optimiser les requêtes
+        // Créer les index après avoir ajouté les colonnes
+        // Note: Limitation de la longueur des index pour éviter l'erreur MySQL "key too long"
+        Schema::table('communications', function (Blueprint $table) {
             $table->index('status');
-            $table->index('notification_type');
+            $table->index([DB::raw('notification_type(100)')], 'communications_notification_type_index');
             $table->index('provider');
             $table->index('failed_at');
         });
@@ -68,11 +72,13 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('communications', function (Blueprint $table) {
+            // Supprimer les index
             $table->dropIndex(['status']);
-            $table->dropIndex(['notification_type']);
+            $table->dropIndex('communications_notification_type_index');
             $table->dropIndex(['provider']);
             $table->dropIndex(['failed_at']);
 
+            // Supprimer les colonnes
             $table->dropColumn([
                 'status',
                 'notification_type',
