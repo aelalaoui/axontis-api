@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'sync'),
+    'default' => env('QUEUE_CONNECTION', 'database'),
 
     /*
     |--------------------------------------------------------------------------
@@ -71,6 +71,65 @@ return [
             'after_commit' => false,
         ],
 
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queues par Canal de Notification
+    |--------------------------------------------------------------------------
+    |
+    | Configuration des queues dédiées pour chaque canal de communication.
+    | Chaque canal a sa propre queue pour une gestion optimale et un
+    | monitoring séparé.
+    |
+    | Commandes pour lancer les workers :
+    |
+    | # Worker dédié aux emails (priorité haute)
+    | php artisan queue:work --queue=emails --tries=3 --timeout=60 --sleep=3
+    |
+    | # Worker dédié aux SMS
+    | php artisan queue:work --queue=sms --tries=3 --timeout=30 --sleep=3
+    |
+    | # Worker dédié aux messageries (WhatsApp, Telegram)
+    | php artisan queue:work --queue=whatsapp,telegram --tries=3 --timeout=30 --sleep=3
+    |
+    | # Worker pour toutes les notifications (dev)
+    | php artisan queue:work --queue=emails,sms,whatsapp,telegram --tries=3
+    |
+    */
+
+    'notification_queues' => [
+        // Queue pour les emails (Resend/Mailgun/Brevo)
+        'emails' => [
+            'retry_after' => 90,
+            'timeout' => 60,
+            'tries' => 3,
+            'backoff' => [10, 30, 60], // Retry après 10s, 30s, 60s
+        ],
+
+        // Queue pour les SMS (Twilio, Vonage, etc.)
+        'sms' => [
+            'retry_after' => 60,
+            'timeout' => 30,
+            'tries' => 3,
+            'backoff' => [5, 15, 30],
+        ],
+
+        // Queue pour WhatsApp (Twilio WhatsApp, etc.)
+        'whatsapp' => [
+            'retry_after' => 60,
+            'timeout' => 30,
+            'tries' => 3,
+            'backoff' => [5, 15, 30],
+        ],
+
+        // Queue pour Telegram et autres messageries
+        'telegram' => [
+            'retry_after' => 60,
+            'timeout' => 30,
+            'tries' => 3,
+            'backoff' => [5, 15, 30],
+        ],
     ],
 
     /*

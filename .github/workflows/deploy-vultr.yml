@@ -144,12 +144,38 @@ jobs:
           SENTRY_LARAVEL_DSN: ${{ secrets.SENTRY_LARAVEL_DSN }}
           # Redis
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-          # Mail
+          # Mail - Configuration de base
+          MAIL_MAILER: ${{ secrets.MAIL_MAILER }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_PORT: ${{ secrets.MAIL_PORT }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
+          MAIL_FROM_NAME: ${{ secrets.MAIL_FROM_NAME }}
+          # Email Providers - Resend (Principal)
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          # Email Providers - Mailgun (Backup 1)
+          MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
+          MAILGUN_SECRET: ${{ secrets.MAILGUN_SECRET }}
+          MAILGUN_ENDPOINT: ${{ secrets.MAILGUN_ENDPOINT }}
+          # Email Providers - Brevo (Backup 2)
+          BREVO_SMTP_HOST: ${{ secrets.BREVO_SMTP_HOST }}
+          BREVO_SMTP_PORT: ${{ secrets.BREVO_SMTP_PORT }}
+          BREVO_SMTP_USERNAME: ${{ secrets.BREVO_SMTP_USERNAME }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          # SMS - Twilio
+          TWILIO_SID: ${{ secrets.TWILIO_SID }}
+          TWILIO_TOKEN: ${{ secrets.TWILIO_TOKEN }}
+          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
+          TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          # Messaging - Telegram
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Messaging - Slack
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          # Notifications - Alertes équipe technique
+          NOTIFICATION_SLACK_WEBHOOK: ${{ secrets.NOTIFICATION_SLACK_WEBHOOK }}
+          NOTIFICATION_TELEGRAM_CHAT_ID: ${{ secrets.NOTIFICATION_TELEGRAM_CHAT_ID }}
         run: |
           ssh ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} \
           "export DB_HOST='$DB_HOST' \
@@ -175,11 +201,30 @@ jobs:
           STRIPE_WEBHOOK_SECRET='$STRIPE_WEBHOOK_SECRET' \
           SENTRY_LARAVEL_DSN='$SENTRY_LARAVEL_DSN' \
           REDIS_PASSWORD='$REDIS_PASSWORD' \
+          MAIL_MAILER='$MAIL_MAILER' \
           MAIL_HOST='$MAIL_HOST' \
           MAIL_PORT='$MAIL_PORT' \
           MAIL_USERNAME='$MAIL_USERNAME' \
           MAIL_PASSWORD='$MAIL_PASSWORD' \
-          MAIL_FROM_ADDRESS='$MAIL_FROM_ADDRESS'; /bin/bash" << 'DEPLOY_SCRIPT'
+          MAIL_FROM_ADDRESS='$MAIL_FROM_ADDRESS' \
+          MAIL_FROM_NAME='$MAIL_FROM_NAME' \
+          RESEND_API_KEY='$RESEND_API_KEY' \
+          MAILGUN_DOMAIN='$MAILGUN_DOMAIN' \
+          MAILGUN_SECRET='$MAILGUN_SECRET' \
+          MAILGUN_ENDPOINT='$MAILGUN_ENDPOINT' \
+          BREVO_SMTP_HOST='$BREVO_SMTP_HOST' \
+          BREVO_SMTP_PORT='$BREVO_SMTP_PORT' \
+          BREVO_SMTP_USERNAME='$BREVO_SMTP_USERNAME' \
+          BREVO_API_KEY='$BREVO_API_KEY' \
+          TWILIO_SID='$TWILIO_SID' \
+          TWILIO_TOKEN='$TWILIO_TOKEN' \
+          TWILIO_FROM='$TWILIO_FROM' \
+          TWILIO_WHATSAPP_FROM='$TWILIO_WHATSAPP_FROM' \
+          TELEGRAM_BOT_TOKEN='$TELEGRAM_BOT_TOKEN' \
+          TELEGRAM_CHAT_ID='$TELEGRAM_CHAT_ID' \
+          SLACK_WEBHOOK_URL='$SLACK_WEBHOOK_URL' \
+          NOTIFICATION_SLACK_WEBHOOK='$NOTIFICATION_SLACK_WEBHOOK' \
+          NOTIFICATION_TELEGRAM_CHAT_ID='$NOTIFICATION_TELEGRAM_CHAT_ID'; /bin/bash" << 'DEPLOY_SCRIPT'
           set -e
 
           echo "=========================================="
@@ -316,12 +361,47 @@ jobs:
 
           # Configurer Mail
           echo "=== MAIL CONFIGURATION ==="
+          update_env "MAIL_MAILER" "$MAIL_MAILER"
           update_env "MAIL_HOST" "$MAIL_HOST"
           update_env "MAIL_PORT" "$MAIL_PORT"
           update_env "MAIL_USERNAME" "$MAIL_USERNAME"
           update_env "MAIL_PASSWORD" "$MAIL_PASSWORD"
           update_env "MAIL_FROM_ADDRESS" "$MAIL_FROM_ADDRESS"
+          update_env "MAIL_FROM_NAME" "$MAIL_FROM_NAME"
           echo "✅ Mail configuration updated"
+
+          # Configurer Email Providers (Failover: Resend → Mailgun → Brevo)
+          echo "=== EMAIL PROVIDERS CONFIGURATION ==="
+          update_env "RESEND_API_KEY" "$RESEND_API_KEY"
+          update_env "MAILGUN_DOMAIN" "$MAILGUN_DOMAIN"
+          update_env "MAILGUN_SECRET" "$MAILGUN_SECRET"
+          update_env "MAILGUN_ENDPOINT" "$MAILGUN_ENDPOINT"
+          update_env "BREVO_SMTP_HOST" "$BREVO_SMTP_HOST"
+          update_env "BREVO_SMTP_PORT" "$BREVO_SMTP_PORT"
+          update_env "BREVO_SMTP_USERNAME" "$BREVO_SMTP_USERNAME"
+          update_env "BREVO_API_KEY" "$BREVO_API_KEY"
+          echo "✅ Email providers configuration updated"
+
+          # Configurer SMS (Twilio)
+          echo "=== SMS CONFIGURATION ==="
+          update_env "TWILIO_SID" "$TWILIO_SID"
+          update_env "TWILIO_TOKEN" "$TWILIO_TOKEN"
+          update_env "TWILIO_FROM" "$TWILIO_FROM"
+          update_env "TWILIO_WHATSAPP_FROM" "$TWILIO_WHATSAPP_FROM"
+          echo "✅ SMS configuration updated"
+
+          # Configurer Messaging (Telegram, Slack)
+          echo "=== MESSAGING CONFIGURATION ==="
+          update_env "TELEGRAM_BOT_TOKEN" "$TELEGRAM_BOT_TOKEN"
+          update_env "TELEGRAM_CHAT_ID" "$TELEGRAM_CHAT_ID"
+          update_env "SLACK_WEBHOOK_URL" "$SLACK_WEBHOOK_URL"
+          echo "✅ Messaging configuration updated"
+
+          # Configurer Notifications Alertes
+          echo "=== NOTIFICATIONS ALERTS CONFIGURATION ==="
+          update_env "NOTIFICATION_SLACK_WEBHOOK" "$NOTIFICATION_SLACK_WEBHOOK"
+          update_env "NOTIFICATION_TELEGRAM_CHAT_ID" "$NOTIFICATION_TELEGRAM_CHAT_ID"
+          echo "✅ Notifications alerts configuration updated"
 
           # Configurer Redis
           echo "=== REDIS CONFIGURATION ==="

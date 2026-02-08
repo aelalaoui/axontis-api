@@ -286,4 +286,43 @@ class User extends Authenticatable
     {
         return $this->HasOne(Client::class);
     }
+
+    /**
+     * Obtenir les communications de cet utilisateur
+     */
+    public function communications(): MorphMany
+    {
+        return $this->morphMany(Communication::class, 'communicable');
+    }
+
+    /**
+     * Obtenir les préférences de notification de cet utilisateur
+     */
+    public function notificationPreference(): \Illuminate\Database\Eloquent\Relations\MorphOne
+    {
+        return $this->morphOne(NotificationPreference::class, 'notifiable');
+    }
+
+    /**
+     * Obtenir ou créer les préférences de notification
+     */
+    public function getOrCreateNotificationPreference(): NotificationPreference
+    {
+        return NotificationPreference::getOrCreateFor($this);
+    }
+
+    /**
+     * Vérifier si un canal de notification est activé
+     */
+    public function isNotificationChannelEnabled(string $channel): bool
+    {
+        $preferences = $this->notificationPreference;
+
+        if (!$preferences) {
+            // Par défaut, seul l'email est activé
+            return $channel === 'mail' || $channel === 'email';
+        }
+
+        return $preferences->isChannelEnabled($channel);
+    }
 }

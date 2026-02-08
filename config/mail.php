@@ -11,9 +11,12 @@ return [
     | messages sent by your application. Alternative mailers may be setup
     | and used as needed; however, this mailer will be used by default.
     |
+    | Pour la production, utiliser 'failover' pour activer le système
+    | de repli automatique : Resend → Mailgun → Brevo
+    |
     */
 
-    'default' => env('MAIL_MAILER', 'smtp'),
+    'default' => env('MAIL_MAILER', 'failover'),
 
     /*
     |--------------------------------------------------------------------------
@@ -29,11 +32,70 @@ return [
     | mailers below. You are free to add additional mailers as required.
     |
     | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
-    |            "postmark", "log", "array", "failover", "roundrobin"
+    |            "postmark", "resend", "log", "array", "failover", "roundrobin"
     |
     */
 
     'mailers' => [
+
+        /*
+        |--------------------------------------------------------------------------
+        | Resend - Provider Principal (3000 emails/mois gratuits)
+        |--------------------------------------------------------------------------
+        */
+        'resend' => [
+            'transport' => 'resend',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Mailgun - Backup 1 (5000 emails/mois gratuits pendant 3 mois)
+        |--------------------------------------------------------------------------
+        */
+        'mailgun' => [
+            'transport' => 'mailgun',
+            'client' => [
+                'timeout' => 10,
+            ],
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Brevo (ex-Sendinblue) - Backup 2 (300 emails/jour gratuits)
+        |--------------------------------------------------------------------------
+        */
+        'brevo' => [
+            'transport' => 'smtp',
+            'host' => env('BREVO_SMTP_HOST', 'smtp-relay.brevo.com'),
+            'port' => env('BREVO_SMTP_PORT', 587),
+            'encryption' => env('BREVO_SMTP_ENCRYPTION', 'tls'),
+            'username' => env('BREVO_SMTP_USERNAME'),
+            'password' => env('BREVO_API_KEY'),
+            'timeout' => 10,
+            'local_domain' => env('MAIL_EHLO_DOMAIN'),
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Failover - Cascade automatique : Resend → Mailgun → Brevo
+        |--------------------------------------------------------------------------
+        | Si Resend échoue, Laravel essaiera automatiquement Mailgun,
+        | puis Brevo si Mailgun échoue également.
+        */
+        'failover' => [
+            'transport' => 'failover',
+            'mailers' => [
+                'resend',
+                'mailgun',
+                'brevo',
+            ],
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SMTP Générique
+        |--------------------------------------------------------------------------
+        */
         'smtp' => [
             'transport' => 'smtp',
             'url' => env('MAIL_URL'),
@@ -58,13 +120,6 @@ return [
             // ],
         ],
 
-        'mailgun' => [
-            'transport' => 'mailgun',
-            // 'client' => [
-            //     'timeout' => 5,
-            // ],
-        ],
-
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
@@ -79,13 +134,6 @@ return [
             'transport' => 'array',
         ],
 
-        'failover' => [
-            'transport' => 'failover',
-            'mailers' => [
-                'smtp',
-                'log',
-            ],
-        ],
 
         'roundrobin' => [
             'transport' => 'roundrobin',
