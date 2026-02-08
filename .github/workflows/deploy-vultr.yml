@@ -47,23 +47,31 @@ jobs:
             mysql:8.0 \
             --default-authentication-plugin=mysql_native_password
 
-          # Attendre que MySQL soit prêt
+          # Attendre que MySQL soit complètement initialisé
           echo "⏳ Waiting for MySQL to be ready..."
+          sleep 5  # Attendre que le conteneur démarre
+
           for i in {1..30}; do
-            if docker exec mysql-test mysqladmin ping -h localhost -pTestPassword123! --silent; then
+            # Vérifier si MySQL accepte les connexions
+            if docker exec mysql-test mysql -uroot -ptestpassword -e "SELECT 1;" &>/dev/null; then
               echo "✅ MySQL is ready!"
               break
             fi
             echo "   Attempt $i/30..."
-            sleep 2
+            sleep 3
           done
 
-          # Vérifier la connexion
-          docker exec mysql-test mysql -uroot -ptestpassword -e "SHOW DATABASES;" || {
+          # Vérifier la connexion finale
+          if ! docker exec mysql-test mysql -uroot -ptestpassword -e "SHOW DATABASES;" 2>/dev/null; then
             echo "❌ MySQL connection failed!"
-            docker logs mysql-test
+            echo "Container logs:"
+            docker logs mysql-test 2>&1 | tail -20
+            docker stop mysql-test
+            docker rm mysql-test
             exit 1
-          }
+          fi
+
+          echo "✅ MySQL connection verified"
 
           echo ""
           echo "📥 Importing existing MySQL schema..."
