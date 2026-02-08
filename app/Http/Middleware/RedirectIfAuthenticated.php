@@ -38,8 +38,6 @@ class RedirectIfAuthenticated
                 if ($user->isAdministrator()) {
                     return redirect(RouteServiceProvider::HOME);
                 }
-
-                return redirect(RouteServiceProvider::HOME);
             }
         }
 
