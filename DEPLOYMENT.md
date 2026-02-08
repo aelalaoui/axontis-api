@@ -233,7 +233,7 @@ ufw status
 
 ```bash
 mysql -u axontis -p axontis
-# Mot de passe: Ax0nt1s2026SecurePwd
+# Mot de passe: ChooseYourOwnStrongPassword
 ```
 
 ### Backup
@@ -253,8 +253,84 @@ mysqldump -u axontis -p axontis > /var/backups/axontis_$(date +%Y%m%d).sql
 
 ## 🔮 Évolutions futures
 
-- [ ] Ajouter Redis pour les sessions/cache
+- [x] Ajouter Redis pour les sessions/cache/queues (✅ Configuré - voir section Redis ci-dessous)
 - [ ] Configurer des backups automatiques
 - [ ] Mettre en place un monitoring (Sentry déjà configuré)
 - [ ] Ajouter un serveur de base de données séparé
 - [ ] Configurer un CDN (Cloudflare)
+
+## 🔴 Redis
+
+Redis est utilisé pour le cache, les sessions et les files d'attente (queues).
+
+> 📖 **Documentation complète** : [REDIS_CONFIGURATION.md](REDIS_CONFIGURATION.md)  
+> 🔄 **Guide de migration** : [REDIS_MIGRATION_GUIDE.md](REDIS_MIGRATION_GUIDE.md)  
+> ⚡ **Commandes rapides** : [REDIS_ACTIVATION_COMMANDS.md](REDIS_ACTIVATION_COMMANDS.md)
+
+**✅ STATUT : Installé et actif sur le serveur de production**
+
+### ⚠️ CORRECTION URGENTE : Erreur "Table 'jobs' doesn't exist"
+
+**Si vous voyez cette erreur dans Sentry**, c'est que le `.env` sur le serveur utilise encore `QUEUE_CONNECTION=database` au lieu de `redis`.
+
+**Solution rapide** :
+
+```bash
+# Se connecter au serveur
+ssh -i ~/.ssh/axontis-vultr root@45.32.146.20
+
+# Activer Redis automatiquement
+cd /var/www/axontis/infrastructure/scripts
+bash activate-redis.sh
+```
+
+**OU manuellement** :
+
+```bash
+# Éditer le .env
+nano /var/www/axontis/.env
+
+# Modifier ces lignes :
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis  # ← IMPORTANT pour corriger l'erreur
+REDIS_PASSWORD=null
+
+# Appliquer
+cd /var/www/axontis
+php artisan config:cache
+supervisorctl restart axontis-worker:*
+```
+
+### Configuration Redis requise dans .env
+
+```env
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_CACHE_DB=1
+REDIS_SESSION_DB=2
+REDIS_QUEUE_DB=3
+```
+
+### Vérification
+
+```bash
+# Vérifier que Redis fonctionne
+redis-cli ping  # Doit retourner: PONG
+
+# Vérifier les workers
+supervisorctl status
+# Les workers doivent utiliser "queue:work redis"
+
+# Vérifier le .env
+grep QUEUE_CONNECTION /var/www/axontis/.env
+# Doit afficher: QUEUE_CONNECTION=redis
+```
+
