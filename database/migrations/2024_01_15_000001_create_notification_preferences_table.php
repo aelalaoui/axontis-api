@@ -43,7 +43,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Index pour optimiser les requêtes
-            $table->index(['notifiable_type', 'notifiable_id']);
+            // Note: morphs() crée déjà l'index sur notifiable_type et notifiable_id
             $table->index('notify_email');
             $table->index('notify_sms');
         });

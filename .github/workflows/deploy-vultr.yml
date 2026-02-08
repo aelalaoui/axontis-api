@@ -11,9 +11,98 @@ env:
   NODE_VERSION: '22'
 
 jobs:
+  # =============================================================================
+  # Job 0: Test Migrations (SQLite)
+  # =============================================================================
+  test-migrations:
+    name: 🧪 Test Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐘 Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, intl, zip, bcmath, gd, pdo, pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: 📦 Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction
+
+      - name: 🗄️ Test migrations on SQLite
+        run: |
+          echo "🧪 Testing migrations on SQLite..."
+
+          # Créer une base SQLite temporaire
+          touch database/testing.sqlite
+
+          # Configurer l'environnement de test
+          cp .env.example .env.testing
+          php artisan key:generate --env=testing
+
+          # Configurer SQLite dans .env.testing
+          echo "" >> .env.testing
+          echo "DB_CONNECTION=sqlite" >> .env.testing
+          echo "DB_DATABASE=$(pwd)/database/testing.sqlite" >> .env.testing
+
+          # Exécuter les migrations
+          echo "Running migrations..."
+          php artisan migrate --env=testing --force --no-interaction
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Migrations executed successfully"
+          else
+            echo "❌ Migrations failed!"
+            exit 1
+          fi
+
+          # Tester le rollback
+          echo ""
+          echo "Testing rollback..."
+          php artisan migrate:rollback --env=testing --force --no-interaction
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Rollback successful"
+          else
+            echo "❌ Rollback failed!"
+            exit 1
+          fi
+
+          # Re-tester les migrations (pour vérifier l'idempotence)
+          echo ""
+          echo "Re-testing migrations (idempotence check)..."
+          php artisan migrate --env=testing --force --no-interaction
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Migrations are idempotent"
+          else
+            echo "❌ Migrations failed on second run!"
+            exit 1
+          fi
+
+          # Afficher le schéma créé
+          echo ""
+          echo "📋 Database schema created:"
+          php artisan tinker --env=testing --execute="
+            \$tables = DB::select('SELECT name FROM sqlite_master WHERE type=\"table\" ORDER BY name');
+            foreach (\$tables as \$table) {
+              echo \$table->name . \"\\n\";
+            }
+          " 2>/dev/null || echo "Could not list tables"
+
+          echo ""
+          echo "🎉 All migration tests passed!"
+
+  # =============================================================================
+  # Job 1: Build & Deploy
+  # =============================================================================
   deploy:
     name: 🚀 Build & Deploy to Vultr
     runs-on: ubuntu-latest
+    needs: test-migrations  # Ne déployer que si les tests passent
 
     steps:
       # =========================================================================
@@ -512,7 +601,45 @@ jobs:
           # 9. MIGRATIONS
           # ============================================
           echo "🗄️ Exécution des migrations..."
-          php artisan migrate --force || echo "⚠️ Migration failed or no migrations"
+
+          # Exécuter les migrations et capturer le code de sortie
+          php artisan migrate --force
+          MIGRATION_EXIT_CODE=$?
+
+          if [ $MIGRATION_EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "=========================================="
+            echo "❌ ERREUR : Les migrations ont échoué!"
+            echo "=========================================="
+            echo ""
+            echo "Code de sortie: $MIGRATION_EXIT_CODE"
+            echo ""
+            echo "🔄 Restauration du backup précédent..."
+
+            # Activer le mode maintenance
+            php artisan down --retry=60 2>/dev/null || true
+
+            # Restaurer le dernier backup
+            LATEST_BACKUP=$(ls -t $BACKUP_PATH/backup_*.tar.gz 2>/dev/null | head -1)
+            if [ -f "$LATEST_BACKUP" ]; then
+              echo "Restauration depuis: $LATEST_BACKUP"
+              tar -xzf "$LATEST_BACKUP" -C /var/www/
+              echo "✅ Backup restauré"
+            else
+              echo "⚠️ Aucun backup disponible pour restauration"
+            fi
+
+            # Désactiver le mode maintenance
+            php artisan up 2>/dev/null || true
+
+            echo ""
+            echo "Veuillez vérifier les logs et corriger les migrations avant de redéployer."
+            echo ""
+
+            exit 1
+          fi
+
+          echo "✅ Migrations exécutées avec succès"
 
           # ============================================
           # 9.1 SEEDERS (uniquement si première installation)
