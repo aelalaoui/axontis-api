@@ -33,7 +33,6 @@ class EmailSentListener
                 'to' => $to,
                 'subject' => $subject,
                 'mailer' => $mailer,
-                'message_id' => $message->getMessageId(),
             ]);
 
             // Métriques (optionnel - à connecter à votre système de monitoring)
