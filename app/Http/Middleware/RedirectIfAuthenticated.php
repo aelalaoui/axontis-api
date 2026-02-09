@@ -17,6 +17,11 @@ class RedirectIfAuthenticated
      */
     public function handle(Request $request, Closure $next, string ...$guards): Response
     {
+        // Autoriser les routes de réinitialisation de mot de passe même si l'utilisateur est connecté
+        if ($request->routeIs('password.*')) {
+            return $next($request);
+        }
+
         $guards = empty($guards) ? [null] : $guards;
 
         foreach ($guards as $guard) {
