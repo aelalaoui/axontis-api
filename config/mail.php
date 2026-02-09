@@ -77,17 +77,19 @@ return [
 
         /*
         |--------------------------------------------------------------------------
-        | Failover - Cascade automatique : Resend → Mailgun → Brevo
+        | Failover - Cascade automatique : Resend → Mailgun → Brevo → SMTP
         |--------------------------------------------------------------------------
         | Si Resend échoue, Laravel essaiera automatiquement Mailgun,
-        | puis Brevo si Mailgun échoue également.
+        | puis Brevo, et enfin SMTP local comme dernier recours.
+        | Cela garantit qu'au moins un mailer fonctionne toujours.
         */
         'failover' => [
             'transport' => 'failover',
             'mailers' => [
-                'resend',
-                'mailgun',
-                'brevo',
+                'resend',    // Principal (si configuré)
+                'mailgun',   // Backup 1 (si configuré)
+                'brevo',     // Backup 2 (si configuré)
+                'smtp',      // Backup final (toujours disponible)
             ],
         ],
 

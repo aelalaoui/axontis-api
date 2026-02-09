@@ -550,14 +550,22 @@ jobs:
 
           # Configurer Mail
           echo "=== MAIL CONFIGURATION ==="
-          update_env "MAIL_MAILER" "$MAIL_MAILER"
-          update_env "MAIL_HOST" "$MAIL_HOST"
-          update_env "MAIL_PORT" "$MAIL_PORT"
-          update_env "MAIL_USERNAME" "$MAIL_USERNAME"
-          update_env "MAIL_PASSWORD" "$MAIL_PASSWORD"
-          update_env "MAIL_FROM_ADDRESS" "$MAIL_FROM_ADDRESS"
-          update_env "MAIL_FROM_NAME" "$MAIL_FROM_NAME"
-          echo "✅ Mail configuration updated"
+
+          # Utiliser failover par défaut pour bénéficier du système multi-providers
+          MAIL_MAILER_VALUE="${MAIL_MAILER:-failover}"
+          if [ -z "$MAIL_MAILER_VALUE" ]; then
+            MAIL_MAILER_VALUE="failover"
+            echo "⚠️  MAIL_MAILER non défini, utilisation de 'failover' par défaut"
+          fi
+
+          update_env "MAIL_MAILER" "$MAIL_MAILER_VALUE"
+          update_env "MAIL_HOST" "${MAIL_HOST:-localhost}"
+          update_env "MAIL_PORT" "${MAIL_PORT:-25}"
+          update_env "MAIL_USERNAME" "${MAIL_USERNAME:-null}"
+          update_env "MAIL_PASSWORD" "${MAIL_PASSWORD:-null}"
+          update_env "MAIL_FROM_ADDRESS" "${MAIL_FROM_ADDRESS:-noreply@axontis.net}"
+          update_env "MAIL_FROM_NAME" "${MAIL_FROM_NAME:-Axontis}"
+          echo "✅ Mail configuration updated (mailer: $MAIL_MAILER_VALUE)"
 
           # Configurer Email Providers (Failover: Resend → Mailgun → Brevo)
           echo "=== EMAIL PROVIDERS CONFIGURATION ==="
