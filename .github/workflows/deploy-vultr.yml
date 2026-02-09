@@ -787,12 +787,19 @@ jobs:
           php artisan queue:restart
 
           # Vérifier et configurer Supervisor si nécessaire
-          if [ ! -f /etc/supervisor/conf.d/axontis-worker.conf ]; then
-            echo "📝 Création de la configuration Supervisor..."
-            cat > /etc/supervisor/conf.d/axontis-worker.conf << 'SUPERVISOR_EOF'
-          [program:axontis-worker]
+          if command -v supervisorctl &> /dev/null; then
+            echo "📝 Configuration des workers Supervisor..."
+
+            # Utiliser le fichier de config des workers depuis le repo
+            if [ -f "$APP_PATH/infrastructure/scripts/supervisor-workers.conf" ]; then
+              echo "  Copie de la configuration depuis le repo..."
+              cp $APP_PATH/infrastructure/scripts/supervisor-workers.conf /etc/supervisor/conf.d/axontis-workers.conf
+            elif [ ! -f /etc/supervisor/conf.d/axontis-workers.conf ]; then
+              echo "  Création de la configuration par défaut..."
+              cat > /etc/supervisor/conf.d/axontis-workers.conf << 'SUPERVISOR_EOF'
+          [program:axontis-worker-default]
           process_name=%(program_name)s_%(process_num)02d
-          command=php /var/www/axontis/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+          command=php /var/www/axontis/artisan queue:work redis --queue=default,emails,sms,whatsapp,telegram --sleep=3 --tries=3 --max-time=3600
           autostart=true
           autorestart=true
           stopasgroup=true
@@ -802,20 +809,28 @@ jobs:
           redirect_stderr=true
           stdout_logfile=/var/www/axontis/storage/logs/worker.log
           stopwaitsecs=3600
-          SUPERVISOR_EOF
-            supervisorctl reread
-            supervisorctl update
-          fi
 
-          # Redémarrer les workers si le groupe existe
-          if supervisorctl status axontis-worker:* > /dev/null 2>&1; then
-            supervisorctl restart axontis-worker:*
-            echo "✅ Workers redémarrés"
-          else
-            echo "⚠️ Workers non configurés, tentative de démarrage..."
+          [group:axontis-workers]
+          programs=axontis-worker-default
+          priority=999
+          SUPERVISOR_EOF
+            fi
+
+            # Recharger et démarrer les workers
+            echo "  Rechargement de la configuration..."
             supervisorctl reread
             supervisorctl update
-            supervisorctl start axontis-worker:* 2>/dev/null || echo "⚠️ Impossible de démarrer les workers"
+
+            # Redémarrer les workers
+            if supervisorctl status axontis-workers:* > /dev/null 2>&1; then
+              supervisorctl restart axontis-workers:*
+              echo "✅ Workers redémarrés"
+            else
+              supervisorctl start axontis-workers:* 2>/dev/null && echo "✅ Workers démarrés" || echo "⚠️ Impossible de démarrer les workers (vérifier les logs)"
+            fi
+          else
+            echo "⚠️ Supervisor non installé - workers non démarrés"
+            echo "   Installation : apt-get install supervisor"
           fi
 
           # ============================================
@@ -828,11 +843,73 @@ jobs:
           # 14. VÉRIFICATION
           # ============================================
           echo "🔍 Vérification du déploiement..."
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
+
+          # Récupérer l'URL configurée
+          APP_URL=$(grep "^APP_URL=" $APP_PATH/.env | cut -d'=' -f2)
+          echo "URL de l'application : $APP_URL"
+
+          # Test 1 : Localhost
+          echo ""
+          echo "Test 1 : localhost"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost 2>/dev/null || echo "000")
           if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
-            echo "✅ Application accessible (HTTP $HTTP_CODE)"
+            echo "  ✅ Localhost répond (HTTP $HTTP_CODE)"
           else
-            echo "⚠️ L'application répond avec HTTP $HTTP_CODE"
+            echo "  ⚠️  Localhost : HTTP $HTTP_CODE"
+          fi
+
+          # Test 2 : APP_URL
+          if [ -n "$APP_URL" ] && [ "$APP_URL" != "http://localhost" ]; then
+            echo ""
+            echo "Test 2 : $APP_URL"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L "$APP_URL" 2>/dev/null || echo "000")
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
+              echo "  ✅ Application accessible (HTTP $HTTP_CODE)"
+            else
+              echo "  ⚠️  Application : HTTP $HTTP_CODE"
+            fi
+          fi
+
+          # Test 3 : Vérifier les logs récents
+          echo ""
+          echo "Test 3 : Logs récents"
+          if [ -f "$APP_PATH/storage/logs/laravel.log" ]; then
+            RECENT_ERRORS=$(tail -100 $APP_PATH/storage/logs/laravel.log | grep -i "error\|exception\|fatal" | wc -l)
+            if [ "$RECENT_ERRORS" -gt 0 ]; then
+              echo "  ⚠️  $RECENT_ERRORS erreur(s) dans les logs récents"
+              echo "     Dernières erreurs :"
+              tail -100 $APP_PATH/storage/logs/laravel.log | grep -i "error\|exception" | tail -3 | sed 's/^/     /'
+            else
+              echo "  ✅ Aucune erreur récente dans les logs"
+            fi
+          fi
+
+          # Test 4 : Vérifier que les fichiers clés existent
+          echo ""
+          echo "Test 4 : Fichiers critiques"
+          critical_files=(
+            "artisan"
+            "public/index.php"
+            ".env"
+            "vendor/autoload.php"
+          )
+
+          for file in "${critical_files[@]}"; do
+            if [ -f "$APP_PATH/$file" ]; then
+              echo "  ✅ $file"
+            else
+              echo "  ❌ $file manquant !"
+            fi
+          done
+
+          # Test 5 : Vérifier les permissions
+          echo ""
+          echo "Test 5 : Permissions"
+          STORAGE_OWNER=$(stat -c '%U' $APP_PATH/storage)
+          if [ "$STORAGE_OWNER" = "www-data" ]; then
+            echo "  ✅ Permissions correctes (www-data)"
+          else
+            echo "  ⚠️  Owner de storage : $STORAGE_OWNER (devrait être www-data)"
           fi
 
           echo ""
