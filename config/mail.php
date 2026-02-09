@@ -12,7 +12,7 @@ return [
     | and used as needed; however, this mailer will be used by default.
     |
     | Pour la production, utiliser 'failover' pour activer le système
-    | de repli automatique : Resend → Mailgun → Brevo
+    | de repli automatique : Resend → SMTP
     |
     */
 
@@ -77,18 +77,20 @@ return [
 
         /*
         |--------------------------------------------------------------------------
-        | Failover - Cascade automatique : Resend → Mailgun → Brevo → SMTP
+        | Failover - Cascade automatique : Resend → SMTP
         |--------------------------------------------------------------------------
-        | Si Resend échoue, Laravel essaiera automatiquement Mailgun,
-        | puis Brevo, et enfin SMTP local comme dernier recours.
-        | Cela garantit qu'au moins un mailer fonctionne toujours.
+        | Si Resend échoue, Laravel essaiera automatiquement SMTP local
+        | comme dernier recours. Cela garantit qu'au moins un mailer
+        | fonctionne toujours.
+        |
+        | Note: Pour activer Mailgun ou Brevo, installez d'abord les packages:
+        | - Mailgun: composer require symfony/mailgun-mailer
+        | - Brevo: déjà supporté via SMTP
         */
         'failover' => [
             'transport' => 'failover',
             'mailers' => [
-                'resend',    // Principal (si configuré)
-                'mailgun',   // Backup 1 (si configuré)
-                'brevo',     // Backup 2 (si configuré)
+                'resend',    // Principal (package installé)
                 'smtp',      // Backup final (toujours disponible)
             ],
         ],
