@@ -129,11 +129,12 @@ img {
 /* Logo */
 
 .logo {
-    height: 200px;
+    height: auto;
     margin-top: 10px;
     margin-bottom: 10px;
-    max-height: 60px;
-    width: auto;
+    max-height: 100px;
+    width: 100%;
+    max-width: 600px;
 }
 
 /* Body */
@@ -264,7 +265,7 @@ img {
 .button {
     -webkit-text-size-adjust: none;
     border-radius: 12px;
-    color: #0f172a;
+    color: #ffffff;
     display: inline-block;
     overflow: hidden;
     text-decoration: none;
