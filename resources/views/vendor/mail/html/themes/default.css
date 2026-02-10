@@ -129,7 +129,7 @@ img {
 /* Logo */
 
 .logo {
-    height: 60px;
+    height: 200px;
     margin-top: 10px;
     margin-bottom: 10px;
     max-height: 60px;
@@ -277,31 +277,22 @@ img {
 .button-blue,
 .button-primary {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    border-bottom: 12px solid transparent;
-    border-left: 24px solid transparent;
-    border-right: 24px solid transparent;
-    border-top: 12px solid transparent;
-    background-clip: padding-box;
+    padding: 12px 24px;
+    border: none;
 }
 
 .button-green,
 .button-success {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    border-bottom: 12px solid transparent;
-    border-left: 24px solid transparent;
-    border-right: 24px solid transparent;
-    border-top: 12px solid transparent;
-    background-clip: padding-box;
+    padding: 12px 24px;
+    border: none;
 }
 
 .button-red,
 .button-error {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    border-bottom: 12px solid transparent;
-    border-left: 24px solid transparent;
-    border-right: 24px solid transparent;
-    border-top: 12px solid transparent;
-    background-clip: padding-box;
+    padding: 12px 24px;
+    border: none;
 }
 
 /* Panels */

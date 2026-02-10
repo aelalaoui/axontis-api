@@ -856,7 +856,7 @@ jobs:
           # ============================================
           echo "✅ Désactivation du mode maintenance..."
           php artisan up
-          php artisan optimize
+          php artisan config:cache
 
           # ============================================
           # 14. VÉRIFICATION
