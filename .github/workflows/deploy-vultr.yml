@@ -766,10 +766,12 @@ jobs:
           # 10. OPTIMISATIONS LARAVEL
           # ============================================
           echo "⚡ Optimisation de Laravel..."
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
-          php artisan event:cache
+
+          # D'abord nettoyer tous les caches
+          php artisan optimize:clear
+
+          # Ensuite reconstruire les caches
+          php artisan optimize
 
           # S'assurer que le lien storage existe (ignorer si déjà créé)
           if [ ! -L "$APP_PATH/public/storage" ]; then
