@@ -770,6 +770,14 @@ jobs:
           # D'abord nettoyer tous les caches
           php artisan optimize:clear
 
+          # Publier les vues vendor mail si nécessaire (pour les notifications)
+          if [ ! -d "$APP_PATH/resources/views/vendor/mail" ]; then
+            echo "📧 Publication des vues email..."
+            php artisan vendor:publish --tag=laravel-mail --force
+          else
+            echo "✅ Vues email déjà publiées"
+          fi
+
           # Ensuite reconstruire les caches
           php artisan optimize
 
