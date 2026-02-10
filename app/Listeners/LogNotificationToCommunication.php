@@ -28,8 +28,8 @@ class LogNotificationToCommunication
             // Mapper le canal Laravel vers l'enum de la table
             $mappedChannel = Communication::mapChannel($channel);
 
-            // Extraire le sujet et le message
-            $subject = $this->extractSubject($notification, $channel);
+            // Extraire le sujet et le message (passer le notifiable réel)
+            $subject = $this->extractSubject($notification, $channel, $notifiable);
             $message = $this->extractMessage($notification, $channel, $event->response);
 
             // Obtenir l'ID de l'utilisateur qui a déclenché la notification
@@ -77,7 +77,7 @@ class LogNotificationToCommunication
     /**
      * Extraire le sujet de la notification
      */
-    protected function extractSubject(object $notification, string $channel): ?string
+    protected function extractSubject(object $notification, string $channel, ?object $notifiable = null): ?string
     {
         // Si c'est une BaseNotification, utiliser la propriété subject
         if ($notification instanceof BaseNotification) {
@@ -87,10 +87,12 @@ class LogNotificationToCommunication
         // Essayer d'obtenir le sujet depuis la réponse mail
         if ($channel === 'mail' && method_exists($notification, 'toMail')) {
             try {
-                $mailMessage = $notification->toMail(new \stdClass());
+                // Utiliser le notifiable réel si disponible, sinon un stdClass minimal
+                $mockNotifiable = $notifiable ?? (object)['email' => 'example@example.com', 'name' => 'User'];
+                $mailMessage = $notification->toMail($mockNotifiable);
                 return $mailMessage->subject ?? null;
             } catch (\Exception $e) {
-                // Ignorer
+                // Ignorer et retourner null
             }
         }
 
