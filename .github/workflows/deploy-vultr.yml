@@ -798,6 +798,12 @@ jobs:
           chmod -R 775 $APP_PATH/bootstrap/cache
 
           # ============================================
+          # 10B. OPTIMISATION FINALE
+          # ============================================
+            echo "⚡ Optimisation finale de Laravel..."
+            php artisan optimize
+
+          # ============================================
           # 12. REDÉMARRAGE DES SERVICES
           # ============================================
           echo "🔄 Redémarrage des services..."
@@ -856,8 +862,6 @@ jobs:
           # ============================================
           echo "✅ Désactivation du mode maintenance..."
           php artisan up
-          php artisan optimize:clear
-          php artisan optimize
 
           # ============================================
           # 14. VÉRIFICATION
