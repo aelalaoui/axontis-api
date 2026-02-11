@@ -129,11 +129,9 @@ img {
 /* Logo */
 
 .logo {
-    height: auto;
-    width: 100%;
-    max-width: 600px;
-    max-height: none;
-    aspect-ratio: 3/1;
+    height: 200px;
+    width: 600px;
+    max-width: 100%;
     margin-top: 10px;
     margin-bottom: 10px;
 }
@@ -170,6 +168,10 @@ img {
     word-break: break-all;
     color: #f59e0b;
     font-weight: 500;
+}
+
+.inner-body .button {
+    color: #ffffff !important;
 }
 
 /* Subcopy */

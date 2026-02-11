@@ -3,7 +3,12 @@
 <td class="header">
 <a href="{{ $url }}" style="display: inline-block;">
 @if (trim($slot) === 'Laravel')
-<img src="{{ asset('images/emails/logo.png') }}" class="logo" alt="Axontis Logo">
+<img
+    class="logo"
+    src="{{ asset('images/emails/logo.png') }}"
+    alt="Axontis Logo"
+    style="height: 200px; width: 600px; max-width: 100%;"
+>
 @else
 {!! $slot !!}
 @endif
