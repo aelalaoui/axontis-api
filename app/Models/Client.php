@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
-use App\Enums\ClientStep;
-use App\Traits\HasUuid;
-use App\Traits\HasProperties;
 use App\Enums\ClientStatus;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Enums\ClientStep;
+use App\Traits\HasProperties;
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -123,6 +122,37 @@ class Client extends Model
     public function communications(): MorphMany
     {
         return $this->morphMany(Communication::class, 'communicable');
+    }
+
+    /**
+     * Obtenir les préférences de notification de ce client
+     */
+    public function notificationPreference(): \Illuminate\Database\Eloquent\Relations\MorphOne
+    {
+        return $this->morphOne(NotificationPreference::class, 'notifiable');
+    }
+
+    /**
+     * Obtenir ou créer les préférences de notification
+     */
+    public function getOrCreateNotificationPreference(): NotificationPreference
+    {
+        return NotificationPreference::getOrCreateFor($this);
+    }
+
+    /**
+     * Vérifier si un canal de notification est activé
+     */
+    public function isNotificationChannelEnabled(string $channel): bool
+    {
+        $preferences = $this->notificationPreference;
+
+        if (!$preferences) {
+            // Par défaut, seul l'email est activé
+            return $channel === 'mail' || $channel === 'email';
+        }
+
+        return $preferences->isChannelEnabled($channel);
     }
 
     // Accessors

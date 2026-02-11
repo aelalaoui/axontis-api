@@ -145,6 +145,26 @@ Route::middleware([
         // CRM Products Routes with file management
         Route::resourceWithFiles('products', \App\Http\Controllers\ProductController::class);
 
+        // CRM Communications Routes - Traçabilité des notifications
+        Route::prefix('communications')->name('communications.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\CommunicationController::class, 'index'])
+                ->name('index');
+            Route::get('/stats', [\App\Http\Controllers\CommunicationController::class, 'stats'])
+                ->name('stats');
+            Route::get('/export', [\App\Http\Controllers\CommunicationController::class, 'export'])
+                ->name('export');
+            Route::get('/{id}', [\App\Http\Controllers\CommunicationController::class, 'show'])
+                ->name('show');
+            Route::post('/{id}/resend', [\App\Http\Controllers\CommunicationController::class, 'resend'])
+                ->name('resend');
+        });
+
+        // Communications par entité
+        Route::get('clients/{clientId}/communications', [\App\Http\Controllers\CommunicationController::class, 'forClient'])
+            ->name('clients.communications');
+        Route::get('users/{userId}/communications', [\App\Http\Controllers\CommunicationController::class, 'forUser'])
+            ->name('users.communications');
+
         // API Routes for autocomplete and search
         Route::prefix('api')->name('api.')->group(function () {
             Route::get('suppliers/search', [\App\Http\Controllers\SupplierController::class, 'searchSuppliers'])
