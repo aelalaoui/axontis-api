@@ -130,11 +130,12 @@ img {
 
 .logo {
     height: auto;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    max-height: 100px;
     width: 100%;
     max-width: 600px;
+    max-height: none;
+    aspect-ratio: 3/1;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 /* Body */
@@ -165,7 +166,7 @@ img {
     width: 600px;
 }
 
-.inner-body a {
+.inner-body a:not(.button) {
     word-break: break-all;
     color: #f59e0b;
     font-weight: 500;
