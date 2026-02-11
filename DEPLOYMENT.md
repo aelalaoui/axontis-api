@@ -2,6 +2,10 @@
 
 Ce guide explique comment déployer l'application Axontis CRM sur le VPS Vultr.
 
+> ⚡ **NOUVEAU : Zero Downtime Deployment !**
+>
+> Voir [ZERO_DOWNTIME_DEPLOYMENT.md](ZERO_DOWNTIME_DEPLOYMENT.md) pour la nouvelle stratégie de déploiement sans interruption de service.
+
 ## 📋 Informations du serveur
 
 | Propriété | Valeur |
@@ -124,19 +128,23 @@ supervisorctl start axontis-scheduler
 
 ## 🔄 Déploiements suivants
 
-### Option 1: Automatique (recommandé)
-Push sur la branche `main` → Le workflow GitHub Actions se déclenche automatiquement.
+### Option 1: Automatique avec Zero Downtime (recommandé ⚡)
 
-### Option 2: Script manuel (sur le serveur)
+Push sur la branche `main` → Le workflow GitHub Actions se déclenche automatiquement avec **zero downtime**.
+
+**Nouveau workflow:** `.github/workflows/deploy-vultr.yml` - Déploie sans interruption de service !
+
+### Option 2: Script manuel (Zero Downtime)
 
 ```bash
 # Sur le serveur
-deploy-axontis.sh
-# ou avec une branche spécifique
-deploy-axontis.sh develop
+cd /var/www/axontis/infrastructure/scripts
+bash deploy-axontis-zero-downtime.sh [branch]
 ```
 
-### Option 3: Commandes manuelles
+> ℹ️ L'ancien script `deploy-axontis.sh` utilise le mode maintenance et est gardé pour backup seulement.
+
+### Option 3: Commandes manuelles (ancienne méthode)
 
 ```bash
 cd /var/www/axontis

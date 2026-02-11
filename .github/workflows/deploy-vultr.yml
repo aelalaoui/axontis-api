@@ -1,4 +1,4 @@
-name: 🚀 Deploy to Vultr VPS
+name: 🚀 Deploy to Vultr VPS (Zero Downtime)
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 env:
   APP_PATH: /var/www/axontis
+  RELEASES_PATH: /var/www/axontis/releases
   PHP_VERSION: '8.3'
   NODE_VERSION: '22'
 
@@ -197,10 +198,10 @@ jobs:
           echo "🎉 All migration tests passed!"
 
   # =============================================================================
-  # Job 1: Build & Deploy
+  # Job 1: Build & Deploy (Zero Downtime)
   # =============================================================================
   deploy:
-    name: 🚀 Build & Deploy to Vultr
+    name: 🚀 Build & Deploy to Vultr (Zero Downtime)
     runs-on: ubuntu-latest
     needs: test-migrations  # Ne déployer que si les tests passent
 
@@ -259,8 +260,6 @@ jobs:
             .
           TAR_EXIT=$?
           set -e
-          # Exit code 1 = "file changed as we read it" (warning, not error)
-          # Exit code 2+ = actual error
           if [ $TAR_EXIT -ge 2 ]; then
             echo "❌ tar failed with exit code $TAR_EXIT"
             exit $TAR_EXIT
@@ -286,7 +285,7 @@ jobs:
           ssh -o BatchMode=yes -o ConnectTimeout=10 -v ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} "echo 'SSH connection successful'" || {
             echo "❌ SSH connection failed!"
             echo ""
-            echo "Please ensure the following public key is added to ~/.ssh/authorized_keys on your Vultr server:"
+            echo "Please ensure following public key is added to ~/.ssh/authorized_keys on your Vultr server:"
             ssh-add -L
             exit 1
           }
@@ -299,9 +298,9 @@ jobs:
           scp release.tar.gz ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }}:/tmp/release.tar.gz
 
       # =========================================================================
-      # 6. DEPLOY ON SERVER WITH SECRETS
+      # 6. ZERO DOWNTIME DEPLOYMENT
       # =========================================================================
-      - name: 🚀 Deploy on server
+      - name: 🚀 Deploy on server (Zero Downtime)
         env:
           # Database
           DB_HOST: ${{ secrets.DB_HOST }}
@@ -333,7 +332,7 @@ jobs:
           SENTRY_LARAVEL_DSN: ${{ secrets.SENTRY_LARAVEL_DSN }}
           # Redis
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-          # Mail - Configuration de base
+          # Mail
           MAIL_MAILER: ${{ secrets.MAIL_MAILER }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_PORT: ${{ secrets.MAIL_PORT }}
@@ -341,28 +340,23 @@ jobs:
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
           MAIL_FROM_NAME: ${{ secrets.MAIL_FROM_NAME }}
-          # Email Providers - Resend (Principal)
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          # Email Providers - Mailgun (Backup 1)
           MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
           MAILGUN_SECRET: ${{ secrets.MAILGUN_SECRET }}
           MAILGUN_ENDPOINT: ${{ secrets.MAILGUN_ENDPOINT }}
-          # Email Providers - Brevo (Backup 2)
           BREVO_SMTP_HOST: ${{ secrets.BREVO_SMTP_HOST }}
           BREVO_SMTP_PORT: ${{ secrets.BREVO_SMTP_PORT }}
           BREVO_SMTP_USERNAME: ${{ secrets.BREVO_SMTP_USERNAME }}
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
-          # SMS - Twilio
+          # SMS
           TWILIO_SID: ${{ secrets.TWILIO_SID }}
           TWILIO_TOKEN: ${{ secrets.TWILIO_TOKEN }}
           TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
           TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
-          # Messaging - Telegram
+          # Messaging
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # Messaging - Slack
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          # Notifications - Alertes équipe technique
           NOTIFICATION_SLACK_WEBHOOK: ${{ secrets.NOTIFICATION_SLACK_WEBHOOK }}
           NOTIFICATION_TELEGRAM_CHAT_ID: ${{ secrets.NOTIFICATION_TELEGRAM_CHAT_ID }}
         run: |
@@ -417,191 +411,105 @@ jobs:
           set -e
 
           echo "=========================================="
-          echo "🚀 DÉPLOIEMENT AXONTIS - $(date)"
+          echo "🚀 ZERO DOWNTIME DÉPLOIEMENT AXONTIS"
+          echo "📅 $(date)"
           echo "=========================================="
 
           APP_PATH="/var/www/axontis"
+          RELEASES_PATH="$APP_PATH/releases"
+          CURRENT_LINK="$APP_PATH/current"
           BACKUP_PATH="/var/backups/axontis"
+          SHARED_PATH="$APP_PATH/shared"
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          NEW_RELEASE="$RELEASES_PATH/$TIMESTAMP"
 
           # Créer les dossiers nécessaires
+          mkdir -p $RELEASES_PATH
           mkdir -p $BACKUP_PATH
-          mkdir -p $APP_PATH
+          mkdir -p $SHARED_PATH/storage/{app,framework,logs}
 
           # ============================================
-          # 1. BACKUP DU CODE ACTUEL
+          # 1. BACKUP
           # ============================================
-          echo "📦 Backup du code actuel..."
-          if [ -d "$APP_PATH" ] && [ -f "$APP_PATH/artisan" ]; then
-            tar -czf "$BACKUP_PATH/backup_${TIMESTAMP}.tar.gz" \
-              -C /var/www axontis \
-              --exclude='storage/logs/*' \
-              --exclude='storage/framework/cache/*' \
-              --exclude='vendor' \
-              --exclude='node_modules' 2>/dev/null || true
-            echo "✅ Backup créé: backup_${TIMESTAMP}.tar.gz"
+          echo ""
+          echo "📦 Création du backup..."
 
-            # Garder seulement les 5 derniers backups
-            cd $BACKUP_PATH && ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -- 2>/dev/null || true
+          # Backup de la base de données
+          if [ -f "$CURRENT_LINK/.env" ]; then
+            DB_USER=$(grep -E "^DB_USERNAME=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+            DB_PASS=$(grep -E "^DB_PASSWORD=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+            DB_NAME=$(grep -E "^DB_DATABASE=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+            mysqldump -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_PATH/db_${TIMESTAMP}.sql" 2>/dev/null || true
+            echo "✅ Backup BDD créé"
           fi
 
-          # ============================================
-          # 2. MODE MAINTENANCE
-          # ============================================
-          echo "🔧 Activation du mode maintenance..."
-          cd $APP_PATH 2>/dev/null && php artisan down --retry=60 2>/dev/null || true
+          # Nettoyer les vieux backups
+          cd $BACKUP_PATH && ls -t db_*.sql 2>/dev/null | tail -n +6 | xargs -r rm --
 
           # ============================================
-          # 3. SAUVEGARDE DES FICHIERS IMPORTANTS
+          # 2. EXTRACTION DU NOUVEAU CODE
           # ============================================
-          echo "💾 Sauvegarde des fichiers persistants..."
-          cp $APP_PATH/.env /tmp/.env.backup 2>/dev/null || true
-          cp -r $APP_PATH/storage/app /tmp/storage_app_backup 2>/dev/null || true
-
-          # ============================================
-          # 4. EXTRACTION DU NOUVEAU CODE
-          # ============================================
+          echo ""
           echo "📥 Extraction du nouveau code..."
-          cd $APP_PATH
-          tar -xzf /tmp/release.tar.gz --overwrite
+          mkdir -p $NEW_RELEASE
+          cd $NEW_RELEASE
+          tar -xzf /tmp/release.tar.gz
           rm -f /tmp/release.tar.gz
           echo "✅ Code extrait"
 
           # ============================================
-          # 5. CONFIGURATION DU .ENV
+          # 3. SYMLINKS POUR LES FICHIERS PARTAGÉS
           # ============================================
+          echo ""
+          echo "🔗 Configuration des symlinks partagés..."
+          mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
+          rm -rf $NEW_RELEASE/storage
+          ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
+          echo "✅ Symlinks configurés"
+
+          # ============================================
+          # 4. CONFIGURATION DU .ENV
+          # ============================================
+          echo ""
           echo "⚙️ Configuration de l'environnement..."
 
-          # Si .env n'existe pas, le créer depuis .env.example
-          if [ ! -f "$APP_PATH/.env" ]; then
-            if [ -f "$APP_PATH/.env.example" ]; then
-              cp $APP_PATH/.env.example $APP_PATH/.env
-              echo "✅ .env créé depuis .env.example"
-            else
-              touch $APP_PATH/.env
-              echo "✅ .env vide créé"
-            fi
+          # Copier le .env existant ou utiliser le backup
+          if [ -f "$CURRENT_LINK/.env" ]; then
+            cp $CURRENT_LINK/.env $NEW_RELEASE/.env
+            echo "✅ .env copié depuis la version actuelle"
           else
-            # Restaurer le .env sauvegardé
-            cp /tmp/.env.backup $APP_PATH/.env 2>/dev/null || true
-            echo "✅ .env restauré depuis backup"
+            # Créer depuis .env.example
+            if [ -f "$NEW_RELEASE/.env.example" ]; then
+              cp $NEW_RELEASE/.env.example $NEW_RELEASE/.env
+            else
+              touch $NEW_RELEASE/.env
+            fi
           fi
 
-          # Fonction pour ajouter ou mettre à jour une variable
+          # Fonction pour mettre à jour une variable .env
           update_env() {
             local key=$1
             local value=$2
             if [ -n "$value" ]; then
-              if grep -q "^${key}=" $APP_PATH/.env; then
-                sed -i "s|^${key}=.*|${key}=${value}|" $APP_PATH/.env
+              if grep -q "^${key}=" $NEW_RELEASE/.env; then
+                sed -i "s|^${key}=.*|${key}=${value}|" $NEW_RELEASE/.env
               else
-                echo "${key}=${value}" >> $APP_PATH/.env
+                echo "${key}=${value}" >> $NEW_RELEASE/.env
               fi
             fi
           }
 
-          # Configurer les variables d'application
-          echo "=== APP CONFIGURATION ==="
+          # Mise à jour des variables avec les secrets
           update_env "APP_ENV" "production"
           update_env "APP_DEBUG" "false"
           update_env "APP_KEY" "$APP_KEY"
           update_env "APP_URL" "$APP_URL"
-
-          # Configurer la base de données
-          echo "=== DATABASE CONFIGURATION ==="
           update_env "DB_CONNECTION" "mysql"
           update_env "DB_HOST" "$DB_HOST"
           update_env "DB_PORT" "$DB_PORT"
           update_env "DB_DATABASE" "$DB_DATABASE"
           update_env "DB_USERNAME" "$DB_USERNAME"
           update_env "DB_PASSWORD" "$DB_PASSWORD"
-          echo "✅ Database configuration updated"
-
-          # Configurer Cloudflare R2
-          echo "=== CLOUDFLARE R2 CONFIGURATION ==="
-          update_env "CLOUDFLARE_R2_ACCESS_KEY_ID" "$CLOUDFLARE_R2_ACCESS_KEY_ID"
-          update_env "CLOUDFLARE_R2_SECRET_ACCESS_KEY" "$CLOUDFLARE_R2_SECRET_ACCESS_KEY"
-          update_env "CLOUDFLARE_R2_BUCKET" "$CLOUDFLARE_R2_BUCKET"
-          update_env "CLOUDFLARE_R2_ENDPOINT" "$CLOUDFLARE_R2_ENDPOINT"
-          update_env "CLOUDFLARE_R2_URL" "$CLOUDFLARE_R2_URL"
-          echo "✅ Cloudflare R2 configuration updated"
-
-          # Configurer DocuSign
-          echo "=== DOCUSIGN CONFIGURATION ==="
-          update_env "DOCUSIGN_CLIENT_ID" "$DOCUSIGN_CLIENT_ID"
-          update_env "DOCUSIGN_USER_ID" "$DOCUSIGN_USER_ID"
-          update_env "DOCUSIGN_ACCOUNT_ID" "$DOCUSIGN_ACCOUNT_ID"
-          update_env "DOCUSIGN_BASE_PATH" "$DOCUSIGN_BASE_PATH"
-          update_env "DOCUSIGN_OAUTH_BASE_PATH" "$DOCUSIGN_OAUTH_BASE_PATH"
-          update_env "DOCUSIGN_HMAC_KEY" "$DOCUSIGN_HMAC_KEY"
-          echo "✅ DocuSign configuration updated"
-
-          # Configurer Stripe
-          echo "=== STRIPE CONFIGURATION ==="
-          update_env "STRIPE_PUBLIC_KEY" "$STRIPE_PUBLIC_KEY"
-          update_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET_KEY"
-          update_env "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET"
-          echo "✅ Stripe configuration updated"
-
-          # Configurer Sentry
-          echo "=== SENTRY CONFIGURATION ==="
-          update_env "SENTRY_LARAVEL_DSN" "$SENTRY_LARAVEL_DSN"
-          echo "✅ Sentry configuration updated"
-
-          # Configurer Mail
-          echo "=== MAIL CONFIGURATION ==="
-
-          # Utiliser failover par défaut pour bénéficier du système multi-providers
-          MAIL_MAILER_VALUE="${MAIL_MAILER:-failover}"
-          if [ -z "$MAIL_MAILER_VALUE" ]; then
-            MAIL_MAILER_VALUE="failover"
-            echo "⚠️  MAIL_MAILER non défini, utilisation de 'failover' par défaut"
-          fi
-
-          update_env "MAIL_MAILER" "$MAIL_MAILER_VALUE"
-          update_env "MAIL_HOST" "${MAIL_HOST:-localhost}"
-          update_env "MAIL_PORT" "${MAIL_PORT:-25}"
-          update_env "MAIL_USERNAME" "${MAIL_USERNAME:-null}"
-          update_env "MAIL_PASSWORD" "${MAIL_PASSWORD:-null}"
-          update_env "MAIL_FROM_ADDRESS" "${MAIL_FROM_ADDRESS:-noreply@axontis.net}"
-          update_env "MAIL_FROM_NAME" "${MAIL_FROM_NAME:-Axontis}"
-          echo "✅ Mail configuration updated (mailer: $MAIL_MAILER_VALUE)"
-
-          # Configurer Email Providers (Failover: Resend → Mailgun → Brevo)
-          echo "=== EMAIL PROVIDERS CONFIGURATION ==="
-          update_env "RESEND_API_KEY" "$RESEND_API_KEY"
-          update_env "MAILGUN_DOMAIN" "$MAILGUN_DOMAIN"
-          update_env "MAILGUN_SECRET" "$MAILGUN_SECRET"
-          update_env "MAILGUN_ENDPOINT" "$MAILGUN_ENDPOINT"
-          update_env "BREVO_SMTP_HOST" "$BREVO_SMTP_HOST"
-          update_env "BREVO_SMTP_PORT" "$BREVO_SMTP_PORT"
-          update_env "BREVO_SMTP_USERNAME" "$BREVO_SMTP_USERNAME"
-          update_env "BREVO_API_KEY" "$BREVO_API_KEY"
-          echo "✅ Email providers configuration updated"
-
-          # Configurer SMS (Twilio)
-          echo "=== SMS CONFIGURATION ==="
-          update_env "TWILIO_SID" "$TWILIO_SID"
-          update_env "TWILIO_TOKEN" "$TWILIO_TOKEN"
-          update_env "TWILIO_FROM" "$TWILIO_FROM"
-          update_env "TWILIO_WHATSAPP_FROM" "$TWILIO_WHATSAPP_FROM"
-          echo "✅ SMS configuration updated"
-
-          # Configurer Messaging (Telegram, Slack)
-          echo "=== MESSAGING CONFIGURATION ==="
-          update_env "TELEGRAM_BOT_TOKEN" "$TELEGRAM_BOT_TOKEN"
-          update_env "TELEGRAM_CHAT_ID" "$TELEGRAM_CHAT_ID"
-          update_env "SLACK_WEBHOOK_URL" "$SLACK_WEBHOOK_URL"
-          echo "✅ Messaging configuration updated"
-
-          # Configurer Notifications Alertes
-          echo "=== NOTIFICATIONS ALERTS CONFIGURATION ==="
-          update_env "NOTIFICATION_SLACK_WEBHOOK" "$NOTIFICATION_SLACK_WEBHOOK"
-          update_env "NOTIFICATION_TELEGRAM_CHAT_ID" "$NOTIFICATION_TELEGRAM_CHAT_ID"
-          echo "✅ Notifications alerts configuration updated"
-
-          # Configurer Redis
-          echo "=== REDIS CONFIGURATION ==="
           update_env "CACHE_DRIVER" "redis"
           update_env "SESSION_DRIVER" "redis"
           update_env "QUEUE_CONNECTION" "redis"
@@ -613,332 +521,206 @@ jobs:
           update_env "REDIS_CACHE_DB" "1"
           update_env "REDIS_SESSION_DB" "2"
           update_env "REDIS_QUEUE_DB" "3"
-          echo "✅ Redis configuration updated"
+          update_env "CLOUDFLARE_R2_ACCESS_KEY_ID" "$CLOUDFLARE_R2_ACCESS_KEY_ID"
+          update_env "CLOUDFLARE_R2_SECRET_ACCESS_KEY" "$CLOUDFLARE_R2_SECRET_ACCESS_KEY"
+          update_env "CLOUDFLARE_R2_BUCKET" "$CLOUDFLARE_R2_BUCKET"
+          update_env "CLOUDFLARE_R2_ENDPOINT" "$CLOUDFLARE_R2_ENDPOINT"
+          update_env "CLOUDFLARE_R2_URL" "$CLOUDFLARE_R2_URL"
+          update_env "DOCUSIGN_CLIENT_ID" "$DOCUSIGN_CLIENT_ID"
+          update_env "DOCUSIGN_USER_ID" "$DOCUSIGN_USER_ID"
+          update_env "DOCUSIGN_ACCOUNT_ID" "$DOCUSIGN_ACCOUNT_ID"
+          update_env "DOCUSIGN_BASE_PATH" "$DOCUSIGN_BASE_PATH"
+          update_env "DOCUSIGN_OAUTH_BASE_PATH" "$DOCUSIGN_OAUTH_BASE_PATH"
+          update_env "DOCUSIGN_HMAC_KEY" "$DOCUSIGN_HMAC_KEY"
+          update_env "STRIPE_PUBLIC_KEY" "$STRIPE_PUBLIC_KEY"
+          update_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET_KEY"
+          update_env "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET"
+          update_env "SENTRY_LARAVEL_DSN" "$SENTRY_LARAVEL_DSN"
+          update_env "MAIL_MAILER" "${MAIL_MAILER:-failover}"
+          update_env "MAIL_HOST" "${MAIL_HOST:-localhost}"
+          update_env "MAIL_PORT" "${MAIL_PORT:-25}"
+          update_env "MAIL_USERNAME" "${MAIL_USERNAME:-null}"
+          update_env "MAIL_PASSWORD" "${MAIL_PASSWORD:-null}"
+          update_env "MAIL_FROM_ADDRESS" "${MAIL_FROM_ADDRESS:-noreply@axontis.net}"
+          update_env "MAIL_FROM_NAME" "${MAIL_FROM_NAME:-Axontis}"
+          update_env "RESEND_API_KEY" "$RESEND_API_KEY"
+          update_env "MAILGUN_DOMAIN" "$MAILGUN_DOMAIN"
+          update_env "MAILGUN_SECRET" "$MAILGUN_SECRET"
+          update_env "MAILGUN_ENDPOINT" "$MAILGUN_ENDPOINT"
+          update_env "BREVO_SMTP_HOST" "$BREVO_SMTP_HOST"
+          update_env "BREVO_SMTP_PORT" "$BREVO_SMTP_PORT"
+          update_env "BREVO_SMTP_USERNAME" "$BREVO_SMTP_USERNAME"
+          update_env "BREVO_API_KEY" "$BREVO_API_KEY"
+          update_env "TWILIO_SID" "$TWILIO_SID"
+          update_env "TWILIO_TOKEN" "$TWILIO_TOKEN"
+          update_env "TWILIO_FROM" "$TWILIO_FROM"
+          update_env "TWILIO_WHATSAPP_FROM" "$TWILIO_WHATSAPP_FROM"
+          update_env "TELEGRAM_BOT_TOKEN" "$TELEGRAM_BOT_TOKEN"
+          update_env "TELEGRAM_CHAT_ID" "$TELEGRAM_CHAT_ID"
+          update_env "SLACK_WEBHOOK_URL" "$SLACK_WEBHOOK_URL"
+          update_env "NOTIFICATION_SLACK_WEBHOOK" "$NOTIFICATION_SLACK_WEBHOOK"
+          update_env "NOTIFICATION_TELEGRAM_CHAT_ID" "$NOTIFICATION_TELEGRAM_CHAT_ID"
 
-          # Debug: afficher les variables configurées (sans les valeurs sensibles)
-          echo "=== .ENV VERIFICATION ==="
-          echo "Variables defined in .env:"
-          grep -E "^[A-Z_]+=" $APP_PATH/.env | cut -d'=' -f1 | sort
+          echo "✅ .env configuré"
+
+          # ============================================
+          # 5. INSTALLATION DES DÉPENDANCES
+          # ============================================
           echo ""
+          echo "📦 Installation des dépendances..."
+          cd $NEW_RELEASE
 
-          # Vérifier les variables critiques
-          echo "=== CRITICAL VARIABLES CHECK ==="
-          check_var() {
-            if grep -q "^$1=.\+" $APP_PATH/.env; then
-              echo "✅ $1 is set"
-            else
-              echo "⚠️ $1 is EMPTY or missing"
-            fi
-          }
-          check_var "APP_KEY"
-          check_var "APP_URL"
-          check_var "DB_HOST"
-          check_var "DB_PORT"
-          check_var "DB_DATABASE"
-          check_var "DB_USERNAME"
-          check_var "DB_PASSWORD"
-
-          # ============================================
-          # 6. RESTAURER LES FICHIERS PERSISTANTS
-          # ============================================
-          echo "📂 Restauration des fichiers uploadés..."
-          if [ -d "/tmp/storage_app_backup" ]; then
-            cp -r /tmp/storage_app_backup/* $APP_PATH/storage/app/ 2>/dev/null || true
-            rm -rf /tmp/storage_app_backup
-          fi
-
-          # ============================================
-          # 7. INSTALLATION DES DÉPENDANCES
-          # ============================================
-          echo "📦 Vérification des dépendances Composer..."
-          cd $APP_PATH
-          composer install --no-dev --optimize-autoloader --no-interaction
-
-          # ============================================
-          # 8. VÉRIFICATION DE LA CONNEXION DB
-          # ============================================
-          echo "🔍 Test de la connexion à la base de données..."
-
-          # Récupérer les valeurs du .env
-          DB_HOST_VAL=$(grep "^DB_HOST=" $APP_PATH/.env | cut -d'=' -f2)
-          DB_PORT_VAL=$(grep "^DB_PORT=" $APP_PATH/.env | cut -d'=' -f2)
-          DB_PORT_VAL=${DB_PORT_VAL:-3306}
-
-          if [ -n "$DB_HOST_VAL" ]; then
-            echo "DB_HOST = $DB_HOST_VAL"
-
-            # Si c'est localhost, vérifier que MySQL est installé localement
-            if [ "$DB_HOST_VAL" = "localhost" ] || [ "$DB_HOST_VAL" = "127.0.0.1" ]; then
-              echo "📍 Base de données locale détectée"
-              if systemctl is-active --quiet mysql; then
-                echo "✅ MySQL est actif sur ce serveur"
-              else
-                echo "⚠️ MySQL n'est pas actif! Tentative de démarrage..."
-                systemctl start mysql || echo "❌ Impossible de démarrer MySQL"
-              fi
-            else
-              # Base externe - vérifier la résolution DNS
-              echo "🌐 Base de données externe: $DB_HOST_VAL"
-              if nslookup $DB_HOST_VAL > /dev/null 2>&1 || host $DB_HOST_VAL > /dev/null 2>&1; then
-                echo "✅ DNS resolution OK"
-              else
-                if [[ $DB_HOST_VAL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                  echo "✅ $DB_HOST_VAL est une adresse IP"
-                else
-                  echo "❌ Impossible de résoudre $DB_HOST_VAL"
-                fi
-              fi
-
-              # Test TCP
-              echo "Testing TCP connection to $DB_HOST_VAL:$DB_PORT_VAL..."
-              if timeout 5 bash -c "cat < /dev/null > /dev/tcp/$DB_HOST_VAL/$DB_PORT_VAL" 2>/dev/null; then
-                echo "✅ TCP connection OK"
-              else
-                echo "⚠️ Cannot connect to $DB_HOST_VAL:$DB_PORT_VAL"
-              fi
-            fi
-
-            # Test de connexion MySQL via PHP/Laravel
-            echo "Testing MySQL connection via Laravel..."
-            php artisan tinker --execute="try { DB::connection()->getPdo(); echo '✅ MySQL connection successful!'; } catch(\Exception \$e) { echo '❌ MySQL error: '.\$e->getMessage(); }" 2>/dev/null || echo "⚠️ Could not test via Laravel"
+          # Réutiliser vendor si possible pour aller plus vite
+          if [ -d "$CURRENT_LINK/vendor" ]; then
+            cp -al $CURRENT_LINK/vendor $NEW_RELEASE/vendor 2>/dev/null || true
+            composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || composer install --no-dev --optimize-autoloader
           else
-            echo "⚠️ DB_HOST is not set!"
+            composer install --no-dev --optimize-autoloader --no-interaction
           fi
+          echo "✅ Dépendances installées"
 
           # ============================================
-          # 9. MIGRATIONS
+          # 6. OPTIMISATIONS LARAVEL (DANS LE DOSSIER TEMPORAIRE)
           # ============================================
-          echo "🗄️ Exécution des migrations..."
-
-          # Exécuter les migrations et capturer le code de sortie
-          php artisan migrate --force
-          MIGRATION_EXIT_CODE=$?
-
-          if [ $MIGRATION_EXIT_CODE -ne 0 ]; then
-            echo ""
-            echo "=========================================="
-            echo "❌ ERREUR : Les migrations ont échoué!"
-            echo "=========================================="
-            echo ""
-            echo "Code de sortie: $MIGRATION_EXIT_CODE"
-            echo ""
-            echo "🔄 Restauration du backup précédent..."
-
-            # Activer le mode maintenance
-            php artisan down --retry=60 2>/dev/null || true
-
-            # Restaurer le dernier backup
-            LATEST_BACKUP=$(ls -t $BACKUP_PATH/backup_*.tar.gz 2>/dev/null | head -1)
-            if [ -f "$LATEST_BACKUP" ]; then
-              echo "Restauration depuis: $LATEST_BACKUP"
-              tar -xzf "$LATEST_BACKUP" -C /var/www/
-              echo "✅ Backup restauré"
-            else
-              echo "⚠️ Aucun backup disponible pour restauration"
-            fi
-
-            # Désactiver le mode maintenance
-            php artisan up 2>/dev/null || true
-
-            echo ""
-            echo "Veuillez vérifier les logs et corriger les migrations avant de redéployer."
-            echo ""
-
-            exit 1
-          fi
-
-          echo "✅ Migrations exécutées avec succès"
-
-          # ============================================
-          # 9.1 SEEDERS (uniquement si première installation)
-          # ============================================
-          echo "🌱 Vérification des seeders..."
-          # Vérifier si la table users est vide (première installation)
-          USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1)
-          if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
-            echo "📦 Première installation détectée - Exécution des seeders..."
-            php artisan db:seed --force || echo "⚠️ Seeding failed"
-          else
-            echo "✅ Base de données déjà peuplée ($USER_COUNT utilisateurs) - Seeders ignorés"
-          fi
-
-          # ============================================
-          # 10. OPTIMISATIONS LARAVEL
-          # ============================================
+          echo ""
           echo "⚡ Optimisation de Laravel..."
 
-          # D'abord nettoyer tous les caches
+          # IMPORTANT: Nettoyer tous les caches AVANT d'optimiser
           php artisan optimize:clear
 
-          # Publier les vues vendor mail si nécessaire (pour les notifications)
-          if [ ! -d "$APP_PATH/resources/views/vendor/mail" ]; then
-            echo "📧 Publication des vues email..."
+          # Publier les vues vendor mail si nécessaire
+          if [ ! -d "$NEW_RELEASE/resources/views/vendor/mail" ]; then
             php artisan vendor:publish --tag=laravel-mail --force
-          else
-            echo "✅ Vues email déjà publiées"
           fi
 
-          # Ensuite reconstruire les caches
+          # Créer le storage:link
+          php artisan storage:link
+
+          # OPTIMISER - Ceci va prendre en compte toutes les variables .env
           php artisan optimize
 
-          # S'assurer que le lien storage existe (ignorer si déjà créé)
-          if [ ! -L "$APP_PATH/public/storage" ]; then
-            php artisan storage:link
-          else
-            echo "✅ Lien storage déjà existant"
-          fi
+          echo "✅ Optimisation terminée"
 
           # ============================================
-          # 11. PERMISSIONS
+          # 7. VÉRIFICATION DE LA NOUVELLE RELEASE
           # ============================================
-          echo "🔒 Configuration des permissions..."
-          chown -R www-data:www-data $APP_PATH
-          chmod -R 755 $APP_PATH
-          chmod -R 775 $APP_PATH/storage
-          chmod -R 775 $APP_PATH/bootstrap/cache
-
-          # ============================================
-          # 10B. OPTIMISATION FINALE
-          # ============================================
-            echo "⚡ Optimisation finale de Laravel..."
-            php artisan optimize
-
-          # ============================================
-          # 12. REDÉMARRAGE DES SERVICES
-          # ============================================
-          echo "🔄 Redémarrage des services..."
-          systemctl reload php8.3-fpm
-          php artisan queue:restart
-
-          # Vérifier et configurer Supervisor si nécessaire
-          if command -v supervisorctl &> /dev/null; then
-            echo "📝 Configuration des workers Supervisor..."
-
-            # Utiliser le fichier de config des workers depuis le repo
-            if [ -f "$APP_PATH/infrastructure/scripts/supervisor-workers.conf" ]; then
-              echo "  Copie de la configuration depuis le repo..."
-              cp $APP_PATH/infrastructure/scripts/supervisor-workers.conf /etc/supervisor/conf.d/axontis-workers.conf
-            elif [ ! -f /etc/supervisor/conf.d/axontis-workers.conf ]; then
-              echo "  Création de la configuration par défaut..."
-              cat > /etc/supervisor/conf.d/axontis-workers.conf << 'SUPERVISOR_EOF'
-          [program:axontis-worker-default]
-          process_name=%(program_name)s_%(process_num)02d
-          command=php /var/www/axontis/artisan queue:work redis --queue=default,emails,sms,whatsapp,telegram --sleep=3 --tries=3 --max-time=3600
-          autostart=true
-          autorestart=true
-          stopasgroup=true
-          killasgroup=true
-          user=www-data
-          numprocs=2
-          redirect_stderr=true
-          stdout_logfile=/var/www/axontis/storage/logs/worker.log
-          stopwaitsecs=3600
-
-          [group:axontis-workers]
-          programs=axontis-worker-default
-          priority=999
-          SUPERVISOR_EOF
-            fi
-
-            # Recharger et démarrer les workers
-            echo "  Rechargement de la configuration..."
-            supervisorctl reread
-            supervisorctl update
-
-            # Redémarrer les workers
-            if supervisorctl status axontis-workers:* > /dev/null 2>&1; then
-              supervisorctl restart axontis-workers:*
-              echo "✅ Workers redémarrés"
-            else
-              supervisorctl start axontis-workers:* 2>/dev/null && echo "✅ Workers démarrés" || echo "⚠️ Impossible de démarrer les workers (vérifier les logs)"
-            fi
-          else
-            echo "⚠️ Supervisor non installé - workers non démarrés"
-            echo "   Installation : apt-get install supervisor"
-          fi
-
-          # ============================================
-          # 13. DÉSACTIVATION DU MODE MAINTENANCE
-          # ============================================
-          echo "✅ Désactivation du mode maintenance..."
-          php artisan up
-
-          # ============================================
-          # 14. VÉRIFICATION
-          # ============================================
-          echo "🔍 Vérification du déploiement..."
-
-          # Récupérer l'URL configurée
-          APP_URL=$(grep "^APP_URL=" $APP_PATH/.env | cut -d'=' -f2)
-          echo "URL de l'application : $APP_URL"
-
-          # Test 1 : Localhost
           echo ""
-          echo "Test 1 : localhost"
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost 2>/dev/null || echo "000")
-          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
-            echo "  ✅ Localhost répond (HTTP $HTTP_CODE)"
-          else
-            echo "  ⚠️  Localhost : HTTP $HTTP_CODE"
-          fi
+          echo "🔍 Vérification de la nouvelle release..."
 
-          # Test 2 : APP_URL
-          if [ -n "$APP_URL" ] && [ "$APP_URL" != "http://localhost" ]; then
-            echo ""
-            echo "Test 2 : $APP_URL"
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L "$APP_URL" 2>/dev/null || echo "000")
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
-              echo "  ✅ Application accessible (HTTP $HTTP_CODE)"
-            else
-              echo "  ⚠️  Application : HTTP $HTTP_CODE"
-            fi
-          fi
-
-          # Test 3 : Vérifier les logs récents
-          echo ""
-          echo "Test 3 : Logs récents"
-          if [ -f "$APP_PATH/storage/logs/laravel.log" ]; then
-            RECENT_ERRORS=$(tail -100 $APP_PATH/storage/logs/laravel.log | grep -i "error\|exception\|fatal" | wc -l)
-            if [ "$RECENT_ERRORS" -gt 0 ]; then
-              echo "  ⚠️  $RECENT_ERRORS erreur(s) dans les logs récents"
-              echo "     Dernières erreurs :"
-              tail -100 $APP_PATH/storage/logs/laravel.log | grep -i "error\|exception" | tail -3 | sed 's/^/     /'
-            else
-              echo "  ✅ Aucune erreur récente dans les logs"
-            fi
-          fi
-
-          # Test 4 : Vérifier que les fichiers clés existent
-          echo ""
-          echo "Test 4 : Fichiers critiques"
-          critical_files=(
-            "artisan"
-            "public/index.php"
-            ".env"
-            "vendor/autoload.php"
-          )
-
-          for file in "${critical_files[@]}"; do
-            if [ -f "$APP_PATH/$file" ]; then
-              echo "  ✅ $file"
-            else
-              echo "  ❌ $file manquant !"
+          # Test des fichiers critiques
+          CRITICAL_FILES=("artisan" "public/index.php" ".env" "vendor/autoload.php")
+          ALL_OK=true
+          for file in "${CRITICAL_FILES[@]}"; do
+            if [ ! -f "$NEW_RELEASE/$file" ]; then
+              echo "❌ Fichier critique manquant: $file"
+              ALL_OK=false
             fi
           done
 
-          # Test 5 : Vérifier les permissions
+          if [ "$ALL_OK" = false ]; then
+            echo "❌ La nouvelle release n'est pas complète"
+            rm -rf $NEW_RELEASE
+            exit 1
+          fi
+
+          # Test de connexion BDD
+          if ! php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'OK'; } catch(\Exception \$e) { echo 'FAIL: '.\$e->getMessage(); }" 2>/dev/null | grep -q "OK"; then
+            echo "❌ Impossible de se connecter à la base de données"
+            rm -rf $NEW_RELEASE
+            exit 1
+          fi
+          echo "✅ Connexion BDD OK"
+
+          # ============================================
+          # 8. MIGRATIONS
+          # ============================================
           echo ""
-          echo "Test 5 : Permissions"
-          STORAGE_OWNER=$(stat -c '%U' $APP_PATH/storage)
-          if [ "$STORAGE_OWNER" = "www-data" ]; then
-            echo "  ✅ Permissions correctes (www-data)"
+          echo "🗄️ Exécution des migrations..."
+          php artisan migrate --force
+          echo "✅ Migrations exécutées"
+
+          # ============================================
+          # 9. CHANGEMENT ATOMIQUE DU SYMLINK (ZERO DOWNTIME)
+          # ============================================
+          echo ""
+          echo "🔄 Switch vers la nouvelle release (ATOMIQUE)..."
+
+          # Créer le symlink de manière atomique
+          ln -sfn $NEW_RELEASE $CURRENT_LINK
+
+          echo "✅ Symlink mis à jour"
+
+          # ============================================
+          # 10. NETTOYAGE DU CACHE ET REDÉMARRAGE SERVICES
+          # ============================================
+          echo ""
+          echo "🔄 Nettoyage du cache et redémarrage des services..."
+
+          # Vider Redis pour prendre en compte les changements
+          if systemctl is-active --quiet redis-server; then
+            if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
+              redis-cli -a "$REDIS_PASSWORD" FLUSHALL --no-auth-warning >/dev/null 2>&1 || true
+            else
+              redis-cli FLUSHALL >/dev/null 2>&1 || true
+            fi
+            echo "✅ Cache Redis vidé"
+          fi
+
+          # Reload PHP-FPM pour prendre en compte les changements
+          systemctl reload php8.3-fpm
+
+          # Redémarrer les workers
+          php artisan queue:restart
+          supervisorctl restart axontis-worker:* 2>/dev/null || true
+
+          echo "✅ Services redémarrés"
+
+          # ============================================
+          # 11. NETTOYAGE DES ANCIENNES RELEASES
+          # ============================================
+          echo ""
+          echo "🧹 Nettoyage des anciennes releases..."
+          cd $RELEASES_PATH
+          ls -t | tail -n +4 | xargs -r rm -rf --
+          echo "✅ Anciennes releases nettoyées"
+
+          # ============================================
+          # 12. PERMISSIONS
+          # ============================================
+          echo ""
+          echo "🔒 Configuration des permissions..."
+          chown -R www-data:www-data $NEW_RELEASE
+          chmod -R 755 $NEW_RELEASE
+          chmod -R 775 $SHARED_PATH/storage
+
+          echo "✅ Permissions configurées"
+
+          # ============================================
+          # 13. VÉRIFICATION FINALE
+          # ============================================
+          echo ""
+          echo "🔍 Vérification finale..."
+
+          # Test HTTP
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
+            echo "✅ Application accessible (HTTP $HTTP_CODE)"
           else
-            echo "  ⚠️  Owner de storage : $STORAGE_OWNER (devrait être www-data)"
+            echo "⚠️ L'application répond avec HTTP $HTTP_CODE"
+          fi
+
+          # Vérifier les workers
+          WORKER_STATUS=$(supervisorctl status axontis-worker:* 2>/dev/null | grep -c "RUNNING" || echo "0")
+          if [ "$WORKER_STATUS" -gt 0 ]; then
+            echo "✅ ${WORKER_STATUS} worker(s) actif(s)"
+          else
+            echo "⚠️ Aucun worker actif"
           fi
 
           echo ""
           echo "=========================================="
-          echo "🎉 DÉPLOIEMENT TERMINÉ AVEC SUCCÈS!"
+          echo "🎉 DÉPLOIEMENT TERMINÉ - ZERO DOWNTIME!"
+          echo "📌 Release: $TIMESTAMP"
           echo "=========================================="
 
           DEPLOY_SCRIPT
@@ -956,7 +738,7 @@ jobs:
       - name: 📊 Deployment Status
         run: |
           if [ "${{ needs.deploy.result }}" == "success" ]; then
-            echo "✅ Déploiement réussi sur Vultr VPS"
+            echo "✅ Déploiement réussi sur Vultr VPS (Zero Downtime)"
           else
             echo "❌ Échec du déploiement"
             exit 1
