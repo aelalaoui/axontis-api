@@ -2,7 +2,7 @@ name: 🚀 Deploy to Vultr VPS (Zero Downtime)
 
 on:
   push:
-    branches: [ "feature/migration" ]
+    branches: [ "main" ]
   workflow_dispatch:  # Permet le déploiement manuel
 
 env:
@@ -427,6 +427,7 @@ jobs:
           mkdir -p $RELEASES_PATH
           mkdir -p $BACKUP_PATH
           mkdir -p $SHARED_PATH/storage/{app,framework,logs}
+          mkdir -p $SHARED_PATH/resources
 
           # ============================================
           # 1. BACKUP
@@ -461,11 +462,25 @@ jobs:
           # 3. SYMLINKS POUR LES FICHIERS PARTAGÉS
           # ============================================
           echo ""
-          echo "🔗 Configuration des symlinks partagés..."
+          echo "📋 Copie des resources vers shared..."
+          # Copier resources depuis la version actuelle vers shared (si existe)
+          if [ -d "$CURRENT_LINK/resources" ] && [ ! -d "$SHARED_PATH/resources" ]; then
+            cp -r $CURRENT_LINK/resources $SHARED_PATH/resources
+            echo "✅ Resources copiées vers shared"
+          elif [ -d "$SHARED_PATH/resources" ]; then
+            echo "✅ Resources déjà présentes dans shared"
+          else
+            echo "⚠️  Aucun resources trouvé, création du dossier"
+            mkdir -p $SHARED_PATH/resources
+          fi
+
+          echo ""
+          echo "🔗 Configuration du symlink storage partagé..."
           mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
           rm -rf $NEW_RELEASE/storage
           ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
-          echo "✅ Symlinks configurés"
+          echo "✅ Symlink storage configuré"
+          echo "ℹ️  Resources sont incluses dans la release (pas partagées)"
 
           # ============================================
           # 4. CONFIGURATION DU .ENV
@@ -570,13 +585,18 @@ jobs:
           echo "📦 Installation des dépendances..."
           cd $NEW_RELEASE
 
-          # Réutiliser vendor si possible pour aller plus vite
-          if [ -d "$CURRENT_LINK/vendor" ]; then
-            cp -al $CURRENT_LINK/vendor $NEW_RELEASE/vendor 2>/dev/null || true
-            composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || composer install --no-dev --optimize-autoloader
-          else
-            composer install --no-dev --optimize-autoloader --no-interaction
-          fi
+          # Installation fraîche des dépendances (ne pas copier vendor pour éviter les problèmes de permissions)
+          echo "Installation des dépendances avec Composer..."
+
+          # Corriger les permissions du dossier de release (créé par root lors de l'extraction)
+          chown -R www-data:www-data $NEW_RELEASE
+          chmod -R 755 $NEW_RELEASE
+
+          # Supprimer le dossier vendor s'il existe (créé par root lors de l'extraction)
+          sudo -u www-data rm -rf $NEW_RELEASE/vendor 2>/dev/null || rm -rf $NEW_RELEASE/vendor
+
+          # Lancer composer install en tant que www-data
+          sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
           echo "✅ Dépendances installées"
 
           # ============================================

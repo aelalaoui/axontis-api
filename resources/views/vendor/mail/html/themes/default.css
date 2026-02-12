@@ -129,12 +129,11 @@ img {
 /* Logo */
 
 .logo {
-    height: auto;
+    height: 200px;
+    width: 600px;
+    max-width: 100%;
     margin-top: 10px;
     margin-bottom: 10px;
-    max-height: 100px;
-    width: 100%;
-    max-width: 600px;
 }
 
 /* Body */
@@ -165,10 +164,14 @@ img {
     width: 600px;
 }
 
-.inner-body a {
+.inner-body a:not(.button) {
     word-break: break-all;
     color: #f59e0b;
     font-weight: 500;
+}
+
+.inner-body .button {
+    color: #ffffff !important;
 }
 
 /* Subcopy */

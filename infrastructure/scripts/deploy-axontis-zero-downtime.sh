@@ -128,16 +128,18 @@ else
 fi
 
 # ============================================
-# 4. SYMLINKS POUR LES FICHIERS PARTAGÉS
+# 4. SYMLINK POUR STORAGE SEULEMENT
 # ============================================
-echo -e "\n${YELLOW}🔗 Configuration des symlinks partagés...${NC}"
+echo -e "\n${YELLOW}🔗 Configuration du symlink storage partagé...${NC}"
 
-# Supprimer les dossiers storage et créer des symlinks vers shared
+# Supprimer le dossier storage et créer symlink vers shared
 rm -rf $NEW_RELEASE/storage
 mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
 
-# Créer les symlinks
+# Créer le symlink pour storage uniquement
 ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
+echo -e "${GREEN}✅ Symlink storage configuré${NC}"
+echo -e "${CYAN}ℹ️  Resources sont incluses dans la release (pas partagées)${NC}"
 
 # ============================================
 # 5. INSTALLATION DES DÉPENDANCES
@@ -145,15 +147,18 @@ ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
 echo -e "\n${YELLOW}📦 Installation des dépendances...${NC}"
 cd $NEW_RELEASE
 
-# Vérifier si vendor existe dans current, sinon installer depuis zéro
-if [ -d "$CURRENT_LINK/vendor" ]; then
-    echo "Réutilisation des vendor existants (plus rapide)..."
-    cp -al $CURRENT_LINK/vendor $NEW_RELEASE/vendor 2>/dev/null || true
-    # Puis mettre à jour si nécessaire
-    composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || composer install --no-dev --optimize-autoloader
-else
-    composer install --no-dev --optimize-autoloader --no-interaction
-fi
+# Installation fraîche des dépendances (ne pas copier vendor pour éviter les problèmes de permissions)
+echo "Installation des dépendances avec Composer..."
+
+# Corriger les permissions du dossier de release (créé par root)
+chown -R www-data:www-data $NEW_RELEASE
+chmod -R 755 $NEW_RELEASE
+
+# Supprimer le dossier vendor s'il existe (créé par root lors de l'extraction)
+sudo -u www-data rm -rf $NEW_RELEASE/vendor 2>/dev/null || rm -rf $NEW_RELEASE/vendor
+
+# Lancer composer install en tant que www-data
+sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
 
 # ============================================
 # 6. OPTIMISATIONS (DANS LE DOSSIER TEMPORAIRE)
