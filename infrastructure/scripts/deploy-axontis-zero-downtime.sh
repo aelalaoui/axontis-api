@@ -44,7 +44,6 @@ echo -e "==========================================${NC}"
 mkdir -p $RELEASES_PATH
 mkdir -p $BACKUP_PATH
 mkdir -p $SHARED_PATH/storage/{app,framework,logs}
-mkdir -p $SHARED_PATH/resources
 
 # ============================================
 # 1. BACKUP
@@ -105,12 +104,12 @@ if [ -d "$BASE_PATH/.git" ]; then
     NEW_COMMIT=$(git rev-parse --short HEAD)
     echo -e "${GREEN}✅ Commit: $CURRENT_COMMIT → $NEW_COMMIT${NC}"
     # Copier le code vers la nouvelle release
-    rsync -a --exclude='storage' --exclude='resources' --exclude='node_modules' --exclude='.env' \
+    rsync -a --exclude='storage' --exclude='node_modules' --exclude='.env' \
         --exclude='releases' --exclude='current' --exclude='shared' \
         $BASE_PATH/ $NEW_RELEASE/
 else
     echo "⚠️  Git non trouvé, utilisation du code existant"
-    rsync -a --exclude='storage' --exclude='resources' --exclude='node_modules' --exclude='.env' \
+    rsync -a --exclude='storage' --exclude='node_modules' --exclude='.env' \
         $CURRENT_LINK/ $NEW_RELEASE/ 2>/dev/null || true
 fi
 
@@ -129,35 +128,18 @@ else
 fi
 
 # ============================================
-# 4. COPIE DES RESOURCES ACTUELLES VERS SHARED
+# 4. SYMLINK POUR STORAGE SEULEMENT
 # ============================================
-echo -e "\n${YELLOW}📋 Copie des resources vers shared...${NC}"
+echo -e "\n${YELLOW}🔗 Configuration du symlink storage partagé...${NC}"
 
-# Copier resources depuis la version actuelle vers shared (si existe)
-if [ -d "$CURRENT_LINK/resources" ] && [ ! -d "$SHARED_PATH/resources" ]; then
-    cp -r $CURRENT_LINK/resources $SHARED_PATH/resources
-    echo -e "${GREEN}✅ Resources copiées vers shared${NC}"
-elif [ -d "$SHARED_PATH/resources" ]; then
-    echo -e "${GREEN}✅ Resources déjà présentes dans shared${NC}"
-else
-    echo -e "${YELLOW}⚠️  Aucun resources trouvé${NC}"
-    mkdir -p $SHARED_PATH/resources
-fi
-
-# ============================================
-# 5. SYMLINKS POUR LES FICHIERS PARTAGÉS
-# ============================================
-echo -e "\n${YELLOW}🔗 Configuration des symlinks partagés...${NC}"
-
-# Supprimer les dossiers et créer des symlinks vers shared
+# Supprimer le dossier storage et créer symlink vers shared
 rm -rf $NEW_RELEASE/storage
-rm -rf $NEW_RELEASE/resources
 mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
 
-# Créer les symlinks
+# Créer le symlink pour storage uniquement
 ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
-ln -sf $SHARED_PATH/resources $NEW_RELEASE/resources
-echo -e "${GREEN}✅ Symlinks configurés (storage + resources)${NC}"
+echo -e "${GREEN}✅ Symlink storage configuré${NC}"
+echo -e "${CYAN}ℹ️  Resources sont incluses dans la release (pas partagées)${NC}"
 
 # ============================================
 # 5. INSTALLATION DES DÉPENDANCES
