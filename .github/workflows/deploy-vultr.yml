@@ -2,7 +2,7 @@ name: 🚀 Deploy to Vultr VPS (Zero Downtime)
 
 on:
   push:
-    branches: [ "feature/migration" ]
+    branches: [ "main" ]
   workflow_dispatch:  # Permet le déploiement manuel
 
 env:
