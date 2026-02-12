@@ -257,6 +257,7 @@ jobs:
             --exclude='storage/framework/cache/data/*' \
             --exclude='storage/framework/sessions/*' \
             --exclude='storage/framework/views/*' \
+            --exclude='resources/*' \
             .
           TAR_EXIT=$?
           set -e
@@ -427,6 +428,7 @@ jobs:
           mkdir -p $RELEASES_PATH
           mkdir -p $BACKUP_PATH
           mkdir -p $SHARED_PATH/storage/{app,framework,logs}
+          mkdir -p $SHARED_PATH/resources
 
           # ============================================
           # 1. BACKUP
@@ -464,8 +466,10 @@ jobs:
           echo "🔗 Configuration des symlinks partagés..."
           mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
           rm -rf $NEW_RELEASE/storage
+          rm -rf $NEW_RELEASE/resources
           ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
-          echo "✅ Symlinks configurés"
+          ln -sf $SHARED_PATH/resources $NEW_RELEASE/resources
+          echo "✅ Symlinks configurés (storage + resources)"
 
           # ============================================
           # 4. CONFIGURATION DU .ENV

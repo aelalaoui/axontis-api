@@ -44,6 +44,7 @@ echo -e "==========================================${NC}"
 mkdir -p $RELEASES_PATH
 mkdir -p $BACKUP_PATH
 mkdir -p $SHARED_PATH/storage/{app,framework,logs}
+mkdir -p $SHARED_PATH/resources
 
 # ============================================
 # 1. BACKUP
@@ -104,12 +105,12 @@ if [ -d "$BASE_PATH/.git" ]; then
     NEW_COMMIT=$(git rev-parse --short HEAD)
     echo -e "${GREEN}✅ Commit: $CURRENT_COMMIT → $NEW_COMMIT${NC}"
     # Copier le code vers la nouvelle release
-    rsync -a --exclude='storage' --exclude='node_modules' --exclude='.env' \
+    rsync -a --exclude='storage' --exclude='resources' --exclude='node_modules' --exclude='.env' \
         --exclude='releases' --exclude='current' --exclude='shared' \
         $BASE_PATH/ $NEW_RELEASE/
 else
     echo "⚠️  Git non trouvé, utilisation du code existant"
-    rsync -a --exclude='storage' --exclude='node_modules' --exclude='.env' \
+    rsync -a --exclude='storage' --exclude='resources' --exclude='node_modules' --exclude='.env' \
         $CURRENT_LINK/ $NEW_RELEASE/ 2>/dev/null || true
 fi
 
@@ -132,12 +133,14 @@ fi
 # ============================================
 echo -e "\n${YELLOW}🔗 Configuration des symlinks partagés...${NC}"
 
-# Supprimer les dossiers storage et créer des symlinks vers shared
+# Supprimer les dossiers et créer des symlinks vers shared
 rm -rf $NEW_RELEASE/storage
+rm -rf $NEW_RELEASE/resources
 mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
 
 # Créer les symlinks
 ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
+ln -sf $SHARED_PATH/resources $NEW_RELEASE/resources
 
 # ============================================
 # 5. INSTALLATION DES DÉPENDANCES
