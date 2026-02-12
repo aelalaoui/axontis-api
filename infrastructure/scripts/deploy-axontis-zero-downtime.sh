@@ -168,9 +168,14 @@ cd $NEW_RELEASE
 # Installation fraîche des dépendances (ne pas copier vendor pour éviter les problèmes de permissions)
 echo "Installation des dépendances avec Composer..."
 
-# Supprimer le dossier vendor s'il existe (créé par root lors de l'extraction)
-rm -rf $NEW_RELEASE/vendor
+# Corriger les permissions du dossier de release (créé par root)
+chown -R www-data:www-data $NEW_RELEASE
+chmod -R 755 $NEW_RELEASE
 
+# Supprimer le dossier vendor s'il existe (créé par root lors de l'extraction)
+sudo -u www-data rm -rf $NEW_RELEASE/vendor 2>/dev/null || rm -rf $NEW_RELEASE/vendor
+
+# Lancer composer install en tant que www-data
 sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
 
 # ============================================
