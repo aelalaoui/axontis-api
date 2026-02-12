@@ -165,15 +165,9 @@ echo -e "${GREEN}✅ Symlinks configurés (storage + resources)${NC}"
 echo -e "\n${YELLOW}📦 Installation des dépendances...${NC}"
 cd $NEW_RELEASE
 
-# Vérifier si vendor existe dans current, sinon installer depuis zéro
-if [ -d "$CURRENT_LINK/vendor" ]; then
-    echo "Réutilisation des vendor existants (plus rapide)..."
-    cp -al $CURRENT_LINK/vendor $NEW_RELEASE/vendor 2>/dev/null || true
-    # Puis mettre à jour si nécessaire (en tant que www-data)
-    sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || sudo -u www-data composer install --no-dev --optimize-autoloader
-else
-    sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
-fi
+# Installation fraîche des dépendances (ne pas copier vendor pour éviter les problèmes de permissions)
+echo "Installation des dépendances avec Composer..."
+sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
 
 # ============================================
 # 6. OPTIMISATIONS (DANS LE DOSSIER TEMPORAIRE)

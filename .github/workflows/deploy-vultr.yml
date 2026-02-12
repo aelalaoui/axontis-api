@@ -587,17 +587,10 @@ jobs:
           echo "📦 Installation des dépendances..."
           cd $NEW_RELEASE
 
-          # Réutiliser vendor si possible pour aller plus vite
-          if [ -d "$CURRENT_LINK/vendor" ]; then
-            cp -al $CURRENT_LINK/vendor $NEW_RELEASE/vendor 2>/dev/null || true
-            sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || sudo -u www-data composer install --no-dev --optimize-autoloader
-          else
-            sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
-          fi
+          # Installation fraîche des dépendances (ne pas copier vendor pour éviter les problèmes de permissions)
+          echo "Installation des dépendances avec Composer..."
+          sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
           echo "✅ Dépendances installées"
-
-          # Corriger les permissions
-          chown -R www-data:www-data $NEW_RELEASE
 
           # ============================================
           # 6. OPTIMISATIONS LARAVEL (DANS LE DOSSIER TEMPORAIRE)
