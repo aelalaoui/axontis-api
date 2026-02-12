@@ -129,7 +129,23 @@ else
 fi
 
 # ============================================
-# 4. SYMLINKS POUR LES FICHIERS PARTAGÉS
+# 4. COPIE DES RESOURCES ACTUELLES VERS SHARED
+# ============================================
+echo -e "\n${YELLOW}📋 Copie des resources vers shared...${NC}"
+
+# Copier resources depuis la version actuelle vers shared (si existe)
+if [ -d "$CURRENT_LINK/resources" ] && [ ! -d "$SHARED_PATH/resources" ]; then
+    cp -r $CURRENT_LINK/resources $SHARED_PATH/resources
+    echo -e "${GREEN}✅ Resources copiées vers shared${NC}"
+elif [ -d "$SHARED_PATH/resources" ]; then
+    echo -e "${GREEN}✅ Resources déjà présentes dans shared${NC}"
+else
+    echo -e "${YELLOW}⚠️  Aucun resources trouvé${NC}"
+    mkdir -p $SHARED_PATH/resources
+fi
+
+# ============================================
+# 5. SYMLINKS POUR LES FICHIERS PARTAGÉS
 # ============================================
 echo -e "\n${YELLOW}🔗 Configuration des symlinks partagés...${NC}"
 
@@ -141,6 +157,7 @@ mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
 # Créer les symlinks
 ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
 ln -sf $SHARED_PATH/resources $NEW_RELEASE/resources
+echo -e "${GREEN}✅ Symlinks configurés (storage + resources)${NC}"
 
 # ============================================
 # 5. INSTALLATION DES DÉPENDANCES
@@ -152,10 +169,10 @@ cd $NEW_RELEASE
 if [ -d "$CURRENT_LINK/vendor" ]; then
     echo "Réutilisation des vendor existants (plus rapide)..."
     cp -al $CURRENT_LINK/vendor $NEW_RELEASE/vendor 2>/dev/null || true
-    # Puis mettre à jour si nécessaire
-    composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || composer install --no-dev --optimize-autoloader
+    # Puis mettre à jour si nécessaire (en tant que www-data)
+    sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || sudo -u www-data composer install --no-dev --optimize-autoloader
 else
-    composer install --no-dev --optimize-autoloader --no-interaction
+    sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
 fi
 
 # ============================================

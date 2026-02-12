@@ -463,6 +463,19 @@ jobs:
           # 3. SYMLINKS POUR LES FICHIERS PARTAGÉS
           # ============================================
           echo ""
+          echo "📋 Copie des resources vers shared..."
+          # Copier resources depuis la version actuelle vers shared (si existe)
+          if [ -d "$CURRENT_LINK/resources" ] && [ ! -d "$SHARED_PATH/resources" ]; then
+            cp -r $CURRENT_LINK/resources $SHARED_PATH/resources
+            echo "✅ Resources copiées vers shared"
+          elif [ -d "$SHARED_PATH/resources" ]; then
+            echo "✅ Resources déjà présentes dans shared"
+          else
+            echo "⚠️  Aucun resources trouvé, création du dossier"
+            mkdir -p $SHARED_PATH/resources
+          fi
+
+          echo ""
           echo "🔗 Configuration des symlinks partagés..."
           mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
           rm -rf $NEW_RELEASE/storage
@@ -577,11 +590,14 @@ jobs:
           # Réutiliser vendor si possible pour aller plus vite
           if [ -d "$CURRENT_LINK/vendor" ]; then
             cp -al $CURRENT_LINK/vendor $NEW_RELEASE/vendor 2>/dev/null || true
-            composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || composer install --no-dev --optimize-autoloader
+            sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || sudo -u www-data composer install --no-dev --optimize-autoloader
           else
-            composer install --no-dev --optimize-autoloader --no-interaction
+            sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
           fi
           echo "✅ Dépendances installées"
+
+          # Corriger les permissions
+          chown -R www-data:www-data $NEW_RELEASE
 
           # ============================================
           # 6. OPTIMISATIONS LARAVEL (DANS LE DOSSIER TEMPORAIRE)
