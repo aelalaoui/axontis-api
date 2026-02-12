@@ -132,6 +132,16 @@ fi
 # ============================================
 echo -e "\n${YELLOW}🔗 Configuration du symlink storage partagé...${NC}"
 
+# Vérifier que resources est bien présent dans la release
+if [ -d "$NEW_RELEASE/resources" ]; then
+    echo -e "${GREEN}✅ Dossier resources présent dans la release${NC}"
+    echo -e "${CYAN}   - Contenu: $(ls -1 $NEW_RELEASE/resources | tr '\n' ' ')${NC}"
+else
+    echo -e "${RED}❌ ERREUR: Le dossier resources n'est pas présent dans la release!${NC}"
+    rm -rf $NEW_RELEASE
+    exit 1
+fi
+
 # Supprimer le dossier storage et créer symlink vers shared
 rm -rf $NEW_RELEASE/storage
 mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
@@ -188,11 +198,11 @@ echo -e "${GREEN}✅ Optimisation terminée${NC}"
 echo -e "\n${YELLOW}🔍 Vérification de la nouvelle release...${NC}"
 
 # Test des fichiers critiques
-CRITICAL_FILES=("artisan" "public/index.php" ".env" "vendor/autoload.php")
+CRITICAL_FILES=("artisan" "public/index.php" ".env" "vendor/autoload.php" "resources/views")
 ALL_OK=true
 for file in "${CRITICAL_FILES[@]}"; do
-    if [ ! -f "$NEW_RELEASE/$file" ]; then
-        echo -e "${RED}❌ Fichier critique manquant: $file${NC}"
+    if [ ! -f "$NEW_RELEASE/$file" ] && [ ! -d "$NEW_RELEASE/$file" ]; then
+        echo -e "${RED}❌ Fichier/dossier critique manquant: $file${NC}"
         ALL_OK=false
     fi
 done

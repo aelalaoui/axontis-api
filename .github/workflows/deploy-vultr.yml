@@ -427,7 +427,6 @@ jobs:
           mkdir -p $RELEASES_PATH
           mkdir -p $BACKUP_PATH
           mkdir -p $SHARED_PATH/storage/{app,framework,logs}
-          mkdir -p $SHARED_PATH/resources
 
           # ============================================
           # 1. BACKUP
@@ -459,28 +458,31 @@ jobs:
           echo "✅ Code extrait"
 
           # ============================================
-          # 3. SYMLINKS POUR LES FICHIERS PARTAGÉS
+          # 3. VÉRIFICATION DU DOSSIER RESOURCES
           # ============================================
           echo ""
-          echo "📋 Copie des resources vers shared..."
-          # Copier resources depuis la version actuelle vers shared (si existe)
-          if [ -d "$CURRENT_LINK/resources" ] && [ ! -d "$SHARED_PATH/resources" ]; then
-            cp -r $CURRENT_LINK/resources $SHARED_PATH/resources
-            echo "✅ Resources copiées vers shared"
-          elif [ -d "$SHARED_PATH/resources" ]; then
-            echo "✅ Resources déjà présentes dans shared"
+          echo "📋 Vérification du dossier resources..."
+          # Resources doivent être incluses dans chaque release (pas partagées)
+          if [ -d "$NEW_RELEASE/resources" ]; then
+            echo "✅ Dossier resources présent dans la release"
+            # Lister les sous-dossiers pour confirmer
+            echo "   - Contenu: $(ls -1 $NEW_RELEASE/resources | tr '\n' ' ')"
           else
-            echo "⚠️  Aucun resources trouvé, création du dossier"
-            mkdir -p $SHARED_PATH/resources
+            echo "❌ ERREUR: Le dossier resources n'est pas présent dans la release!"
+            echo "   Vérifiez que l'archive tar contient bien le dossier resources"
+            rm -rf $NEW_RELEASE
+            exit 1
           fi
 
+          # ============================================
+          # 4. SYMLINKS POUR STORAGE (partagé entre releases)
+          # ============================================
           echo ""
           echo "🔗 Configuration du symlink storage partagé..."
           mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
           rm -rf $NEW_RELEASE/storage
           ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
           echo "✅ Symlink storage configuré"
-          echo "ℹ️  Resources sont incluses dans la release (pas partagées)"
 
           # ============================================
           # 4. CONFIGURATION DU .ENV
@@ -628,11 +630,11 @@ jobs:
           echo "🔍 Vérification de la nouvelle release..."
 
           # Test des fichiers critiques
-          CRITICAL_FILES=("artisan" "public/index.php" ".env" "vendor/autoload.php")
+          CRITICAL_FILES=("artisan" "public/index.php" ".env" "vendor/autoload.php" "resources/views")
           ALL_OK=true
           for file in "${CRITICAL_FILES[@]}"; do
-            if [ ! -f "$NEW_RELEASE/$file" ]; then
-              echo "❌ Fichier critique manquant: $file"
+            if [ ! -f "$NEW_RELEASE/$file" ] && [ ! -d "$NEW_RELEASE/$file" ]; then
+              echo "❌ Fichier/dossier critique manquant: $file"
               ALL_OK=false
             fi
           done
