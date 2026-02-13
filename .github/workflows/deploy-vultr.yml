@@ -718,7 +718,51 @@ jobs:
           echo "✅ Permissions configurées"
 
           # ============================================
-          # 13. VÉRIFICATION FINALE
+          # 13. VÉRIFICATION ET CORRECTION NGINX
+          # ============================================
+          echo ""
+          echo "🔧 Vérification de la configuration Nginx..."
+
+          NGINX_CONF="/etc/nginx/sites-enabled/axontis"
+          CORRECT_ROOT="/var/www/axontis/current/public"
+
+          if [ -f "$NGINX_CONF" ]; then
+            # Vérifier si la config pointe vers le bon dossier
+            CURRENT_ROOT=$(grep -E "^\s*root\s+" "$NGINX_CONF" | head -1 | awk '{print $2}' | tr -d ';')
+
+            if [ "$CURRENT_ROOT" = "$CORRECT_ROOT" ]; then
+              echo "✅ Nginx pointe déjà vers $CORRECT_ROOT"
+            else
+              echo "⚠️ Nginx pointe vers $CURRENT_ROOT au lieu de $CORRECT_ROOT"
+              echo "   Correction en cours..."
+
+              # Backup de la config actuelle
+              cp "$NGINX_CONF" "${NGINX_CONF}.backup.$(date +%Y%m%d_%H%M%S)"
+
+              # Corriger le root path
+              sed -i "s|root /var/www/axontis/public;|root /var/www/axontis/current/public;|g" "$NGINX_CONF"
+              sed -i "s|root /var/www/axontis;|root /var/www/axontis/current/public;|g" "$NGINX_CONF"
+
+              # Tester la config
+              if nginx -t 2>/dev/null; then
+                systemctl reload nginx
+                echo "✅ Configuration Nginx corrigée et rechargée"
+              else
+                echo "❌ Erreur dans la configuration Nginx, restauration du backup"
+                cp "${NGINX_CONF}.backup."* "$NGINX_CONF" 2>/dev/null || true
+                systemctl reload nginx
+              fi
+            fi
+          else
+            echo "⚠️ Fichier de configuration Nginx non trouvé à $NGINX_CONF"
+            echo "   Veuillez créer la configuration manuellement avec:"
+            echo "   root /var/www/axontis/current/public;"
+            echo ""
+            echo "   Voir FIX_HTTP_404.md pour la configuration complète"
+          fi
+
+          # ============================================
+          # 14. VÉRIFICATION FINALE
           # ============================================
           echo ""
           echo "🔍 Vérification finale..."
