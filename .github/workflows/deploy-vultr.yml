@@ -695,6 +695,13 @@ jobs:
           # Reload PHP-FPM pour prendre en compte les changements
           systemctl reload php8.3-fpm
 
+          # IMPORTANT: Re-optimiser avec le nouveau contexte après le switch
+          echo ""
+          echo "⚡ Optimisation finale avec le nouveau contexte..."
+          cd $CURRENT_LINK
+          php artisan optimize
+          echo "✅ Optimisation finale terminée"
+
           # Redémarrer les workers
           php artisan queue:restart
           supervisorctl restart axontis-workers:* 2>/dev/null || true
