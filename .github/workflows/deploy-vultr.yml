@@ -678,14 +678,18 @@ jobs:
           echo ""
           echo "🔄 Nettoyage du cache et redémarrage des services..."
 
-          # Vider Redis pour prendre en compte les changements
+          # Note: Le cache Laravel a déjà été vidé par 'php artisan optimize:clear'
+          # exécuté avant l'optimisation dans la nouvelle release.
+          # Nous nettoyons uniquement le cache Redis applicatif (DB 1) par précaution
+          # pour forcer la régénération des caches après le switch de symlink.
           if systemctl is-active --quiet redis-server; then
+            echo "🗑️ Nettoyage du cache Redis (DB 1 uniquement)..."
             if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
-              redis-cli -a "$REDIS_PASSWORD" FLUSHALL --no-auth-warning >/dev/null 2>&1 || true
+              redis-cli -a "$REDIS_PASSWORD" -n 1 FLUSHDB --no-auth-warning >/dev/null 2>&1 || true
             else
-              redis-cli FLUSHALL >/dev/null 2>&1 || true
+              redis-cli -n 1 FLUSHDB >/dev/null 2>&1 || true
             fi
-            echo "✅ Cache Redis vidé"
+            echo "✅ Cache Redis vidé (sessions et queues préservées)"
           fi
 
           # Reload PHP-FPM pour prendre en compte les changements
@@ -693,7 +697,7 @@ jobs:
 
           # Redémarrer les workers
           php artisan queue:restart
-          supervisorctl restart axontis-worker:* 2>/dev/null || true
+          supervisorctl restart axontis-workers:* 2>/dev/null || true
 
           echo "✅ Services redémarrés"
 
@@ -718,10 +722,33 @@ jobs:
           echo "✅ Permissions configurées"
 
           # ============================================
-          # 13. VÉRIFICATION ET CORRECTION NGINX
+          # 13. VÉRIFICATION ET CORRECTION NGINX (CORRIGÉ)
           # ============================================
           echo ""
           echo "🔧 Vérification de la configuration Nginx..."
+
+          # Vérifier si Nginx est installé et actif
+          if ! command -v nginx &> /dev/null; then
+            echo "⚠️ Nginx n'est pas installé - passage de cette étape"
+          elif ! systemctl is-active --quiet nginx; then
+            echo "⚠️ Nginx n'est pas actif - tentative de démarrage..."
+
+            # Nettoyer les fichiers de backup dans sites-enabled
+            echo "🧹 Nettoyage des backups Nginx dans sites-enabled..."
+            rm -f /etc/nginx/sites-enabled/*.backup* 2>/dev/null || true
+            rm -f /etc/nginx/sites-available/*.backup* 2>/dev/null || true
+
+            # Créer le dossier de backup
+            mkdir -p /var/backups/nginx
+
+            # Tester la config avant de démarrer
+            if nginx -t 2>/dev/null; then
+              systemctl start nginx 2>/dev/null && echo "✅ Nginx démarré avec succès" || echo "❌ Impossible de démarrer Nginx automatiquement"
+            else
+              echo "❌ Configuration Nginx invalide - correction manuelle requise"
+              nginx -t 2>&1 | tail -5
+            fi
+          fi
 
           NGINX_CONF="/etc/nginx/sites-enabled/axontis"
           CORRECT_ROOT="/var/www/axontis/current/public"
@@ -736,8 +763,9 @@ jobs:
               echo "⚠️ Nginx pointe vers $CURRENT_ROOT au lieu de $CORRECT_ROOT"
               echo "   Correction en cours..."
 
-              # Backup de la config actuelle
-              cp "$NGINX_CONF" "/var/backups/nginx-axontis.backup.$(date +%Y%m%d_%H%M%S)"
+              # Backup dans /var/backups (PAS dans sites-enabled)
+              mkdir -p /var/backups/nginx
+              cp "$NGINX_CONF" "/var/backups/nginx/axontis.backup.$(date +%Y%m%d_%H%M%S)"
 
               # Corriger le root path
               sed -i "s|root /var/www/axontis/public;|root /var/www/axontis/current/public;|g" "$NGINX_CONF"
@@ -745,12 +773,19 @@ jobs:
 
               # Tester la config
               if nginx -t 2>/dev/null; then
-                systemctl reload nginx
-                echo "✅ Configuration Nginx corrigée et rechargée"
+                # Vérifier si Nginx est actif avant de reload
+                if systemctl is-active --quiet nginx; then
+                  systemctl reload nginx
+                  echo "✅ Configuration Nginx corrigée et rechargée"
+                else
+                  echo "⚠️ Configuration Nginx corrigée mais Nginx n'est pas actif"
+                  echo "   Démarrez Nginx manuellement: sudo systemctl start nginx"
+                fi
               else
-                echo "❌ Erreur dans la configuration Nginx, restauration du backup"
-                cp "${NGINX_CONF}.backup."* "$NGINX_CONF" 2>/dev/null || true
-                systemctl reload nginx
+                echo "❌ Erreur dans la configuration Nginx après correction"
+                echo "   Restauration du backup..."
+                cp "/var/backups/nginx/axontis.backup."* "$NGINX_CONF" 2>/dev/null | tail -1 || true
+                echo "   Correction manuelle requise"
               fi
             fi
           else
@@ -758,7 +793,7 @@ jobs:
             echo "   Veuillez créer la configuration manuellement avec:"
             echo "   root /var/www/axontis/current/public;"
             echo ""
-            echo "   Voir FIX_HTTP_404.md pour la configuration complète"
+            echo "   Voir la documentation pour la configuration complète"
           fi
 
           # ============================================
@@ -776,11 +811,16 @@ jobs:
           fi
 
           # Vérifier les workers
-          WORKER_STATUS=$(supervisorctl status axontis-worker:* 2>/dev/null | grep -c "RUNNING" || echo "0")
-          if [ "$WORKER_STATUS" -gt 0 ]; then
+          WORKER_STATUS=$(supervisorctl status axontis-workers:* 2>/dev/null | grep -c "RUNNING" || true)
+          if [ -z "$WORKER_STATUS" ]; then
+            WORKER_STATUS=0
+          fi
+
+          if [ "$WORKER_STATUS" -gt 0 ] 2>/dev/null; then
             echo "✅ ${WORKER_STATUS} worker(s) actif(s)"
           else
-            echo "⚠️ Aucun worker actif"
+            echo "⚠️ Aucun worker actif (Supervisord non configuré ou workers non démarrés)"
+            echo "   Pour configurer: voir la documentation Supervisord"
           fi
 
           echo ""
