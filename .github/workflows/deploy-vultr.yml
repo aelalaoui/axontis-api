@@ -707,7 +707,6 @@ jobs:
           supervisorctl restart axontis-workers:* 2>/dev/null || true
 
           echo "✅ Services redémarrés"
-          php artisan optimize
 
           # ============================================
           # 11. NETTOYAGE DES ANCIENNES RELEASES
@@ -728,6 +727,7 @@ jobs:
           chmod -R 775 $SHARED_PATH/storage
 
           echo "✅ Permissions configurées"
+          php artisan optimize
 
           # ============================================
           # 13. VÉRIFICATION ET CORRECTION NGINX (CORRIGÉ)
