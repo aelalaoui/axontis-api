@@ -737,7 +737,7 @@ jobs:
               echo "   Correction en cours..."
 
               # Backup de la config actuelle
-              cp "$NGINX_CONF" "${NGINX_CONF}.backup.$(date +%Y%m%d_%H%M%S)"
+              cp "$NGINX_CONF" "/var/backups/nginx-axontis.backup.$(date +%Y%m%d_%H%M%S)"
 
               # Corriger le root path
               sed -i "s|root /var/www/axontis/public;|root /var/www/axontis/current/public;|g" "$NGINX_CONF"
