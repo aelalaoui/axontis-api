@@ -707,6 +707,7 @@ jobs:
           supervisorctl restart axontis-workers:* 2>/dev/null || true
 
           echo "✅ Services redémarrés"
+          php artisan optimize
 
           # ============================================
           # 11. NETTOYAGE DES ANCIENNES RELEASES
