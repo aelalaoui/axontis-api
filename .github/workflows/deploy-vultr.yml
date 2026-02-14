@@ -718,6 +718,20 @@ jobs:
           grep "^MAIL_" $CURRENT_LINK/.env || echo "   ERROR: No MAIL_ variables in .env!"
           echo ""
 
+          # CRITICAL: Unset les variables d'environnement vides pour que Laravel lise le .env
+          # Laravel donne la priorité aux env vars système (même vides) sur le .env
+          echo "🧹 Nettoyage des variables d'environnement vides..."
+          for var in MAIL_MAILER MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD MAIL_FROM_ADDRESS MAIL_FROM_NAME \
+                     BREVO_SMTP_HOST BREVO_SMTP_PORT BREVO_SMTP_USERNAME BREVO_API_KEY \
+                     TWILIO_SID TWILIO_TOKEN TWILIO_FROM TWILIO_WHATSAPP_FROM \
+                     TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID SLACK_WEBHOOK_URL \
+                     NOTIFICATION_SLACK_WEBHOOK NOTIFICATION_TELEGRAM_CHAT_ID; do
+            if [ -z "${!var}" ]; then
+              unset $var
+            fi
+          done
+          echo "✅ Variables d'environnement nettoyées"
+
           cd $CURRENT_LINK && php artisan config:cache
           cd $CURRENT_LINK && php artisan route:cache
           cd $CURRENT_LINK && php artisan view:cache
