@@ -670,7 +670,6 @@ jobs:
 
           # Créer le symlink de manière atomique
           ln -sfn $NEW_RELEASE $CURRENT_LINK
-          php artisan optimize
 
           echo "✅ Symlink mis à jour"
 
@@ -701,6 +700,7 @@ jobs:
           echo ""
           echo "⚡ Optimisation finale avec le nouveau contexte..."
           cd $CURRENT_LINK
+          php artisan optimize
           echo "✅ Optimisation finale terminée"
 
           # Redémarrer les workers
