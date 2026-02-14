@@ -695,20 +695,10 @@ jobs:
 
           # IMPORTANT: Re-optimiser avec le nouveau contexte après le switch
           echo ""
-          echo "⚡ Nettoyage complet des caches et optimisation finale..."
-          cd $CURRENT_LINK
-
-          # Nettoyer tous les caches Laravel
+          echo "⚡ Optimisation finale avec le nouveau contexte..."
+          cd /var/www/axontis/current
           php artisan optimize:clear
-
-          # Vider l'opcache PHP pour forcer le rechargement
-          systemctl reload php8.3-fpm
-
-          # Maintenant optimiser avec les BONNES variables d'environnement
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
-          php artisan event:cache
+          php artisan optimize
 
           echo "✅ Optimisation finale terminée"
 
