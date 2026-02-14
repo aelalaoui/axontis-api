@@ -417,7 +417,7 @@ jobs:
 
           APP_PATH="/var/www/axontis"
           RELEASES_PATH="$APP_PATH/releases"
-          CURRENT_LINK="$APP_PATH/current"
+          CURRENT_LINK="$APP_PATH"  # MODIFIÉ: pointe maintenant directement sur /var/www/axontis
           BACKUP_PATH="/var/backups/axontis"
           SHARED_PATH="$APP_PATH/shared"
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -674,7 +674,7 @@ jobs:
           echo "🔄 Nettoyage du cache et redémarrage des services..."
 
           # Note: Après le switch du symlink, il faut IMPÉRATIVEMENT re-cacher
-          # la configuration depuis /var/www/axontis/current pour que Laravel
+          # la configuration depuis /var/www/axontis pour que Laravel
           # charge les bonnes variables d'environnement.
 
           # Nettoyage Redis (DB 1 uniquement)
@@ -768,7 +768,7 @@ jobs:
           fi
 
           NGINX_CONF="/etc/nginx/sites-enabled/axontis"
-          CORRECT_ROOT="/var/www/axontis/current/public"
+          CORRECT_ROOT="/var/www/axontis/public"  # MODIFIÉ: sans /current
 
           if [ -f "$NGINX_CONF" ]; then
             # Vérifier si la config pointe vers le bon dossier
@@ -785,8 +785,8 @@ jobs:
               cp "$NGINX_CONF" "/var/backups/nginx/axontis.backup.$(date +%Y%m%d_%H%M%S)"
 
               # Corriger le root path
-              sed -i "s|root /var/www/axontis/public;|root /var/www/axontis/current/public;|g" "$NGINX_CONF"
-              sed -i "s|root /var/www/axontis;|root /var/www/axontis/current/public;|g" "$NGINX_CONF"
+              sed -i "s|root /var/www/axontis/current/public;|root /var/www/axontis/public;|g" "$NGINX_CONF"
+              sed -i "s|root /var/www/axontis;|root /var/www/axontis/public;|g" "$NGINX_CONF"
 
               # Tester la config
               if nginx -t 2>/dev/null; then
@@ -808,7 +808,7 @@ jobs:
           else
             echo "⚠️ Fichier de configuration Nginx non trouvé à $NGINX_CONF"
             echo "   Veuillez créer la configuration manuellement avec:"
-            echo "   root /var/www/axontis/current/public;"
+            echo "   root /var/www/axontis/public;"
             echo ""
             echo "   Voir la documentation pour la configuration complète"
           fi
@@ -830,7 +830,7 @@ jobs:
           # Test de la configuration mail
           echo ""
           echo "🔍 Test de la configuration mail..."
-          cd /var/www/axontis/current
+          cd $CURRENT_LINK
           php artisan tinker --execute="
             \$mailer = config('mail.default');
             if (empty(\$mailer)) {
