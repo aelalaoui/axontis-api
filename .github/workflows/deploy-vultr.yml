@@ -824,6 +824,20 @@ jobs:
             echo "⚠️ L'application répond avec HTTP $HTTP_CODE"
           fi
 
+          # Test de la configuration mail
+          echo ""
+          echo "🔍 Test de la configuration mail..."
+          cd /var/www/axontis/current
+          php artisan tinker --execute="
+            \$mailer = config('mail.default');
+            if (empty(\$mailer)) {
+            echo '❌ ERREUR: MAIL_MAILER est vide' . PHP_EOL;
+              exit(1);
+            } else {
+            echo '✅ MAIL_MAILER configuré: ' . \$mailer . PHP_EOL;
+            }
+          "
+
           # Vérifier les workers
           WORKER_STATUS=$(supervisorctl status axontis-workers:* 2>/dev/null | grep -c "RUNNING" || true)
           if [ -z "$WORKER_STATUS" ]; then
