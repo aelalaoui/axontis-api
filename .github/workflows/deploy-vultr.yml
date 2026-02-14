@@ -679,38 +679,41 @@ jobs:
 
           # Nettoyage Redis (DB 1 uniquement)
           if systemctl is-active --quiet redis-server; then
-          echo "🗑️ Nettoyage du cache Redis (DB 1 uniquement)..."
-          if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
-          redis-cli -a "$REDIS_PASSWORD" -n 1 FLUSHDB --no-auth-warning >/dev/null 2>&1 || true
-          else
-          redis-cli -n 1 FLUSHDB >/dev/null 2>&1 || true
-          fi
-          echo "✅ Cache Redis vidé (sessions et queues préservées)"
+            echo "🗑️ Nettoyage du cache Redis (DB 1 uniquement)..."
+            if [ -n "$REDIS_PASSWORD" ] && [ "$REDIS_PASSWORD" != "null" ]; then
+              redis-cli -a "$REDIS_PASSWORD" -n 1 FLUSHDB --no-auth-warning >/dev/null 2>&1 || true
+            else
+              redis-cli -n 1 FLUSHDB >/dev/null 2>&1 || true
+            fi
+            echo "✅ Cache Redis vidé (sessions et queues préservées)"
           fi
 
           # Nettoyer TOUS les caches Laravel
           echo ""
           echo "🗑️ Nettoyage complet des caches Laravel..."
-          php artisan optimize:clear
+          cd $CURRENT_LINK && php artisan optimize:clear
 
           # Reload PHP-FPM pour vider l'opcache
           echo "🔄 Rechargement PHP-FPM..."
           systemctl reload php8.3-fpm
 
+          # IMPORTANT: Attendre que PHP-FPM se recharge complètement
+          sleep 2
+
           # Re-créer les caches avec les BONNES variables d'environnement
           echo ""
           echo "⚡ Re-création des caches avec le nouveau contexte..."
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
-          php artisan event:cache
+          cd $CURRENT_LINK && php artisan config:cache
+          cd $CURRENT_LINK && php artisan route:cache
+          cd $CURRENT_LINK && php artisan view:cache
+          cd $CURRENT_LINK && php artisan event:cache
 
           echo "✅ Optimisation finale terminée"
 
           # Redémarrer les workers
           echo ""
           echo "🔄 Redémarrage des workers..."
-          php artisan queue:restart
+          cd $CURRENT_LINK && php artisan queue:restart
           supervisorctl restart axontis-workers:* 2>/dev/null || true
 
           echo "✅ Services redémarrés"
