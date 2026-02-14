@@ -7,7 +7,7 @@ on:
 
 env:
   APP_PATH: /var/www/axontis
-  RELEASES_PATH: /var/www/axontis/releases
+  RELEASES_PATH: /var/www/axontis-releases
   PHP_VERSION: '8.3'
   NODE_VERSION: '22'
 
@@ -416,39 +416,18 @@ jobs:
           echo "=========================================="
 
           APP_PATH="/var/www/axontis"
-          RELEASES_PATH="$APP_PATH/releases"
-          CURRENT_LINK="$APP_PATH"  # MODIFIÉ: pointe maintenant directement sur /var/www/axontis
-          BACKUP_PATH="/var/backups/axontis"
-          SHARED_PATH="$APP_PATH/shared"
+          RELEASES_PATH="$RELEASES_PATH"
+          CURRENT_LINK="$APP_PATH"
+          SHARED_PATH="$APP_PATH-shared"
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           NEW_RELEASE="$RELEASES_PATH/$TIMESTAMP"
 
           # Créer les dossiers nécessaires
           mkdir -p $RELEASES_PATH
-          mkdir -p $BACKUP_PATH
           mkdir -p $SHARED_PATH/storage/{app,framework,logs}
 
           # ============================================
-          # 1. BACKUP
-          # ============================================
-          # echo ""
-          # echo "📦 Création du backup..."
-
-          # Backup de la base de données
-          # if [ -f "$CURRENT_LINK/.env" ]; then
-          #   DB_USER=$(grep -E "^DB_USERNAME=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
-          #   DB_PASS=$(grep -E "^DB_PASSWORD=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
-          #   DB_NAME=$(grep -E "^DB_DATABASE=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
-          #   mysqldump -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_PATH/db_${TIMESTAMP}.sql" 2>/dev/null || true
-          #   echo "✅ Backup BDD créé"
-          # fi
-
-          # Nettoyer les vieux backups
-          # cd $BACKUP_PATH && ls -t db_*.sql 2>/dev/null | tail -n +6 | xargs -r rm --
-          echo "✅ Préparation terminée (backup DB géré séparément)"
-
-          # ============================================
-          # 2. EXTRACTION DU NOUVEAU CODE
+          # 1. EXTRACTION DU NOUVEAU CODE
           # ============================================
           echo ""
           echo "📥 Extraction du nouveau code..."
@@ -459,7 +438,7 @@ jobs:
           echo "✅ Code extrait"
 
           # ============================================
-          # 3. VÉRIFICATION DU DOSSIER RESOURCES
+          # 2. VÉRIFICATION DU DOSSIER RESOURCES
           # ============================================
           echo ""
           echo "📋 Vérification du dossier resources..."
@@ -476,7 +455,7 @@ jobs:
           fi
 
           # ============================================
-          # 4. SYMLINKS POUR STORAGE (partagé entre releases)
+          # 3. SYMLINKS POUR STORAGE (partagé entre releases)
           # ============================================
           echo ""
           echo "🔗 Configuration du symlink storage partagé..."
