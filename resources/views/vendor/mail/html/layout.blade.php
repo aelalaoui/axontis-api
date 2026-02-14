@@ -4,16 +4,23 @@
     <title>{{ config('app.name') }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="color-scheme" content="light">
-    <meta name="supported-color-schemes" content="light">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <!-- Google Fonts - Axontis Brand Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         @media only screen and (max-width: 600px) {
             .inner-body {
                 width: 100% !important;
+                border-radius: 12px;
             }
 
             .footer {
                 width: 100% !important;
+            }
+
+            .content-cell {
+                padding: 24px !important;
             }
         }
 
@@ -36,7 +43,7 @@
                 <!-- Email Body -->
                 <tr>
                     <td class="body" width="100%" cellpadding="0" cellspacing="0" style="border: hidden !important;">
-                        <table class="inner-body" align="center" width="570" cellpadding="0" cellspacing="0" role="presentation">
+                        <table class="inner-body" align="center" width="600" cellpadding="0" cellspacing="0" role="presentation">
                             <!-- Body content -->
                             <tr>
                                 <td class="content-cell">
