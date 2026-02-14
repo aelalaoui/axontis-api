@@ -496,6 +496,17 @@ jobs:
             fi
           }
 
+          # Helper function to get value or default for empty strings
+          get_value_or_default() {
+            local value=$1
+            local default=$2
+            if [ -z "$value" ]; then
+              echo "$default"
+            else
+              echo "$value"
+            fi
+          }
+
           # Mise à jour des variables avec les secrets
           update_env "APP_ENV" "production"
           update_env "APP_DEBUG" "false"
@@ -533,13 +544,13 @@ jobs:
           update_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET_KEY"
           update_env "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET"
           update_env "SENTRY_LARAVEL_DSN" "$SENTRY_LARAVEL_DSN"
-          update_env "MAIL_MAILER" "${MAIL_MAILER:-failover}"
-          update_env "MAIL_HOST" "${MAIL_HOST:-localhost}"
-          update_env "MAIL_PORT" "${MAIL_PORT:-25}"
-          update_env "MAIL_USERNAME" "${MAIL_USERNAME:-null}"
-          update_env "MAIL_PASSWORD" "${MAIL_PASSWORD:-null}"
-          update_env "MAIL_FROM_ADDRESS" "${MAIL_FROM_ADDRESS:-noreply@axontis.net}"
-          update_env "MAIL_FROM_NAME" "${MAIL_FROM_NAME:-Axontis}"
+          update_env "MAIL_MAILER" "$(get_value_or_default "$MAIL_MAILER" "failover")"
+          update_env "MAIL_HOST" "$(get_value_or_default "$MAIL_HOST" "localhost")"
+          update_env "MAIL_PORT" "$(get_value_or_default "$MAIL_PORT" "25")"
+          update_env "MAIL_USERNAME" "$(get_value_or_default "$MAIL_USERNAME" "null")"
+          update_env "MAIL_PASSWORD" "$(get_value_or_default "$MAIL_PASSWORD" "null")"
+          update_env "MAIL_FROM_ADDRESS" "$(get_value_or_default "$MAIL_FROM_ADDRESS" "noreply@axontis.net")"
+          update_env "MAIL_FROM_NAME" "$(get_value_or_default "$MAIL_FROM_NAME" "Axontis")"
           update_env "RESEND_API_KEY" "$RESEND_API_KEY"
           update_env "MAILGUN_DOMAIN" "$MAILGUN_DOMAIN"
           update_env "MAILGUN_SECRET" "$MAILGUN_SECRET"
