@@ -544,6 +544,17 @@ jobs:
           update_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET_KEY"
           update_env "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET"
           update_env "SENTRY_LARAVEL_DSN" "$SENTRY_LARAVEL_DSN"
+
+          # Debug: Check mail configuration before updates
+          echo ""
+          echo "🔍 Debug: Mail environment variables from GitHub Actions:"
+          echo "   MAIL_MAILER='$MAIL_MAILER' (will default to 'failover' if empty)"
+          echo "   MAIL_HOST='$MAIL_HOST' (will default to 'localhost' if empty)"
+          echo ""
+          echo "🔍 Debug: Current .env file mail configuration:"
+          grep "^MAIL_" $NEW_RELEASE/.env || echo "   No MAIL_ variables found in .env"
+          echo ""
+
           update_env "MAIL_MAILER" "$(get_value_or_default "$MAIL_MAILER" "failover")"
           update_env "MAIL_HOST" "$(get_value_or_default "$MAIL_HOST" "localhost")"
           update_env "MAIL_PORT" "$(get_value_or_default "$MAIL_PORT" "25")"
@@ -555,6 +566,13 @@ jobs:
           update_env "MAILGUN_DOMAIN" "$MAILGUN_DOMAIN"
           update_env "MAILGUN_SECRET" "$MAILGUN_SECRET"
           update_env "MAILGUN_ENDPOINT" "$MAILGUN_ENDPOINT"
+
+          # Debug: Verify mail configuration was updated
+          echo ""
+          echo "🔍 Debug: .env file after mail configuration updates:"
+          grep "^MAIL_" $NEW_RELEASE/.env || echo "   ERROR: No MAIL_ variables found after update!"
+          echo ""
+
           update_env "BREVO_SMTP_HOST" "$BREVO_SMTP_HOST"
           update_env "BREVO_SMTP_PORT" "$BREVO_SMTP_PORT"
           update_env "BREVO_SMTP_USERNAME" "$BREVO_SMTP_USERNAME"
@@ -693,6 +711,13 @@ jobs:
           # Re-créer les caches avec les BONNES variables d'environnement
           echo ""
           echo "⚡ Re-création des caches avec le nouveau contexte..."
+
+          # Debug: Verify .env before caching config
+          echo ""
+          echo "🔍 Debug: Final .env mail configuration before config:cache:"
+          grep "^MAIL_" $CURRENT_LINK/.env || echo "   ERROR: No MAIL_ variables in .env!"
+          echo ""
+
           cd $CURRENT_LINK && php artisan config:cache
           cd $CURRENT_LINK && php artisan route:cache
           cd $CURRENT_LINK && php artisan view:cache
@@ -820,14 +845,28 @@ jobs:
           # Test de la configuration mail
           echo ""
           echo "🔍 Test de la configuration mail..."
+          echo ""
+          echo "🔍 Debug: .env file MAIL_ values:"
+          grep "^MAIL_" $CURRENT_LINK/.env || echo "   No MAIL_ variables in .env"
+          echo ""
           cd $CURRENT_LINK
           php artisan tinker --execute="
+            echo '🔍 Debug: Laravel config values:' . PHP_EOL;
+            echo '   mail.default: ' . var_export(config('mail.default'), true) . PHP_EOL;
+            echo '   mail.mailers: ' . var_export(array_keys(config('mail.mailers', [])), true) . PHP_EOL;
+            echo '' . PHP_EOL;
+            echo '🔍 Debug: Environment variables:' . PHP_EOL;
+            echo '   MAIL_MAILER env: ' . var_export(env('MAIL_MAILER'), true) . PHP_EOL;
+            echo '   MAIL_HOST env: ' . var_export(env('MAIL_HOST'), true) . PHP_EOL;
+            echo '' . PHP_EOL;
+
             \$mailer = config('mail.default');
             if (empty(\$mailer)) {
-            echo '❌ ERREUR: MAIL_MAILER est vide' . PHP_EOL;
+              echo '❌ ERREUR: MAIL_MAILER est vide' . PHP_EOL;
+              echo '   Ceci indique que config(\"mail.default\") retourne null/empty' . PHP_EOL;
               exit(1);
             } else {
-            echo '✅ MAIL_MAILER configuré: ' . \$mailer . PHP_EOL;
+              echo '✅ MAIL_MAILER configuré: ' . \$mailer . PHP_EOL;
             }
           "
 
