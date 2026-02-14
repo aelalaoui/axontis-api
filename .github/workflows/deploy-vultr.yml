@@ -700,7 +700,6 @@ jobs:
           echo ""
           echo "⚡ Optimisation finale avec le nouveau contexte..."
           cd $CURRENT_LINK
-          php artisan optimize
           echo "✅ Optimisation finale terminée"
 
           # Redémarrer les workers
