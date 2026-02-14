@@ -416,9 +416,9 @@ jobs:
           echo "=========================================="
 
           APP_PATH="/var/www/axontis"
-          RELEASES_PATH="$RELEASES_PATH"
+          RELEASES_PATH="/var/www/axontis-releases"
           CURRENT_LINK="$APP_PATH"
-          SHARED_PATH="$APP_PATH-shared"
+          SHARED_PATH="/var/www/axontis-shared"
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           NEW_RELEASE="$RELEASES_PATH/$TIMESTAMP"
 
