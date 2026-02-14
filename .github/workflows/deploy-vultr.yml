@@ -700,12 +700,12 @@ jobs:
           echo ""
           echo "⚡ Optimisation finale avec le nouveau contexte..."
           cd $CURRENT_LINK
-          php artisan optimize
           echo "✅ Optimisation finale terminée"
 
           # Redémarrer les workers
           php artisan queue:restart
           supervisorctl restart axontis-workers:* 2>/dev/null || true
+          php artisan optimize
 
           echo "✅ Services redémarrés"
 
