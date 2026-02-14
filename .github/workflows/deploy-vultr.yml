@@ -311,6 +311,7 @@ jobs:
           # App
           APP_KEY: ${{ secrets.APP_KEY }}
           APP_URL: ${{ secrets.APP_URL }}
+          APP_NAME: ${{ secrets.APP_NAME }}
           # Cloudflare R2
           CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
           CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
@@ -368,6 +369,7 @@ jobs:
           DB_PASSWORD='$DB_PASSWORD' \
           APP_KEY='$APP_KEY' \
           APP_URL='$APP_URL' \
+          APP_NAME='$APP_NAME' \
           CLOUDFLARE_R2_ACCESS_KEY_ID='$CLOUDFLARE_R2_ACCESS_KEY_ID' \
           CLOUDFLARE_R2_SECRET_ACCESS_KEY='$CLOUDFLARE_R2_SECRET_ACCESS_KEY' \
           CLOUDFLARE_R2_BUCKET='$CLOUDFLARE_R2_BUCKET' \
@@ -509,6 +511,7 @@ jobs:
 
           # Mise à jour des variables avec les secrets
           update_env "APP_ENV" "production"
+          update_env "APP_NAME" "$APP_NAME"
           update_env "APP_DEBUG" "false"
           update_env "APP_KEY" "$APP_KEY"
           update_env "APP_URL" "$APP_URL"
@@ -544,35 +547,17 @@ jobs:
           update_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET_KEY"
           update_env "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET"
           update_env "SENTRY_LARAVEL_DSN" "$SENTRY_LARAVEL_DSN"
-
-          # Debug: Check mail configuration before updates
-          echo ""
-          echo "🔍 Debug: Mail environment variables from GitHub Actions:"
-          echo "   MAIL_MAILER='$MAIL_MAILER' (will default to 'failover' if empty)"
-          echo "   MAIL_HOST='$MAIL_HOST' (will default to 'localhost' if empty)"
-          echo ""
-          echo "🔍 Debug: Current .env file mail configuration:"
-          grep "^MAIL_" $NEW_RELEASE/.env || echo "   No MAIL_ variables found in .env"
-          echo ""
-
-          update_env "MAIL_MAILER" "$(get_value_or_default "$MAIL_MAILER" "failover")"
-          update_env "MAIL_HOST" "$(get_value_or_default "$MAIL_HOST" "localhost")"
-          update_env "MAIL_PORT" "$(get_value_or_default "$MAIL_PORT" "25")"
-          update_env "MAIL_USERNAME" "$(get_value_or_default "$MAIL_USERNAME" "null")"
-          update_env "MAIL_PASSWORD" "$(get_value_or_default "$MAIL_PASSWORD" "null")"
-          update_env "MAIL_FROM_ADDRESS" "$(get_value_or_default "$MAIL_FROM_ADDRESS" "noreply@axontis.net")"
-          update_env "MAIL_FROM_NAME" "$(get_value_or_default "$MAIL_FROM_NAME" "Axontis")"
+          update_env "MAIL_MAILER" "$MAIL_MAILER"
+          update_env "MAIL_HOST" "$MAIL_HOST"
+          update_env "MAIL_PORT" "$MAIL_PORT"
+          update_env "MAIL_USERNAME" "$MAIL_USERNAME"
+          update_env "MAIL_PASSWORD" "$MAIL_PASSWORD"
+          update_env "MAIL_FROM_ADDRESS" "$MAIL_FROM_ADDRESS"
+          update_env "MAIL_FROM_NAME" "$MAIL_FROM_NAME"
           update_env "RESEND_API_KEY" "$RESEND_API_KEY"
           update_env "MAILGUN_DOMAIN" "$MAILGUN_DOMAIN"
           update_env "MAILGUN_SECRET" "$MAILGUN_SECRET"
           update_env "MAILGUN_ENDPOINT" "$MAILGUN_ENDPOINT"
-
-          # Debug: Verify mail configuration was updated
-          echo ""
-          echo "🔍 Debug: .env file after mail configuration updates:"
-          grep "^MAIL_" $NEW_RELEASE/.env || echo "   ERROR: No MAIL_ variables found after update!"
-          echo ""
-
           update_env "BREVO_SMTP_HOST" "$BREVO_SMTP_HOST"
           update_env "BREVO_SMTP_PORT" "$BREVO_SMTP_PORT"
           update_env "BREVO_SMTP_USERNAME" "$BREVO_SMTP_USERNAME"

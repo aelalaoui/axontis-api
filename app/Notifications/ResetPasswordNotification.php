@@ -32,6 +32,6 @@ class ResetPasswordNotification extends ResetPasswordBase
             ->action('Réinitialiser le mot de passe', $url)
             ->line('Ce lien de réinitialisation expirera dans ' . $count . ' minutes.')
             ->line('Si vous n\'avez pas demandé de réinitialisation de mot de passe, aucune action n\'est requise.')
-            ->salutation('Cordialement, L\'équipe' . config('app.name'));
+            ->salutation('Cordialement, L\'équipe de ' . config('app.name'));
     }
 }
