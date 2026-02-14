@@ -697,13 +697,13 @@ jobs:
           echo ""
           echo "⚡ Optimisation finale avec le nouveau contexte..."
           cd /var/www/axontis/current
-          php artisan optimize:clear
-          php artisan optimize
+          /usr/bin/php /var/www/axontis/current/artisan optimize:clear
+          /usr/bin/php /var/www/axontis/current/artisan optimize
 
           echo "✅ Optimisation finale terminée"
 
           # Redémarrer les workers
-          php artisan queue:restart
+          /usr/bin/php /var/www/axontis/current/artisan queue:restart
           supervisorctl restart axontis-workers:* 2>/dev/null || true
 
           echo "✅ Services redémarrés"
