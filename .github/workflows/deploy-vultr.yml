@@ -431,20 +431,21 @@ jobs:
           # ============================================
           # 1. BACKUP
           # ============================================
-          echo ""
-          echo "📦 Création du backup..."
+          # echo ""
+          # echo "📦 Création du backup..."
 
           # Backup de la base de données
-          if [ -f "$CURRENT_LINK/.env" ]; then
-            DB_USER=$(grep -E "^DB_USERNAME=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
-            DB_PASS=$(grep -E "^DB_PASSWORD=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
-            DB_NAME=$(grep -E "^DB_DATABASE=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
-            mysqldump -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_PATH/db_${TIMESTAMP}.sql" 2>/dev/null || true
-            echo "✅ Backup BDD créé"
-          fi
+          # if [ -f "$CURRENT_LINK/.env" ]; then
+          #   DB_USER=$(grep -E "^DB_USERNAME=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+          #   DB_PASS=$(grep -E "^DB_PASSWORD=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+          #   DB_NAME=$(grep -E "^DB_DATABASE=" $CURRENT_LINK/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+          #   mysqldump -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_PATH/db_${TIMESTAMP}.sql" 2>/dev/null || true
+          #   echo "✅ Backup BDD créé"
+          # fi
 
           # Nettoyer les vieux backups
-          cd $BACKUP_PATH && ls -t db_*.sql 2>/dev/null | tail -n +6 | xargs -r rm --
+          # cd $BACKUP_PATH && ls -t db_*.sql 2>/dev/null | tail -n +6 | xargs -r rm --
+          echo "✅ Préparation terminée (backup DB géré séparément)"
 
           # ============================================
           # 2. EXTRACTION DU NOUVEAU CODE
@@ -727,7 +728,6 @@ jobs:
           chmod -R 775 $SHARED_PATH/storage
 
           echo "✅ Permissions configurées"
-          php artisan optimize
 
           # ============================================
           # 13. VÉRIFICATION ET CORRECTION NGINX (CORRIGÉ)
