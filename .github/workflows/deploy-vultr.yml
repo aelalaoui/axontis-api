@@ -608,9 +608,6 @@ jobs:
           echo ""
           echo "⚡ Optimisation de Laravel..."
 
-          # IMPORTANT: Nettoyer tous les caches AVANT d'optimiser
-          php artisan optimize:clear
-
           # Publier les vues vendor mail si nécessaire
           if [ ! -d "$NEW_RELEASE/resources/views/vendor/mail" ]; then
             php artisan vendor:publish --tag=laravel-mail --force
