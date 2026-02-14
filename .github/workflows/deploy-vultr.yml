@@ -619,9 +619,6 @@ jobs:
           # Créer le storage:link
           php artisan storage:link
 
-          # OPTIMISER - Ceci va prendre en compte toutes les variables .env
-          php artisan optimize
-
           echo "✅ Optimisation terminée"
 
           # ============================================
@@ -698,14 +695,26 @@ jobs:
 
           # IMPORTANT: Re-optimiser avec le nouveau contexte après le switch
           echo ""
-          echo "⚡ Optimisation finale avec le nouveau contexte..."
+          echo "⚡ Nettoyage complet des caches et optimisation finale..."
           cd $CURRENT_LINK
+
+          # Nettoyer tous les caches Laravel
+          php artisan optimize:clear
+
+          # Vider l'opcache PHP pour forcer le rechargement
+          systemctl reload php8.3-fpm
+
+          # Maintenant optimiser avec les BONNES variables d'environnement
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan event:cache
+
           echo "✅ Optimisation finale terminée"
 
           # Redémarrer les workers
           php artisan queue:restart
           supervisorctl restart axontis-workers:* 2>/dev/null || true
-          php artisan optimize
 
           echo "✅ Services redémarrés"
 
