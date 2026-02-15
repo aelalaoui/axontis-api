@@ -33,8 +33,10 @@ return [
         'scheme' => 'https',
     ],
 
-    // Brevo (ex-Sendinblue) - Backup 2 (300 emails/jour gratuits)
-    // Configuré dans mail.php via SMTP
+    // Brevo (ex-Sendinblue)
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+    ],
 
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),

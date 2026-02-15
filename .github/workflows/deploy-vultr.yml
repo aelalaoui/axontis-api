@@ -345,9 +345,6 @@ jobs:
           MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
           MAILGUN_SECRET: ${{ secrets.MAILGUN_SECRET }}
           MAILGUN_ENDPOINT: ${{ secrets.MAILGUN_ENDPOINT }}
-          BREVO_SMTP_HOST: ${{ secrets.BREVO_SMTP_HOST }}
-          BREVO_SMTP_PORT: ${{ secrets.BREVO_SMTP_PORT }}
-          BREVO_SMTP_USERNAME: ${{ secrets.BREVO_SMTP_USERNAME }}
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           # SMS
           TWILIO_SID: ${{ secrets.TWILIO_SID }}
@@ -397,9 +394,6 @@ jobs:
           MAILGUN_DOMAIN='$MAILGUN_DOMAIN' \
           MAILGUN_SECRET='$MAILGUN_SECRET' \
           MAILGUN_ENDPOINT='$MAILGUN_ENDPOINT' \
-          BREVO_SMTP_HOST='$BREVO_SMTP_HOST' \
-          BREVO_SMTP_PORT='$BREVO_SMTP_PORT' \
-          BREVO_SMTP_USERNAME='$BREVO_SMTP_USERNAME' \
           BREVO_API_KEY='$BREVO_API_KEY' \
           TWILIO_SID='$TWILIO_SID' \
           TWILIO_TOKEN='$TWILIO_TOKEN' \
@@ -558,9 +552,6 @@ jobs:
           update_env "MAILGUN_DOMAIN" "$MAILGUN_DOMAIN"
           update_env "MAILGUN_SECRET" "$MAILGUN_SECRET"
           update_env "MAILGUN_ENDPOINT" "$MAILGUN_ENDPOINT"
-          update_env "BREVO_SMTP_HOST" "$BREVO_SMTP_HOST"
-          update_env "BREVO_SMTP_PORT" "$BREVO_SMTP_PORT"
-          update_env "BREVO_SMTP_USERNAME" "$BREVO_SMTP_USERNAME"
           update_env "BREVO_API_KEY" "$BREVO_API_KEY"
           update_env "TWILIO_SID" "$TWILIO_SID"
           update_env "TWILIO_TOKEN" "$TWILIO_TOKEN"
@@ -707,7 +698,6 @@ jobs:
           # Laravel donne la priorité aux env vars système (même vides) sur le .env
           echo "🧹 Nettoyage des variables d'environnement vides..."
           for var in MAIL_MAILER MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD MAIL_FROM_ADDRESS MAIL_FROM_NAME \
-                     BREVO_SMTP_HOST BREVO_SMTP_PORT BREVO_SMTP_USERNAME BREVO_API_KEY \
                      TWILIO_SID TWILIO_TOKEN TWILIO_FROM TWILIO_WHATSAPP_FROM \
                      TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID SLACK_WEBHOOK_URL \
                      NOTIFICATION_SLACK_WEBHOOK NOTIFICATION_TELEGRAM_CHAT_ID; do

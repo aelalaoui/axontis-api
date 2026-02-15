@@ -65,14 +65,8 @@ return [
         |--------------------------------------------------------------------------
         */
         'brevo' => [
-            'transport' => 'smtp',
-            'host' => env('BREVO_SMTP_HOST', 'smtp-relay.brevo.com'),
-            'port' => env('BREVO_SMTP_PORT', 587),
-            'encryption' => env('BREVO_SMTP_ENCRYPTION', 'tls'),
-            'username' => env('BREVO_SMTP_USERNAME'),
-            'password' => env('BREVO_API_KEY'),
-            'timeout' => 10,
-            'local_domain' => env('MAIL_EHLO_DOMAIN'),
+            'transport' => 'brevo',
+            'key' => env('BREVO_API_KEY'),
         ],
 
         /*
@@ -90,6 +84,7 @@ return [
         'failover' => [
             'transport' => 'failover',
             'mailers' => [
+                'brevo',     // starting integration
                 'resend',    // Principal (package installé)
                 'smtp',      // Backup final (toujours disponible)
             ],
@@ -160,8 +155,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'admin@axontis.net'),
+        'name' => env('MAIL_FROM_NAME', 'Axontis Admin'),
     ],
 
     /*
