@@ -49,7 +49,11 @@
                                 <td class="content-cell">
                                     {!! Illuminate\Mail\Markdown::parse($slot) !!}
                                 </td>
-                                <td>{!! $subcopy ?? '' !!}</td>
+                            </tr>
+                            <tr>
+                                <td class="subcopy">
+                                    {!! $subcopy ?? '' !!}
+                                </td>
                             </tr>
                         </table>
                     </td>

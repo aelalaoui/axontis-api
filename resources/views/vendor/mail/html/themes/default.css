@@ -178,7 +178,6 @@ img {
     background: rgba(15, 23, 42, 0.5);
     border-top: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 0 0 16px 16px;
-    margin-top: 25px;
 }
 
 .subcopy p {
@@ -194,7 +193,7 @@ img {
     -premailer-cellpadding: 0;
     -premailer-cellspacing: 0;
     -premailer-width: 600px;
-    margin: 30px auto 0;
+    margin: 10px auto 0;
     padding: 0;
     text-align: center;
     width: 600px;
