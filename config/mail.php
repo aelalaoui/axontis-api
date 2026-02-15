@@ -45,6 +45,10 @@ return [
         */
         'resend' => [
             'transport' => 'resend',
+            'from' => [
+                'address' => 'noreply@resend.axontis.net',
+                'name' => "Axontis",
+            ],
         ],
 
         /*
@@ -57,6 +61,8 @@ return [
             'client' => [
                 'timeout' => 10,
             ],
+            'address' => 'noreply@mailgun.axontis.net',
+            'name' => "Axontis",
         ],
 
         /*
@@ -67,6 +73,8 @@ return [
         'brevo' => [
             'transport' => 'brevo',
             'key' => env('BREVO_API_KEY'),
+            'address' => 'noreply@brevo.axontis.net',
+            'name' => "Axontis",
         ],
 
         /*
@@ -109,6 +117,8 @@ return [
 
         'ses' => [
             'transport' => 'ses',
+            'address' => 'noreply@ses.axontis.net',
+            'name' => "Axontis",
         ],
 
         'postmark' => [
@@ -133,7 +143,6 @@ return [
             'transport' => 'array',
         ],
 
-
         'roundrobin' => [
             'transport' => 'roundrobin',
             'mailers' => [
@@ -155,8 +164,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'admin@axontis.net'),
-        'name' => env('MAIL_FROM_NAME', 'Axontis Admin'),
+        'address' => env('MAIL_FROM_ADDRESS', 'noreply@axontis.net'),
+        'name' => env('MAIL_FROM_NAME', 'Axontis'),
     ],
 
     /*
