@@ -94,7 +94,6 @@ return [
             'mailers' => [
                 'brevo',     // starting integration
                 'resend',    // Principal (package installé)
-                'smtp',      // Backup final (toujours disponible)
             ],
         ],
 
