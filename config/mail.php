@@ -46,7 +46,7 @@ return [
         'resend' => [
             'transport' => 'resend',
             'from' => [
-                'address' => 'noreply@resend.axontis.net',
+                'address' => 'noreply@mail.axontis.net',
                 'name' => "Axontis",
             ],
         ],
@@ -76,7 +76,7 @@ return [
             'transport' => 'brevo',
             'key' => env('BREVO_API_KEY'),
             'from' => [
-                'address' => 'noreply@brevo.axontis.net',
+                'address' => 'noreply@email.axontis.net',
                 'name' => "Axontis",
             ],
         ],
