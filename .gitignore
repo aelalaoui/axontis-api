@@ -17,3 +17,22 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Clés privées (ne jamais commiter)
+*.pem
+docusign_private.key
+docusign_public.key
+storage/keys/*.key
+
+# Terraform
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.*
+infrastructure/terraform/.terraform/
+infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/terraform.tfvars
+infrastructure/terraform/*.pem
+infrastructure/terraform/*.key
+
+# Backups de workflows
+.github/workflows/*.bak
+

@@ -1,0 +1,39 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                         TERRAFORM VARIABLES                                   ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+# Copiez ce fichier vers terraform.tfvars et remplissez les valeurs
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# VULTR API
+# ─────────────────────────────────────────────────────────────────────────────────
+# Récupérez votre API key sur : https://my.vultr.com/settings/#settingsapi
+vultr_api_key = "votre-api-key-vultr-ici"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# VPS CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────────
+# Région du VPS (cdg = Paris)
+# Liste des régions : https://api.vultr.com/v2/regions
+region = "cdg"
+
+# Plan du VPS (vc2-1c-1gb = 1 CPU, 1GB RAM, ~6$/mois)
+# Liste des plans : https://api.vultr.com/v2/plans
+plan = "vc2-1c-1gb"
+
+# Hostname du serveur
+hostname = "axontis-prod"
+
+# Label affiché dans Vultr
+label = "Axontis Production"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# DOMAINE
+# ─────────────────────────────────────────────────────────────────────────────────
+domain = "axontis.net"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# SSH
+# ─────────────────────────────────────────────────────────────────────────────────
+# Clé publique SSH pour accéder au serveur
+# Générez-la avec : ssh-keygen -t ed25519 -C "axontis-vultr"
+ssh_public_key = "ssh-ed25519 AAAA... votre-email@example.com"

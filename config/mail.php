@@ -11,9 +11,12 @@ return [
     | messages sent by your application. Alternative mailers may be setup
     | and used as needed; however, this mailer will be used by default.
     |
+    | Pour la production, utiliser 'failover' pour activer le système
+    | de repli automatique : Resend → SMTP
+    |
     */
 
-    'default' => env('MAIL_MAILER', 'smtp'),
+    'default' => env('MAIL_MAILER', 'failover'),
 
     /*
     |--------------------------------------------------------------------------
@@ -29,11 +32,80 @@ return [
     | mailers below. You are free to add additional mailers as required.
     |
     | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
-    |            "postmark", "log", "array", "failover", "roundrobin"
+    |            "postmark", "resend", "log", "array", "failover", "roundrobin"
     |
     */
 
     'mailers' => [
+
+        /*
+        |--------------------------------------------------------------------------
+        | Resend - Provider Principal (3000 emails/mois gratuits)
+        |--------------------------------------------------------------------------
+        */
+        'resend' => [
+            'transport' => 'resend',
+            'from' => [
+                'address' => 'noreply@resend.axontis.net',
+                'name' => "Axontis",
+            ],
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Mailgun - Backup 1 (5000 emails/mois gratuits pendant 3 mois)
+        |--------------------------------------------------------------------------
+        */
+        'mailgun' => [
+            'transport' => 'mailgun',
+            'client' => [
+                'timeout' => 10,
+            ],
+            'from' => [
+                'address' => 'noreply@mailgun.axontis.net',
+                'name' => "Axontis",
+            ],
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Brevo (ex-Sendinblue) - Backup 2 (300 emails/jour gratuits)
+        |--------------------------------------------------------------------------
+        */
+        'brevo' => [
+            'transport' => 'brevo',
+            'key' => env('BREVO_API_KEY'),
+            'from' => [
+                'address' => 'noreply@brevo.axontis.net',
+                'name' => "Axontis",
+            ],
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Failover - Cascade automatique : Resend → SMTP
+        |--------------------------------------------------------------------------
+        | Si Resend échoue, Laravel essaiera automatiquement SMTP local
+        | comme dernier recours. Cela garantit qu'au moins un mailer
+        | fonctionne toujours.
+        |
+        | Note: Pour activer Mailgun ou Brevo, installez d'abord les packages:
+        | - Mailgun: composer require symfony/mailgun-mailer
+        | - Brevo: déjà supporté via SMTP
+        */
+        'failover' => [
+            'transport' => 'failover',
+            'mailers' => [
+                'brevo',     // starting integration
+                'resend',    // Principal (package installé)
+            ],
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SMTP Générique
+        |--------------------------------------------------------------------------
+        */
         'smtp' => [
             'transport' => 'smtp',
             'url' => env('MAIL_URL'),
@@ -48,18 +120,15 @@ return [
 
         'ses' => [
             'transport' => 'ses',
+            'from' => [
+                'address' => 'noreply@ses.axontis.net',
+                'name' => "Axontis",
+            ],
         ],
 
         'postmark' => [
             'transport' => 'postmark',
             // 'message_stream_id' => null,
-            // 'client' => [
-            //     'timeout' => 5,
-            // ],
-        ],
-
-        'mailgun' => [
-            'transport' => 'mailgun',
             // 'client' => [
             //     'timeout' => 5,
             // ],
@@ -77,14 +146,6 @@ return [
 
         'array' => [
             'transport' => 'array',
-        ],
-
-        'failover' => [
-            'transport' => 'failover',
-            'mailers' => [
-                'smtp',
-                'log',
-            ],
         ],
 
         'roundrobin' => [
@@ -108,8 +169,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'noreply@axontis.net'),
+        'name' => env('MAIL_FROM_NAME', 'Axontis'),
     ],
 
     /*

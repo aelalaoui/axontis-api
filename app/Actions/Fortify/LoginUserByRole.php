@@ -23,9 +23,10 @@ class LoginUserByRole implements LoginResponse
             return redirect()->route('crm.dashboard');
         }
         if ($user->isAdministrator()) {
-            return redirect()->route('home');
+            return redirect()->route('crm.dashboard');
         }
 
-        return redirect('/dashboard');
+        auth()->logout();
+        return redirect()->route('login');
     }
 }

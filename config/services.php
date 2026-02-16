@@ -14,11 +14,28 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Email Providers
+    |--------------------------------------------------------------------------
+    */
+
+    // Resend - Provider principal (3000 emails/mois gratuits)
+    'resend' => [
+        'key' => env('RESEND_API_KEY'),
+    ],
+
+    // Mailgun - Backup 1 (5000 emails/mois gratuits pendant 3 mois)
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
-        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.eu.mailgun.net'),
         'scheme' => 'https',
+    ],
+
+    // Brevo (ex-Sendinblue)
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
     ],
 
     'postmark' => [
@@ -30,6 +47,75 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | SMS & WhatsApp Providers
+    |--------------------------------------------------------------------------
+    */
+
+    // Twilio pour SMS et WhatsApp
+    'twilio' => [
+        'sid' => env('TWILIO_SID'),
+        'token' => env('TWILIO_TOKEN'),
+        'from' => env('TWILIO_FROM'), // Numéro SMS
+        'whatsapp_from' => env('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886'), // Numéro WhatsApp
+    ],
+
+    // Vonage (Nexmo) - Alternative pour SMS
+    'vonage' => [
+        'key' => env('VONAGE_KEY'),
+        'secret' => env('VONAGE_SECRET'),
+        'from' => env('VONAGE_FROM'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Messaging Providers
+    |--------------------------------------------------------------------------
+    */
+
+    // Telegram Bot
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'chat_id' => env('TELEGRAM_CHAT_ID'), // Chat ID par défaut pour les alertes
+    ],
+
+    // Slack Webhooks
+    'slack' => [
+        'webhook_url' => env('SLACK_WEBHOOK_URL'),
+        'notifications_channel' => env('SLACK_NOTIFICATIONS_CHANNEL', '#notifications'),
+        'alerts_channel' => env('SLACK_ALERTS_CHANNEL', '#alerts'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification System Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'notifications' => [
+        // Équipe technique pour les alertes critiques
+        'tech_team' => [
+            'slack_webhook' => env('NOTIFICATION_SLACK_WEBHOOK'),
+            'telegram_chat_id' => env('NOTIFICATION_TELEGRAM_CHAT_ID'),
+            'email' => env('NOTIFICATION_TECH_EMAIL', 'tech@example.com'),
+        ],
+
+        // Rate limiting par canal (requêtes par minute)
+        'rate_limits' => [
+            'email' => env('NOTIFICATION_RATE_LIMIT_EMAIL', 60),
+            'sms' => env('NOTIFICATION_RATE_LIMIT_SMS', 30),
+            'whatsapp' => env('NOTIFICATION_RATE_LIMIT_WHATSAPP', 30),
+            'telegram' => env('NOTIFICATION_RATE_LIMIT_TELEGRAM', 60),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Other Services
+    |--------------------------------------------------------------------------
+    */
 
     'docusign' => [
         'base_path' => env('DOCUSIGN_BASE_PATH', 'https://demo.docusign.net/restapi'),
