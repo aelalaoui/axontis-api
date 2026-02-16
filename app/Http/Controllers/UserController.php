@@ -253,9 +253,33 @@ class UserController extends Controller
      */
     public function showSetupPassword(Request $request)
     {
+        $email = $request->email;
+        $token = $request->token;
+
+        // Validate that email and token are provided
+        if (is_null($email) || is_null($token)) {
+            return redirect()->route('login')
+                ->with('error', 'Le lien d\'invitation est invalide.');
+        }
+
+        // Find user by email
+        $user = User::where('email', $email)->first();
+
+        // Verify user exists and has a valid invitation token
+        if (is_null($user) || is_null($user->invitation_token) || is_null(Hash::check($token, $user->invitation_token))) {
+            return redirect()->route('login')
+                ->with('error', 'Le lien d\'invitation est invalide ou a expiré.');
+        }
+
+        // Check if user already verified their email (already set password)
+        if (!is_null($user->email_verified_at)) {
+            return redirect()->route('login')
+                ->with('error', 'Ce compte a déjà été activé.');
+        }
+
         return Inertia::render('Auth/SetupPassword', [
-            'email' => $request->email,
-            'token' => $request->token,
+            'email' => $email,
+            'token' => $token,
         ]);
     }
 
