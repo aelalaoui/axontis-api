@@ -80,7 +80,7 @@ class UserController extends Controller
             ]);
 
             // Redirect with error message
-            return redirect()->route('dashboard')
+            return redirect()->route('crm.dashboard')
                 ->with('error', 'Une erreur est survenue lors du chargement des utilisateurs. Veuillez contacter l\'administrateur.');
         }
     }
@@ -283,6 +283,7 @@ class UserController extends Controller
             'invitation_sent_at' => null,
         ]);
 
+        auth()->logout();
         return redirect()->route('login')
             ->with('success', 'Votre mot de passe a été configuré. Vous pouvez maintenant vous connecter.');
     }
