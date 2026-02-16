@@ -42,7 +42,7 @@ class UserInvitation extends Notification implements ShouldQueue
     {
         $url = URL::temporarySignedRoute(
             'user.setup-password',
-            now()->addDays(7),
+            now()->addDays(15),
             ['token' => $this->token, 'email' => $notifiable->email]
         );
 
