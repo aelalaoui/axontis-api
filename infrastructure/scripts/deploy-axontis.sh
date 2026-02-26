@@ -159,8 +159,21 @@ chmod -R 775 $APP_PATH/bootstrap/cache
 # ============================================
 echo -e "\n${YELLOW}🔄 Redémarrage des services...${NC}"
 systemctl reload php8.3-fpm
-php artisan queue:restart
-supervisorctl restart axontis-worker:* 2>/dev/null || true
+
+# Horizon : graceful terminate (Supervisor le relancera automatiquement)
+echo "Redémarrage de Horizon..."
+php artisan horizon:terminate
+sleep 2
+
+# Vérifier que Horizon redémarre bien
+HORIZON_STATUS=$(supervisorctl status axontis-horizon 2>/dev/null | grep -c "RUNNING" || echo "0")
+if [[ "$HORIZON_STATUS" -gt 0 ]]; then
+    echo -e "${GREEN}✅ Horizon redémarré avec succès${NC}"
+else
+    echo -e "${YELLOW}⚠️ Horizon en cours de redémarrage...${NC}"
+    sleep 3
+    supervisorctl start axontis-horizon 2>/dev/null || true
+fi
 
 # ============================================
 # 10. DÉSACTIVATION DU MODE MAINTENANCE
@@ -212,12 +225,14 @@ else
     echo -e "${YELLOW}ℹ️  Redis n'est pas actif (normal si non utilisé)${NC}"
 fi
 
-# Vérifier les workers Supervisor
-WORKER_STATUS=$(supervisorctl status axontis-worker:* 2>/dev/null | grep -c "RUNNING" || echo "0")
-if [[ "$WORKER_STATUS" -gt 0 ]]; then
-    echo -e "${GREEN}✅ ${WORKER_STATUS} worker(s) actif(s)${NC}"
+# Vérifier Horizon
+HORIZON_RUNNING=$(supervisorctl status axontis-horizon 2>/dev/null | grep -c "RUNNING" || echo "0")
+if [[ "$HORIZON_RUNNING" -gt 0 ]]; then
+    echo -e "${GREEN}✅ Horizon actif (gère tous les workers)${NC}"
+    php artisan horizon:status 2>/dev/null || true
 else
-    echo -e "${YELLOW}⚠️ Aucun worker actif${NC}"
+    echo -e "${RED}⚠️ Horizon n'est pas actif !${NC}"
+    echo -e "${YELLOW}   → Exécutez : sudo supervisorctl start axontis-horizon${NC}"
 fi
 
 # Afficher les logs récents

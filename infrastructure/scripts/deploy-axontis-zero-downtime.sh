@@ -259,11 +259,11 @@ fi
 # Reload PHP-FPM
 systemctl reload php8.3-fpm
 
-# Redémarrer les workers
-php artisan queue:restart
-supervisorctl restart axontis-worker:* 2>/dev/null || true
+# Redémarrer Horizon (Supervisor le relancera automatiquement)
+php artisan horizon:terminate
+sleep 2
 
-echo -e "${GREEN}✅ Services redémarrés${NC}"
+echo -e "${GREEN}✅ Services redémarrés (Horizon en cours de restart)${NC}"
 
 # ============================================
 # 11. NETTOYAGE DES ANCIENNES RELEASES
@@ -288,12 +288,12 @@ else
     echo -e "${RED}⚠️ L'application répond avec HTTP $HTTP_CODE${NC}"
 fi
 
-# Vérifier les workers
-WORKER_STATUS=$(supervisorctl status axontis-worker:* 2>/dev/null | grep -c "RUNNING" || echo "0")
-if [[ "$WORKER_STATUS" -gt 0 ]]; then
-    echo -e "${GREEN}✅ ${WORKER_STATUS} worker(s) actif(s)${NC}"
+# Vérifier Horizon
+HORIZON_RUNNING=$(supervisorctl status axontis-horizon 2>/dev/null | grep -c "RUNNING" || echo "0")
+if [[ "$HORIZON_RUNNING" -gt 0 ]]; then
+    echo -e "${GREEN}✅ Horizon actif (gère tous les workers)${NC}"
 else
-    echo -e "${YELLOW}⚠️ Aucun worker actif${NC}"
+    echo -e "${YELLOW}⚠️ Horizon en cours de redémarrage...${NC}"
 fi
 
 # Afficher les logs récents

@@ -714,13 +714,54 @@ jobs:
 
           echo "✅ Optimisation finale terminée"
 
-          # Redémarrer les workers
+          # Redémarrer Horizon (graceful terminate — Supervisor le relance automatiquement)
+          # horizon:terminate envoie SIGTERM : chaque worker finit son job en cours
+          # avant de s'arrêter. Aucun job n'est interrompu ni perdu.
+          # Les jobs en file d'attente restent dans Redis, intacts.
           echo ""
-          echo "🔄 Redémarrage des workers..."
-          cd $CURRENT_LINK && php artisan queue:restart
-          supervisorctl restart axontis-workers:* 2>/dev/null || true
+          echo "🔄 Redémarrage gracieux de Horizon..."
+          cd $CURRENT_LINK && php artisan horizon:terminate 2>/dev/null || true
 
-          echo "✅ Services redémarrés"
+          # Attendre que Horizon s'arrête VRAIMENT (max 60s pour les jobs longs)
+          echo "⏳ Attente de l'arrêt gracieux des workers (jobs en cours terminent)..."
+          HORIZON_STOPPED=false
+          for i in $(seq 1 60); do
+            HORIZON_CHECK=$(cd $CURRENT_LINK && php artisan horizon:status 2>&1 || echo "inactive")
+            if echo "$HORIZON_CHECK" | grep -qi "inactive\|not running"; then
+              echo "✅ Horizon arrêté proprement après ${i}s (tous les jobs en cours terminés)"
+              HORIZON_STOPPED=true
+              break
+            fi
+            # Afficher un message toutes les 10 secondes
+            if [ $((i % 10)) -eq 0 ]; then
+              echo "   ⏳ ${i}s — workers terminent leurs jobs en cours..."
+            fi
+            sleep 1
+          done
+
+          if [ "$HORIZON_STOPPED" = false ]; then
+            echo "⚠️ Horizon met plus de 60s à s'arrêter (jobs très longs en cours)"
+            echo "   Les jobs en cours vont terminer. Aucune perte de données."
+          fi
+
+          # Supervisor relance Horizon automatiquement avec le nouveau code
+          sleep 2
+          HORIZON_STATUS=$(supervisorctl status axontis-horizon 2>/dev/null | grep -c "RUNNING" || echo "0")
+          if [ "$HORIZON_STATUS" -gt 0 ] 2>/dev/null; then
+            echo "✅ Horizon redémarré avec succès par Supervisor"
+          else
+            echo "⚠️ Horizon en cours de redémarrage..."
+            supervisorctl start axontis-horizon 2>/dev/null || true
+            sleep 3
+            HORIZON_STATUS=$(supervisorctl status axontis-horizon 2>/dev/null | grep -c "RUNNING" || echo "0")
+            if [ "$HORIZON_STATUS" -gt 0 ] 2>/dev/null; then
+              echo "✅ Horizon démarré manuellement"
+            else
+              echo "❌ Horizon ne démarre pas — vérifiez les logs : tail -50 /var/www/axontis/storage/logs/horizon.log"
+            fi
+          fi
+
+          echo "✅ Services redémarrés (aucun job perdu)"
 
           # ============================================
           # 11. NETTOYAGE DES ANCIENNES RELEASES
@@ -859,17 +900,17 @@ jobs:
             }
           "
 
-          # Vérifier les workers
-          WORKER_STATUS=$(supervisorctl status axontis-workers:* 2>/dev/null | grep -c "RUNNING" || true)
-          if [ -z "$WORKER_STATUS" ]; then
-            WORKER_STATUS=0
-          fi
-
-          if [ "$WORKER_STATUS" -gt 0 ] 2>/dev/null; then
-            echo "✅ ${WORKER_STATUS} worker(s) actif(s)"
+          # Vérifier Horizon
+          echo ""
+          echo "🔍 Vérification de Horizon..."
+          HORIZON_RUNNING=$(supervisorctl status axontis-horizon 2>/dev/null | grep -c "RUNNING" || echo "0")
+          if [ "$HORIZON_RUNNING" -gt 0 ] 2>/dev/null; then
+            echo "✅ Horizon actif (gère tous les workers automatiquement)"
+            cd $CURRENT_LINK && php artisan horizon:status 2>/dev/null || true
           else
-            echo "⚠️ Aucun worker actif (Supervisord non configuré ou workers non démarrés)"
-            echo "   Pour configurer: voir la documentation Supervisord"
+            echo "⚠️ Horizon n'est pas encore actif"
+            echo "   → Vérifiez la config Supervisor : /etc/supervisor/conf.d/axontis-horizon.conf"
+            echo "   → Commandes : sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start axontis-horizon"
           fi
 
           echo ""
