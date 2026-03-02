@@ -39,6 +39,10 @@ Route::post('/webhooks/stripe', [\App\Http\Controllers\PaymentController::class,
 // Signature webhook endpoint (publicly accessible)
 Route::post('/signature/webhook/{provider}', [\App\Http\Controllers\SignatureController::class, 'handleWebhook']);
 
+// Hikvision AX PRO webhook endpoint (publicly accessible, secured by middleware)
+Route::post('/webhooks/hikvision/{serial_number}', [\App\Http\Controllers\HikvisionWebhookController::class, 'handle'])
+    ->middleware('hikvision.webhook');
+
 // Dashboard routes - Requires authentication and manager/administrator role
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {

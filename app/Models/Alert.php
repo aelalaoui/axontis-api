@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Alert extends Model
@@ -64,6 +65,14 @@ class Alert extends Model
     public function tasks(): MorphMany
     {
         return $this->morphMany(Task::class, 'taskable');
+    }
+
+    /**
+     * Événements alarme ayant généré cette alerte.
+     */
+    public function alarmEvents(): HasMany
+    {
+        return $this->hasMany(AlarmEvent::class, 'alert_uuid', 'uuid');
     }
 
     // Scopes

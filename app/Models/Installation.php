@@ -46,6 +46,23 @@ class Installation extends Model
         return $this->hasMany(Device::class, 'installation_uuid', 'uuid');
     }
 
+    /**
+     * Centrales d'alarme de cette installation.
+     */
+    public function alarmPanels()
+    {
+        return $this->hasMany(Device::class, 'installation_uuid', 'uuid')
+            ->where('category', 'alarm_panel');
+    }
+
+    /**
+     * Événements alarme de cette installation.
+     */
+    public function alarmEvents()
+    {
+        return $this->hasMany(AlarmEvent::class, 'installation_uuid', 'uuid');
+    }
+
     public function getCityArAttribute()
     {
         return City::find($this->city_id)?->name_ar;

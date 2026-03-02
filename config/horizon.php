@@ -102,6 +102,7 @@ return [
         'redis:sms' => 30,
         'redis:whatsapp' => 30,
         'redis:telegram' => 30,
+        'redis:alarm-events' => 10,
     ],
 
     /*
@@ -303,12 +304,29 @@ return [
                 'tries' => 3,
                 'timeout' => 90,
             ],
+
+            // Worker Alarm Events — Hikvision AX PRO (haute priorité, faible latence)
+            'supervisor-alarm-events' => [
+                'connection' => 'redis',
+                'queue' => ['alarm-events'],
+                'balance' => 'auto',
+                'autoScalingStrategy' => 'time',
+                'minProcesses' => 2,
+                'maxProcesses' => 8,
+                'balanceMaxShift' => 2,
+                'balanceCooldown' => 3,
+                'maxTime' => 3600,
+                'maxJobs' => 1000,
+                'memory' => 128,
+                'tries' => 5,
+                'timeout' => 60,
+            ],
         ],
 
         'local' => [
             'supervisor-default' => [
                 'connection' => 'redis',
-                'queue' => ['default', 'emails', 'sms', 'whatsapp', 'telegram', 'slack'],
+                'queue' => ['default', 'emails', 'sms', 'whatsapp', 'telegram', 'slack', 'alarm-events'],
                 'balance' => 'simple',
                 'minProcesses' => 1,
                 'maxProcesses' => 3,

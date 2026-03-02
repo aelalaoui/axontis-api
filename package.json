@@ -20,6 +20,9 @@
     },
     "dependencies": {
         "@fortawesome/fontawesome-free": "^7.0.1",
-        "@stripe/stripe-js": "^8.6.0"
+        "@stripe/stripe-js": "^8.6.0",
+        "laravel-echo": "^2.3.0",
+        "pinia": "^3.0.4",
+        "pusher-js": "^8.4.0"
     }
 }

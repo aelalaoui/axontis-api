@@ -14,6 +14,14 @@ class Kernel extends ConsoleKernel
     {
         // Horizon metrics snapshots (every 5 minutes)
         $schedule->command('horizon:snapshot')->everyFiveMinutes();
+
+        // Purge des événements alarme (hebdomadaire, dimanche 3h)
+        $schedule->command('alarm:prune-events')
+            ->weekly()
+            ->sundays()
+            ->at('03:00')
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/alarm-prune.log'));
     }
 
     /**

@@ -357,6 +357,17 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           NOTIFICATION_SLACK_WEBHOOK: ${{ secrets.NOTIFICATION_SLACK_WEBHOOK }}
           NOTIFICATION_TELEGRAM_CHAT_ID: ${{ secrets.NOTIFICATION_TELEGRAM_CHAT_ID }}
+          # Reverb (WebSocket Broadcasting)
+          REVERB_APP_ID: ${{ secrets.REVERB_APP_ID }}
+          REVERB_APP_KEY: ${{ secrets.REVERB_APP_KEY }}
+          REVERB_APP_SECRET: ${{ secrets.REVERB_APP_SECRET }}
+          REVERB_HOST: ${{ secrets.REVERB_HOST }}
+          REVERB_PORT: ${{ secrets.REVERB_PORT }}
+          REVERB_SCHEME: ${{ secrets.REVERB_SCHEME }}
+          # Hik-Partner Pro
+          HPP_ARC_ID: ${{ secrets.HPP_ARC_ID }}
+          HPP_ARC_KEY: ${{ secrets.HPP_ARC_KEY }}
+          HPP_API_BASE_URL: ${{ secrets.HPP_API_BASE_URL }}
         run: |
           ssh ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} \
           "export DB_HOST='$DB_HOST' \
@@ -403,7 +414,16 @@ jobs:
           TELEGRAM_CHAT_ID='$TELEGRAM_CHAT_ID' \
           SLACK_WEBHOOK_URL='$SLACK_WEBHOOK_URL' \
           NOTIFICATION_SLACK_WEBHOOK='$NOTIFICATION_SLACK_WEBHOOK' \
-          NOTIFICATION_TELEGRAM_CHAT_ID='$NOTIFICATION_TELEGRAM_CHAT_ID'; /bin/bash" << 'DEPLOY_SCRIPT'
+          NOTIFICATION_TELEGRAM_CHAT_ID='$NOTIFICATION_TELEGRAM_CHAT_ID' \
+          REVERB_APP_ID='$REVERB_APP_ID' \
+          REVERB_APP_KEY='$REVERB_APP_KEY' \
+          REVERB_APP_SECRET='$REVERB_APP_SECRET' \
+          REVERB_HOST='$REVERB_HOST' \
+          REVERB_PORT='$REVERB_PORT' \
+          REVERB_SCHEME='$REVERB_SCHEME' \
+          HPP_ARC_ID='$HPP_ARC_ID' \
+          HPP_ARC_KEY='$HPP_ARC_KEY' \
+          HPP_API_BASE_URL='$HPP_API_BASE_URL'; /bin/bash" << 'DEPLOY_SCRIPT'
           set -e
 
           echo "=========================================="
@@ -563,6 +583,29 @@ jobs:
           update_env "NOTIFICATION_SLACK_WEBHOOK" "$NOTIFICATION_SLACK_WEBHOOK"
           update_env "NOTIFICATION_TELEGRAM_CHAT_ID" "$NOTIFICATION_TELEGRAM_CHAT_ID"
 
+          # Reverb (WebSocket Broadcasting)
+          update_env "BROADCAST_DRIVER" "reverb"
+          update_env "REVERB_APP_ID" "$REVERB_APP_ID"
+          update_env "REVERB_APP_KEY" "$REVERB_APP_KEY"
+          update_env "REVERB_APP_SECRET" "$REVERB_APP_SECRET"
+          update_env "REVERB_HOST" "$REVERB_HOST"
+          update_env "REVERB_PORT" "$REVERB_PORT"
+          update_env "REVERB_SCHEME" "$REVERB_SCHEME"
+          update_env "VITE_REVERB_APP_KEY" "$REVERB_APP_KEY"
+          update_env "VITE_REVERB_HOST" "$REVERB_HOST"
+          update_env "VITE_REVERB_PORT" "$REVERB_PORT"
+          update_env "VITE_REVERB_SCHEME" "$REVERB_SCHEME"
+
+          # Hik-Partner Pro
+          update_env "HPP_ARC_ID" "$HPP_ARC_ID"
+          update_env "HPP_ARC_KEY" "$HPP_ARC_KEY"
+          update_env "HPP_API_BASE_URL" "$(get_value_or_default "$HPP_API_BASE_URL" "https://eu.hik-partner.com")"
+
+          # Hikvision events config
+          update_env "HIKVISION_DEDUPLICATE_WINDOW" "60"
+          update_env "HIKVISION_EVENT_RETENTION_DAYS" "365"
+          update_env "ALARM_EVENTS_QUEUE" "alarm-events"
+
           echo "✅ .env configuré"
 
           # ============================================
@@ -700,7 +743,9 @@ jobs:
           for var in MAIL_MAILER MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD MAIL_FROM_ADDRESS MAIL_FROM_NAME \
                      TWILIO_SID TWILIO_TOKEN TWILIO_FROM TWILIO_WHATSAPP_FROM \
                      TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID SLACK_WEBHOOK_URL \
-                     NOTIFICATION_SLACK_WEBHOOK NOTIFICATION_TELEGRAM_CHAT_ID; do
+                     NOTIFICATION_SLACK_WEBHOOK NOTIFICATION_TELEGRAM_CHAT_ID \
+                     REVERB_APP_ID REVERB_APP_KEY REVERB_APP_SECRET REVERB_HOST REVERB_PORT REVERB_SCHEME \
+                     HPP_ARC_ID HPP_ARC_KEY HPP_API_BASE_URL; do
             if [ -z "${!var}" ]; then
               unset $var
             fi
@@ -762,6 +807,44 @@ jobs:
           fi
 
           echo "✅ Services redémarrés (aucun job perdu)"
+
+          # ============================================
+          # 10b. REDÉMARRAGE DE REVERB (WebSocket)
+          # ============================================
+          echo ""
+          echo "🔄 Redémarrage de Reverb (WebSocket server)..."
+          REVERB_STATUS=$(supervisorctl status axontis-reverb 2>/dev/null | grep -c "RUNNING" || echo "0")
+          if [ "$REVERB_STATUS" -gt 0 ] 2>/dev/null; then
+            echo "   Reverb actif — restart gracieux..."
+            supervisorctl restart axontis-reverb 2>/dev/null || true
+            sleep 2
+            REVERB_CHECK=$(supervisorctl status axontis-reverb 2>/dev/null | grep -c "RUNNING" || echo "0")
+            if [ "$REVERB_CHECK" -gt 0 ] 2>/dev/null; then
+              echo "✅ Reverb redémarré avec succès"
+            else
+              echo "⚠️ Reverb ne répond pas après restart — vérifiez les logs"
+            fi
+          else
+            echo "   Reverb pas encore configuré dans Supervisor — tentative de démarrage..."
+            # Copier le fichier de config Supervisor si disponible
+            if [ -f "$CURRENT_LINK/infrastructure/scripts/axontis-reverb.conf" ]; then
+              cp "$CURRENT_LINK/infrastructure/scripts/axontis-reverb.conf" /etc/supervisor/conf.d/axontis-reverb.conf 2>/dev/null || true
+              supervisorctl reread 2>/dev/null || true
+              supervisorctl update 2>/dev/null || true
+              supervisorctl start axontis-reverb 2>/dev/null || true
+              sleep 2
+              REVERB_CHECK=$(supervisorctl status axontis-reverb 2>/dev/null | grep -c "RUNNING" || echo "0")
+              if [ "$REVERB_CHECK" -gt 0 ] 2>/dev/null; then
+                echo "✅ Reverb démarré pour la première fois"
+              else
+                echo "⚠️ Reverb n'a pas démarré — config manuelle requise"
+                echo "   → Copiez infrastructure/scripts/axontis-reverb.conf dans /etc/supervisor/conf.d/"
+                echo "   → Puis : sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start axontis-reverb"
+              fi
+            else
+              echo "⚠️ Fichier axontis-reverb.conf non trouvé — Reverb non configuré"
+            fi
+          fi
 
           # ============================================
           # 11. NETTOYAGE DES ANCIENNES RELEASES
@@ -911,6 +994,18 @@ jobs:
             echo "⚠️ Horizon n'est pas encore actif"
             echo "   → Vérifiez la config Supervisor : /etc/supervisor/conf.d/axontis-horizon.conf"
             echo "   → Commandes : sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start axontis-horizon"
+          fi
+
+          # Vérifier Reverb
+          echo ""
+          echo "🔍 Vérification de Reverb (WebSocket)..."
+          REVERB_RUNNING=$(supervisorctl status axontis-reverb 2>/dev/null | grep -c "RUNNING" || echo "0")
+          if [ "$REVERB_RUNNING" -gt 0 ] 2>/dev/null; then
+            echo "✅ Reverb actif (WebSocket broadcasting pour alarmes)"
+          else
+            echo "⚠️ Reverb n'est pas actif"
+            echo "   → Copiez infrastructure/scripts/axontis-reverb.conf dans /etc/supervisor/conf.d/"
+            echo "   → Commandes : sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start axontis-reverb"
           fi
 
           echo ""
