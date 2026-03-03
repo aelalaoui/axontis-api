@@ -26,7 +26,7 @@ CREATE TABLE `alerts` (
   KEY `alerts_resolved_by_foreign` (`resolved_by`),
   KEY `alerts_client_uuid_index` (`client_uuid`),
   KEY `alerts_contract_uuid_index` (`contract_uuid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `arrivals`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
