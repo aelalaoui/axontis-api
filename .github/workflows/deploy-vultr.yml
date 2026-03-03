@@ -291,139 +291,112 @@ jobs:
           }
 
       # =========================================================================
-      # 5. UPLOAD TO SERVER
+      # 5. CREATE PRODUCTION ENV FILE (sur le runner GitHub Actions)
       # =========================================================================
-      - name: 📤 Upload release to server
+      - name: ⚙️ Create production env file
         run: |
-          scp release.tar.gz ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }}:/tmp/release.tar.gz
+          cat > .env.production << 'EOF'
+          APP_ENV=production
+          APP_DEBUG=false
+          APP_KEY=${{ secrets.APP_KEY }}
+          APP_NAME=${{ secrets.APP_NAME }}
+          APP_URL=${{ secrets.APP_URL }}
+          DB_CONNECTION=mysql
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_DATABASE=${{ secrets.DB_DATABASE }}
+          DB_USERNAME=${{ secrets.DB_USERNAME }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          CACHE_DRIVER=redis
+          SESSION_DRIVER=redis
+          QUEUE_CONNECTION=redis
+          REDIS_CLIENT=phpredis
+          REDIS_HOST=127.0.0.1
+          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+          REDIS_PORT=6379
+          REDIS_DB=0
+          REDIS_CACHE_DB=1
+          REDIS_SESSION_DB=2
+          REDIS_QUEUE_DB=3
+          CLOUDFLARE_R2_ACCESS_KEY_ID=${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY=${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_BUCKET=${{ secrets.CLOUDFLARE_R2_BUCKET }}
+          CLOUDFLARE_R2_ENDPOINT=${{ secrets.CLOUDFLARE_R2_ENDPOINT }}
+          CLOUDFLARE_R2_URL=${{ secrets.CLOUDFLARE_R2_URL }}
+          DOCUSIGN_CLIENT_ID=${{ secrets.DOCUSIGN_CLIENT_ID }}
+          DOCUSIGN_USER_ID=${{ secrets.DOCUSIGN_USER_ID }}
+          DOCUSIGN_ACCOUNT_ID=${{ secrets.DOCUSIGN_ACCOUNT_ID }}
+          DOCUSIGN_BASE_PATH=${{ secrets.DOCUSIGN_BASE_PATH }}
+          DOCUSIGN_OAUTH_BASE_PATH=${{ secrets.DOCUSIGN_OAUTH_BASE_PATH }}
+          DOCUSIGN_HMAC_KEY=${{ secrets.DOCUSIGN_HMAC_KEY }}
+          STRIPE_PUBLIC_KEY=${{ secrets.STRIPE_PUBLIC_KEY }}
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          SENTRY_LARAVEL_DSN=${{ secrets.SENTRY_LARAVEL_DSN }}
+          MAIL_MAILER=${{ secrets.MAIL_MAILER }}
+          MAIL_HOST=${{ secrets.MAIL_HOST }}
+          MAIL_PORT=${{ secrets.MAIL_PORT }}
+          MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+          MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
+          MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }}
+          RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+          MAILGUN_DOMAIN=${{ secrets.MAILGUN_DOMAIN }}
+          MAILGUN_SECRET=${{ secrets.MAILGUN_SECRET }}
+          MAILGUN_ENDPOINT=${{ secrets.MAILGUN_ENDPOINT }}
+          BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}
+          TWILIO_SID=${{ secrets.TWILIO_SID }}
+          TWILIO_TOKEN=${{ secrets.TWILIO_TOKEN }}
+          TWILIO_FROM=${{ secrets.TWILIO_FROM }}
+          TWILIO_WHATSAPP_FROM=${{ secrets.TWILIO_WHATSAPP_FROM }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
+          NOTIFICATION_SLACK_WEBHOOK=${{ secrets.NOTIFICATION_SLACK_WEBHOOK }}
+          NOTIFICATION_TELEGRAM_CHAT_ID=${{ secrets.NOTIFICATION_TELEGRAM_CHAT_ID }}
+          BROADCAST_DRIVER=reverb
+          REVERB_APP_ID=${{ secrets.REVERB_APP_ID }}
+          REVERB_APP_KEY=${{ secrets.REVERB_APP_KEY }}
+          REVERB_APP_SECRET=${{ secrets.REVERB_APP_SECRET }}
+          REVERB_HOST=${{ secrets.REVERB_HOST }}
+          REVERB_PORT=${{ secrets.REVERB_PORT }}
+          REVERB_SCHEME=${{ secrets.REVERB_SCHEME }}
+          VITE_REVERB_APP_KEY=${{ secrets.REVERB_APP_KEY }}
+          VITE_REVERB_HOST=${{ secrets.REVERB_HOST }}
+          VITE_REVERB_PORT=${{ secrets.REVERB_PORT }}
+          VITE_REVERB_SCHEME=${{ secrets.REVERB_SCHEME }}
+          HPP_ARC_ID=${{ secrets.HPP_ARC_ID }}
+          HPP_ARC_KEY=${{ secrets.HPP_ARC_KEY }}
+          HPP_API_BASE_URL=${{ secrets.HPP_API_BASE_URL }}
+          HIKVISION_DEDUPLICATE_WINDOW=60
+          HIKVISION_EVENT_RETENTION_DAYS=365
+          ALARM_EVENTS_QUEUE=alarm-events
+          EOF
+          # Supprimer l'indentation introduite par le heredoc YAML
+          sed -i 's/^          //' .env.production
+          echo "✅ Fichier .env.production créé ($(wc -l < .env.production) lignes)"
 
       # =========================================================================
-      # 6. ZERO DOWNTIME DEPLOYMENT
+      # 6. UPLOAD TO SERVER (release + env)
+      # =========================================================================
+      - name: 📤 Upload release & env to server
+        run: |
+          scp release.tar.gz ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }}:/tmp/release.tar.gz
+          # Créer le dossier shared sur le serveur s'il n'existe pas encore
+          ssh ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} "mkdir -p /var/www/axontis-shared"
+          # Uploader le .env de production directement dans SHARED_PATH
+          scp .env.production ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }}:/var/www/axontis-shared/.env
+          echo "✅ Archive et .env uploadés sur le serveur"
+
+      # =========================================================================
+      # 7. ZERO DOWNTIME DEPLOYMENT
       # =========================================================================
       - name: 🚀 Deploy on server (Zero Downtime)
         env:
-          # Database
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_DATABASE: ${{ secrets.DB_DATABASE }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          # App
-          APP_KEY: ${{ secrets.APP_KEY }}
-          APP_URL: ${{ secrets.APP_URL }}
-          APP_NAME: ${{ secrets.APP_NAME }}
-          # Cloudflare R2
-          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
-          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
-          CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
-          CLOUDFLARE_R2_ENDPOINT: ${{ secrets.CLOUDFLARE_R2_ENDPOINT }}
-          CLOUDFLARE_R2_URL: ${{ secrets.CLOUDFLARE_R2_URL }}
-          # DocuSign
-          DOCUSIGN_CLIENT_ID: ${{ secrets.DOCUSIGN_CLIENT_ID }}
-          DOCUSIGN_USER_ID: ${{ secrets.DOCUSIGN_USER_ID }}
-          DOCUSIGN_ACCOUNT_ID: ${{ secrets.DOCUSIGN_ACCOUNT_ID }}
-          DOCUSIGN_BASE_PATH: ${{ secrets.DOCUSIGN_BASE_PATH }}
-          DOCUSIGN_OAUTH_BASE_PATH: ${{ secrets.DOCUSIGN_OAUTH_BASE_PATH }}
-          DOCUSIGN_HMAC_KEY: ${{ secrets.DOCUSIGN_HMAC_KEY }}
-          # Stripe
-          STRIPE_PUBLIC_KEY: ${{ secrets.STRIPE_PUBLIC_KEY }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          # Sentry
-          SENTRY_LARAVEL_DSN: ${{ secrets.SENTRY_LARAVEL_DSN }}
-          # Redis
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-          # Mail
-          MAIL_MAILER: ${{ secrets.MAIL_MAILER }}
-          MAIL_HOST: ${{ secrets.MAIL_HOST }}
-          MAIL_PORT: ${{ secrets.MAIL_PORT }}
-          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
-          MAIL_FROM_NAME: ${{ secrets.MAIL_FROM_NAME }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
-          MAILGUN_SECRET: ${{ secrets.MAILGUN_SECRET }}
-          MAILGUN_ENDPOINT: ${{ secrets.MAILGUN_ENDPOINT }}
-          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
-          # SMS
-          TWILIO_SID: ${{ secrets.TWILIO_SID }}
-          TWILIO_TOKEN: ${{ secrets.TWILIO_TOKEN }}
-          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
-          TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
-          # Messaging
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          NOTIFICATION_SLACK_WEBHOOK: ${{ secrets.NOTIFICATION_SLACK_WEBHOOK }}
-          NOTIFICATION_TELEGRAM_CHAT_ID: ${{ secrets.NOTIFICATION_TELEGRAM_CHAT_ID }}
-          # Reverb (WebSocket Broadcasting)
-          REVERB_APP_ID: ${{ secrets.REVERB_APP_ID }}
-          REVERB_APP_KEY: ${{ secrets.REVERB_APP_KEY }}
-          REVERB_APP_SECRET: ${{ secrets.REVERB_APP_SECRET }}
-          REVERB_HOST: ${{ secrets.REVERB_HOST }}
-          REVERB_PORT: ${{ secrets.REVERB_PORT }}
-          REVERB_SCHEME: ${{ secrets.REVERB_SCHEME }}
-          # Hik-Partner Pro
-          HPP_ARC_ID: ${{ secrets.HPP_ARC_ID }}
-          HPP_ARC_KEY: ${{ secrets.HPP_ARC_KEY }}
-          HPP_API_BASE_URL: ${{ secrets.HPP_API_BASE_URL }}
+          VULTR_USER: ${{ secrets.VULTR_USER }}
+          VULTR_HOST: ${{ secrets.VULTR_HOST }}
         run: |
-          ssh ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} \
-          "export DB_HOST='$DB_HOST' \
-          DB_PORT='$DB_PORT' \
-          DB_DATABASE='$DB_DATABASE' \
-          DB_USERNAME='$DB_USERNAME' \
-          DB_PASSWORD='$DB_PASSWORD' \
-          APP_KEY='$APP_KEY' \
-          APP_URL='$APP_URL' \
-          APP_NAME='$APP_NAME' \
-          CLOUDFLARE_R2_ACCESS_KEY_ID='$CLOUDFLARE_R2_ACCESS_KEY_ID' \
-          CLOUDFLARE_R2_SECRET_ACCESS_KEY='$CLOUDFLARE_R2_SECRET_ACCESS_KEY' \
-          CLOUDFLARE_R2_BUCKET='$CLOUDFLARE_R2_BUCKET' \
-          CLOUDFLARE_R2_ENDPOINT='$CLOUDFLARE_R2_ENDPOINT' \
-          CLOUDFLARE_R2_URL='$CLOUDFLARE_R2_URL' \
-          DOCUSIGN_CLIENT_ID='$DOCUSIGN_CLIENT_ID' \
-          DOCUSIGN_USER_ID='$DOCUSIGN_USER_ID' \
-          DOCUSIGN_ACCOUNT_ID='$DOCUSIGN_ACCOUNT_ID' \
-          DOCUSIGN_BASE_PATH='$DOCUSIGN_BASE_PATH' \
-          DOCUSIGN_OAUTH_BASE_PATH='$DOCUSIGN_OAUTH_BASE_PATH' \
-          DOCUSIGN_HMAC_KEY='$DOCUSIGN_HMAC_KEY' \
-          STRIPE_PUBLIC_KEY='$STRIPE_PUBLIC_KEY' \
-          STRIPE_SECRET_KEY='$STRIPE_SECRET_KEY' \
-          STRIPE_WEBHOOK_SECRET='$STRIPE_WEBHOOK_SECRET' \
-          SENTRY_LARAVEL_DSN='$SENTRY_LARAVEL_DSN' \
-          REDIS_PASSWORD='$REDIS_PASSWORD' \
-          MAIL_MAILER='$MAIL_MAILER' \
-          MAIL_HOST='$MAIL_HOST' \
-          MAIL_PORT='$MAIL_PORT' \
-          MAIL_USERNAME='$MAIL_USERNAME' \
-          MAIL_PASSWORD='$MAIL_PASSWORD' \
-          MAIL_FROM_ADDRESS='$MAIL_FROM_ADDRESS' \
-          MAIL_FROM_NAME='$MAIL_FROM_NAME' \
-          RESEND_API_KEY='$RESEND_API_KEY' \
-          MAILGUN_DOMAIN='$MAILGUN_DOMAIN' \
-          MAILGUN_SECRET='$MAILGUN_SECRET' \
-          MAILGUN_ENDPOINT='$MAILGUN_ENDPOINT' \
-          BREVO_API_KEY='$BREVO_API_KEY' \
-          TWILIO_SID='$TWILIO_SID' \
-          TWILIO_TOKEN='$TWILIO_TOKEN' \
-          TWILIO_FROM='$TWILIO_FROM' \
-          TWILIO_WHATSAPP_FROM='$TWILIO_WHATSAPP_FROM' \
-          TELEGRAM_BOT_TOKEN='$TELEGRAM_BOT_TOKEN' \
-          TELEGRAM_CHAT_ID='$TELEGRAM_CHAT_ID' \
-          SLACK_WEBHOOK_URL='$SLACK_WEBHOOK_URL' \
-          NOTIFICATION_SLACK_WEBHOOK='$NOTIFICATION_SLACK_WEBHOOK' \
-          NOTIFICATION_TELEGRAM_CHAT_ID='$NOTIFICATION_TELEGRAM_CHAT_ID' \
-          REVERB_APP_ID='$REVERB_APP_ID' \
-          REVERB_APP_KEY='$REVERB_APP_KEY' \
-          REVERB_APP_SECRET='$REVERB_APP_SECRET' \
-          REVERB_HOST='$REVERB_HOST' \
-          REVERB_PORT='$REVERB_PORT' \
-          REVERB_SCHEME='$REVERB_SCHEME' \
-          HPP_ARC_ID='$HPP_ARC_ID' \
-          HPP_ARC_KEY='$HPP_ARC_KEY' \
-          HPP_API_BASE_URL='$HPP_API_BASE_URL'; /bin/bash" << 'DEPLOY_SCRIPT'
+          ssh $VULTR_USER@$VULTR_HOST /bin/bash << 'DEPLOY_SCRIPT'
           set -e
 
           echo "=========================================="
@@ -486,125 +459,17 @@ jobs:
           echo ""
           echo "⚙️ Configuration de l'environnement..."
 
-          # Copier le .env existant ou utiliser le backup
-          if [ -f "$CURRENT_LINK/.env" ]; then
-            cp $CURRENT_LINK/.env $NEW_RELEASE/.env
-            echo "✅ .env copié depuis la version actuelle"
+          # Le .env de production a été uploadé par SCP dans SHARED_PATH avant ce script.
+          # On le copie simplement dans la nouvelle release.
+          if [ -f "$SHARED_PATH/.env" ]; then
+            cp $SHARED_PATH/.env $NEW_RELEASE/.env
+            echo "✅ .env copié depuis $SHARED_PATH/.env"
           else
-            # Créer depuis .env.example
-            if [ -f "$NEW_RELEASE/.env.example" ]; then
-              cp $NEW_RELEASE/.env.example $NEW_RELEASE/.env
-            else
-              touch $NEW_RELEASE/.env
-            fi
+            echo "❌ ERREUR: $SHARED_PATH/.env introuvable!"
+            echo "   Le fichier .env.production n'a pas été uploadé correctement."
+            rm -rf $NEW_RELEASE
+            exit 1
           fi
-
-          # Fonction pour mettre à jour une variable .env
-          update_env() {
-            local key=$1
-            local value=$2
-            if [ -n "$value" ]; then
-              if grep -q "^${key}=" $NEW_RELEASE/.env; then
-                sed -i "s|^${key}=.*|${key}=${value}|" $NEW_RELEASE/.env
-              else
-                echo "${key}=${value}" >> $NEW_RELEASE/.env
-              fi
-            fi
-          }
-
-          # Helper function to get value or default for empty strings
-          get_value_or_default() {
-            local value=$1
-            local default=$2
-            if [ -z "$value" ]; then
-              echo "$default"
-            else
-              echo "$value"
-            fi
-          }
-
-          # Mise à jour des variables avec les secrets
-          update_env "APP_ENV" "production"
-          update_env "APP_NAME" "$APP_NAME"
-          update_env "APP_DEBUG" "false"
-          update_env "APP_KEY" "$APP_KEY"
-          update_env "APP_URL" "$APP_URL"
-          update_env "DB_CONNECTION" "mysql"
-          update_env "DB_HOST" "$DB_HOST"
-          update_env "DB_PORT" "$DB_PORT"
-          update_env "DB_DATABASE" "$DB_DATABASE"
-          update_env "DB_USERNAME" "$DB_USERNAME"
-          update_env "DB_PASSWORD" "$DB_PASSWORD"
-          update_env "CACHE_DRIVER" "redis"
-          update_env "SESSION_DRIVER" "redis"
-          update_env "QUEUE_CONNECTION" "redis"
-          update_env "REDIS_CLIENT" "phpredis"
-          update_env "REDIS_HOST" "127.0.0.1"
-          update_env "REDIS_PASSWORD" "$REDIS_PASSWORD"
-          update_env "REDIS_PORT" "6379"
-          update_env "REDIS_DB" "0"
-          update_env "REDIS_CACHE_DB" "1"
-          update_env "REDIS_SESSION_DB" "2"
-          update_env "REDIS_QUEUE_DB" "3"
-          update_env "CLOUDFLARE_R2_ACCESS_KEY_ID" "$CLOUDFLARE_R2_ACCESS_KEY_ID"
-          update_env "CLOUDFLARE_R2_SECRET_ACCESS_KEY" "$CLOUDFLARE_R2_SECRET_ACCESS_KEY"
-          update_env "CLOUDFLARE_R2_BUCKET" "$CLOUDFLARE_R2_BUCKET"
-          update_env "CLOUDFLARE_R2_ENDPOINT" "$CLOUDFLARE_R2_ENDPOINT"
-          update_env "CLOUDFLARE_R2_URL" "$CLOUDFLARE_R2_URL"
-          update_env "DOCUSIGN_CLIENT_ID" "$DOCUSIGN_CLIENT_ID"
-          update_env "DOCUSIGN_USER_ID" "$DOCUSIGN_USER_ID"
-          update_env "DOCUSIGN_ACCOUNT_ID" "$DOCUSIGN_ACCOUNT_ID"
-          update_env "DOCUSIGN_BASE_PATH" "$DOCUSIGN_BASE_PATH"
-          update_env "DOCUSIGN_OAUTH_BASE_PATH" "$DOCUSIGN_OAUTH_BASE_PATH"
-          update_env "DOCUSIGN_HMAC_KEY" "$DOCUSIGN_HMAC_KEY"
-          update_env "STRIPE_PUBLIC_KEY" "$STRIPE_PUBLIC_KEY"
-          update_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET_KEY"
-          update_env "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET"
-          update_env "SENTRY_LARAVEL_DSN" "$SENTRY_LARAVEL_DSN"
-          update_env "MAIL_MAILER" "$MAIL_MAILER"
-          update_env "MAIL_HOST" "$MAIL_HOST"
-          update_env "MAIL_PORT" "$MAIL_PORT"
-          update_env "MAIL_USERNAME" "$MAIL_USERNAME"
-          update_env "MAIL_PASSWORD" "$MAIL_PASSWORD"
-          update_env "MAIL_FROM_ADDRESS" "$MAIL_FROM_ADDRESS"
-          update_env "MAIL_FROM_NAME" "$MAIL_FROM_NAME"
-          update_env "RESEND_API_KEY" "$RESEND_API_KEY"
-          update_env "MAILGUN_DOMAIN" "$MAILGUN_DOMAIN"
-          update_env "MAILGUN_SECRET" "$MAILGUN_SECRET"
-          update_env "MAILGUN_ENDPOINT" "$MAILGUN_ENDPOINT"
-          update_env "BREVO_API_KEY" "$BREVO_API_KEY"
-          update_env "TWILIO_SID" "$TWILIO_SID"
-          update_env "TWILIO_TOKEN" "$TWILIO_TOKEN"
-          update_env "TWILIO_FROM" "$TWILIO_FROM"
-          update_env "TWILIO_WHATSAPP_FROM" "$TWILIO_WHATSAPP_FROM"
-          update_env "TELEGRAM_BOT_TOKEN" "$TELEGRAM_BOT_TOKEN"
-          update_env "TELEGRAM_CHAT_ID" "$TELEGRAM_CHAT_ID"
-          update_env "SLACK_WEBHOOK_URL" "$SLACK_WEBHOOK_URL"
-          update_env "NOTIFICATION_SLACK_WEBHOOK" "$NOTIFICATION_SLACK_WEBHOOK"
-          update_env "NOTIFICATION_TELEGRAM_CHAT_ID" "$NOTIFICATION_TELEGRAM_CHAT_ID"
-
-          # Reverb (WebSocket Broadcasting)
-          update_env "BROADCAST_DRIVER" "reverb"
-          update_env "REVERB_APP_ID" "$REVERB_APP_ID"
-          update_env "REVERB_APP_KEY" "$REVERB_APP_KEY"
-          update_env "REVERB_APP_SECRET" "$REVERB_APP_SECRET"
-          update_env "REVERB_HOST" "$REVERB_HOST"
-          update_env "REVERB_PORT" "$REVERB_PORT"
-          update_env "REVERB_SCHEME" "$REVERB_SCHEME"
-          update_env "VITE_REVERB_APP_KEY" "$REVERB_APP_KEY"
-          update_env "VITE_REVERB_HOST" "$REVERB_HOST"
-          update_env "VITE_REVERB_PORT" "$REVERB_PORT"
-          update_env "VITE_REVERB_SCHEME" "$REVERB_SCHEME"
-
-          # Hik-Partner Pro
-          update_env "HPP_ARC_ID" "$HPP_ARC_ID"
-          update_env "HPP_ARC_KEY" "$HPP_ARC_KEY"
-          update_env "HPP_API_BASE_URL" "$(get_value_or_default "$HPP_API_BASE_URL" "https://eu.hik-partner.com")"
-
-          # Hikvision events config
-          update_env "HIKVISION_DEDUPLICATE_WINDOW" "60"
-          update_env "HIKVISION_EVENT_RETENTION_DAYS" "365"
-          update_env "ALARM_EVENTS_QUEUE" "alarm-events"
 
           echo "✅ .env configuré"
 
@@ -731,26 +596,6 @@ jobs:
           echo ""
           echo "⚡ Re-création des caches avec le nouveau contexte..."
 
-          # Debug: Verify .env before caching config
-          echo ""
-          echo "🔍 Debug: Final .env mail configuration before config:cache:"
-          grep "^MAIL_" $CURRENT_LINK/.env || echo "   ERROR: No MAIL_ variables in .env!"
-          echo ""
-
-          # CRITICAL: Unset les variables d'environnement vides pour que Laravel lise le .env
-          # Laravel donne la priorité aux env vars système (même vides) sur le .env
-          echo "🧹 Nettoyage des variables d'environnement vides..."
-          for var in MAIL_MAILER MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD MAIL_FROM_ADDRESS MAIL_FROM_NAME \
-                     TWILIO_SID TWILIO_TOKEN TWILIO_FROM TWILIO_WHATSAPP_FROM \
-                     TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID SLACK_WEBHOOK_URL \
-                     NOTIFICATION_SLACK_WEBHOOK NOTIFICATION_TELEGRAM_CHAT_ID \
-                     REVERB_APP_ID REVERB_APP_KEY REVERB_APP_SECRET REVERB_HOST REVERB_PORT REVERB_SCHEME \
-                     HPP_ARC_ID HPP_ARC_KEY HPP_API_BASE_URL; do
-            if [ -z "${!var}" ]; then
-              unset $var
-            fi
-          done
-          echo "✅ Variables d'environnement nettoyées"
 
           cd $CURRENT_LINK && php artisan config:cache
           cd $CURRENT_LINK && php artisan route:cache
