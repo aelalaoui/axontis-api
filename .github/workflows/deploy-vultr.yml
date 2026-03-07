@@ -343,6 +343,58 @@ jobs:
           echo "✅ Fichier .env.production créé ($(wc -l < .env.production) lignes)"
 
       # =========================================================================
+      # 4. CREATE RELEASE ARCHIVE
+      # =========================================================================
+      - name: 🗂️ Create release archive
+        run: |
+          set +e
+          tar -czf release.tar.gz \
+            --exclude='release.tar.gz' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.env' \
+            --exclude='.env.example' \
+            --exclude='.env.production.example' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/data/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/views/*' \
+            .
+          TAR_EXIT=$?
+          set -e
+          if [ $TAR_EXIT -ge 2 ]; then
+            echo "❌ tar failed with exit code $TAR_EXIT"
+            exit $TAR_EXIT
+          fi
+          echo "✅ Archive created successfully"
+
+      # =========================================================================
+      # 5. SSH SETUP
+      # =========================================================================
+      - name: 🔐 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VULTR_SSH_PRIVATE_KEY }}
+
+      - name: 📋 Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VULTR_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🔍 Test SSH connection
+        run: |
+          echo "Testing SSH connection to ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }}..."
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -v ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} "echo 'SSH connection successful'" || {
+            echo "❌ SSH connection failed!"
+            echo ""
+            echo "Please ensure following public key is added to ~/.ssh/authorized_keys on your Vultr server:"
+            ssh-add -L
+            exit 1
+          }
+
+      # =========================================================================
       # 6. UPLOAD TO SERVER (release + env)
       # =========================================================================
       - name: 📤 Upload release & env to server
