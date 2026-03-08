@@ -236,8 +236,6 @@ const canManageClients = computed(() => {
  const navigation = computed(() => {
      const items = [
          { name: 'Dashboard', href: '/crm', icon: 'fas fa-home' },
-         { name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart' },
-         { name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' },
          { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
          { name: 'Communications', href: '/communications', icon: 'fas fa-comments' },
          { name: 'Reports', href: '/reports', icon: 'fas fa-chart-bar' },
@@ -247,6 +245,8 @@ const canManageClients = computed(() => {
      if (canManageUsers.value) {
          items.push({ name: 'Utilisateurs', href: '/crm/users', icon: 'fas fa-user-cog' });
          items.push({ name: 'Products', href: '/crm/products', icon: 'fas fa-box' });
+         items.push({ name: 'Orders', href: '/crm/orders', icon: 'fas fa-shopping-cart' });
+         items.push({ name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' });
      }
 
      // Add Users management for managers and administrators only

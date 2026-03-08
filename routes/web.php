@@ -98,6 +98,11 @@ Route::middleware([
                 ->name('users.toggle-status');
             Route::post('users/{user}/resend-invitation', [\App\Http\Controllers\UserController::class, 'resendInvitation'])
                 ->name('users.resend-invitation');
+
+            // CRM Suppliers Routes - Only accessible by managers and administrators
+            Route::resource('suppliers', \App\Http\Controllers\SupplierController::class);
+            Route::patch('suppliers/{supplier}/toggle-status', [\App\Http\Controllers\SupplierController::class, 'toggleStatus'])
+                ->name('suppliers.toggle-status');
         });
 
         // CRM Clients Routes - accessible by managers, administrators, and operators
