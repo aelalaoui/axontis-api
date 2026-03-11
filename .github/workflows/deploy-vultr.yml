@@ -401,11 +401,14 @@ jobs:
       - name: 📤 Upload release & env to server
         run: |
           scp release.tar.gz ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }}:/tmp/release.tar.gz
-          # Créer le dossier shared sur le serveur s'il n'existe pas encore
-          ssh ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} "mkdir -p /var/www/axontis-shared"
+          # Créer les dossiers shared sur le serveur s'ils n'existent pas encore
+          ssh ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }} "mkdir -p /var/www/axontis-shared /var/www/axontis-shared/storage/keys"
           # Uploader le .env de production directement dans SHARED_PATH
           scp .env.production ${{ secrets.VULTR_USER }}@${{ secrets.VULTR_HOST }}:/var/www/axontis-shared/.env
           echo "✅ Archive et .env uploadés sur le serveur"
+          # NOTE: La clé DocuSign (storage/keys/docusign_key.key) est placée manuellement
+          # une seule fois sur le serveur dans /var/www/axontis-shared/storage/keys/
+          # Elle persiste entre toutes les releases via le symlink storage partagé.
 
       # =========================================================================
       # 7. ZERO DOWNTIME DEPLOYMENT
@@ -432,7 +435,7 @@ jobs:
 
           # Créer les dossiers nécessaires
           mkdir -p $RELEASES_PATH
-          mkdir -p $SHARED_PATH/storage/{app,framework,logs}
+          mkdir -p $SHARED_PATH/storage/{app,framework,logs,keys}
 
           # ============================================
           # 1. EXTRACTION DU NOUVEAU CODE
@@ -467,7 +470,19 @@ jobs:
           # ============================================
           echo ""
           echo "🔗 Configuration du symlink storage partagé..."
-          mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs}
+          mkdir -p $SHARED_PATH/storage/{app,framework/{cache,sessions,views},logs,keys}
+          # S'assurer que la clé DocuSign a les bonnes permissions (lecture seule pour www-data)
+          if [ -f "$SHARED_PATH/storage/keys/docusign_key.key" ]; then
+            chown www-data:www-data $SHARED_PATH/storage/keys/docusign_key.key
+            chmod 640 $SHARED_PATH/storage/keys/docusign_key.key
+            echo "✅ Clé DocuSign présente dans le storage partagé"
+          else
+            echo "❌ ERREUR CRITIQUE: Clé DocuSign manquante dans $SHARED_PATH/storage/keys/docusign_key.key"
+            echo "   → Placez la clé manuellement une seule fois avec la commande suivante :"
+            echo "   scp docusign_private.key user@serveur:/var/www/axontis-shared/storage/keys/docusign_key.key"
+            rm -rf $NEW_RELEASE
+            exit 1
+          fi
           rm -rf $NEW_RELEASE/storage
           ln -sf $SHARED_PATH/storage $NEW_RELEASE/storage
           echo "✅ Symlink storage configuré"
