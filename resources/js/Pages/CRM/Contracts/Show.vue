@@ -1,6 +1,6 @@
 <template>
     <AxontisDashboardLayout :title="`Contract: ${contract.description}`" subtitle="Contract details and related information">
-        <div class="max-w-6xl mx-auto">
+        <div class="max-w-7xl mx-auto">
             <!-- Header Actions -->
             <div class="flex justify-between items-center mb-6">
                 <Link :href="route('crm.contracts.index')" class="btn-axontis-secondary">
@@ -9,7 +9,6 @@
                 </Link>
 
                 <div class="flex items-center gap-3">
-                    <!-- Status Badge -->
                     <span
                         :class="[
                             'px-3 py-1 rounded-full text-sm font-medium',
@@ -19,7 +18,6 @@
                         {{ formatStatus(contract.status, contract.is_terminated) }}
                     </span>
 
-                    <!-- Action Buttons -->
                     <Link :href="route('crm.contracts.edit', contract.uuid)" class="btn-axontis-primary">
                         <i class="fas fa-edit mr-2"></i>
                         Edit Contract
@@ -27,122 +25,54 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Main Information -->
-                <div class="lg:col-span-2 space-y-6">
+            <!-- 3 Columns Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+                <!-- Colonne 1 : Basic Information + Installations -->
+                <div class="flex flex-col gap-6">
                     <!-- Basic Information -->
                     <AxontisCard title="Basic Information">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex flex-col gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-white/70 mb-1">Description</label>
                                 <p class="text-white font-medium">{{ contract.description }}</p>
                             </div>
-
                             <div>
                                 <label class="block text-sm font-medium text-white/70 mb-1">Status</label>
-                                <p class="text-white font-medium">{{ formatStatus(contract.status, contract.is_terminated) }}</p>
+                                <span :class="['px-2 py-0.5 rounded-full text-sm font-medium', getStatusBadgeClass(contract.status, contract.is_terminated)]">
+                                    {{ formatStatus(contract.status, contract.is_terminated) }}
+                                </span>
                             </div>
-
                             <div>
                                 <label class="block text-sm font-medium text-white/70 mb-1">Start Date</label>
                                 <p class="text-white">{{ contract.start_date || 'N/A' }}</p>
                             </div>
-
                             <div>
                                 <label class="block text-sm font-medium text-white/70 mb-1">Due Date</label>
                                 <p class="text-white">{{ contract.due_date || 'N/A' }}</p>
                             </div>
-
                             <div v-if="contract.is_terminated">
                                 <label class="block text-sm font-medium text-white/70 mb-1">Termination Date</label>
                                 <p class="text-error-400 font-medium">{{ contract.termination_date || 'N/A' }}</p>
                             </div>
-                        </div>
-                    </AxontisCard>
-
-                    <!-- Financial Information -->
-                    <AxontisCard title="Financial Information">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Monthly Amounts -->
-                            <div class="space-y-4">
-                                <h4 class="text-sm font-semibold text-white/70 uppercase">Monthly Amount</h4>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-white/70">HT</span>
-                                    <span class="text-white font-mono">{{ contract.monthly_ht.toFixed(2) }} {{ contract.currency }}</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-white/70">TVA ({{ contract.vat_rate_percentage }}%)</span>
-                                    <span class="text-white font-mono">{{ contract.monthly_tva.toFixed(2) }} {{ contract.currency }}</span>
-                                </div>
-                                <div class="flex justify-between items-center pt-3 border-t border-gray-700">
-                                    <span class="text-white font-semibold">TTC</span>
-                                    <span class="text-primary-400 font-semibold font-mono text-lg">{{ contract.monthly_ttc.toFixed(2) }} {{ contract.currency }}</span>
-                                </div>
-                            </div>
-
-                            <!-- Subscription Amounts -->
-                            <div class="space-y-4">
-                                <h4 class="text-sm font-semibold text-white/70 uppercase">Subscription Amount</h4>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-white/70">HT</span>
-                                    <span class="text-white font-mono">{{ contract.subscription_ht.toFixed(2) }} {{ contract.currency }}</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-white/70">TVA ({{ contract.vat_rate_percentage }}%)</span>
-                                    <span class="text-white font-mono">{{ contract.subscription_tva.toFixed(2) }} {{ contract.currency }}</span>
-                                </div>
-                                <div class="flex justify-between items-center pt-3 border-t border-gray-700">
-                                    <span class="text-white font-semibold">TTC</span>
-                                    <span class="text-primary-400 font-semibold font-mono text-lg">{{ contract.subscription_ttc.toFixed(2) }} {{ contract.currency }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </AxontisCard>
-
-                    <!-- Client Information -->
-                    <AxontisCard title="Client Information">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-white/70 mb-1">Client Name</label>
-                                <Link :href="route('crm.clients.show', contract.client.uuid)" class="text-primary-400 hover:text-primary-300 font-medium">
-                                    {{ contract.client.name }}
-                                    <i class="fas fa-external-link-alt ml-1 text-xs"></i>
-                                </Link>
+                                <label class="block text-sm font-medium text-white/70 mb-1">Created</label>
+                                <p class="text-white text-sm">{{ formatDate(contract.created_at) }}</p>
                             </div>
-
-                            <div v-if="contract.client.email">
-                                <label class="block text-sm font-medium text-white/70 mb-1">Email</label>
-                                <a :href="`mailto:${contract.client.email}`" class="text-primary-400 hover:text-primary-300">
-                                    {{ contract.client.email }}
-                                </a>
-                            </div>
-
-                            <div v-if="contract.client.phone">
-                                <label class="block text-sm font-medium text-white/70 mb-1">Phone</label>
-                                <a :href="`tel:${contract.client.phone}`" class="text-primary-400 hover:text-primary-300">
-                                    {{ contract.client.phone }}
-                                </a>
-                            </div>
-
-                            <div v-if="contract.client.city">
-                                <label class="block text-sm font-medium text-white/70 mb-1">City</label>
-                                <p class="text-white">{{ contract.client.city }}</p>
-                            </div>
-
-                            <div v-if="contract.client.address" class="md:col-span-2">
-                                <label class="block text-sm font-medium text-white/70 mb-1">Address</label>
-                                <p class="text-white">{{ contract.client.address }}</p>
+                            <div>
+                                <label class="block text-sm font-medium text-white/70 mb-1">Last Updated</label>
+                                <p class="text-white text-sm">{{ formatDate(contract.updated_at) }}</p>
                             </div>
                         </div>
                     </AxontisCard>
 
-                    <!-- Installations -->
+                    <!-- Installations liées -->
                     <AxontisCard title="Linked Installations" :subtitle="`${contract.installations.length} installations`">
-                        <div v-if="contract.installations.length > 0" class="space-y-3">
+                        <div v-if="contract.installations.length > 0" class="flex flex-col gap-3">
                             <div
                                 v-for="installation in contract.installations"
                                 :key="installation.uuid"
-                                class="flex items-center justify-between p-4 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200"
+                                class="flex items-center justify-between p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200"
                             >
                                 <div class="flex-1">
                                     <p class="font-medium text-white">
@@ -150,9 +80,9 @@
                                         {{ installation.address || 'Installation' }}
                                     </p>
                                     <p class="text-sm text-gray-400 mt-1">
-                                        Type: {{ formatInstallationType(installation.type) }}
-                                        <span v-if="installation.scheduled_date" class="ml-3">
-                                            | Scheduled: {{ installation.scheduled_date }}
+                                        {{ formatInstallationType(installation.type) }}
+                                        <span v-if="installation.scheduled_date" class="ml-2 text-white/50">
+                                            · {{ installation.scheduled_date }}
                                         </span>
                                     </p>
                                 </div>
@@ -163,37 +93,75 @@
                             <p class="text-white/60">No installations linked to this contract</p>
                         </div>
                     </AxontisCard>
+                </div>
 
-                    <!-- Files -->
-                    <AxontisCard v-if="contract.files.length > 0" title="Attached Files" :subtitle="`${contract.files.length} files`">
-                        <div class="space-y-3">
+                <!-- Colonne 2 : Client Information + Documents -->
+                <div class="flex flex-col gap-6">
+                    <!-- Client Information -->
+                    <AxontisCard title="Client Information">
+                        <div class="flex flex-col gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-white/70 mb-1">Client Name</label>
+                                <Link :href="route('crm.clients.show', contract.client.uuid)" class="text-primary-400 hover:text-primary-300 font-medium">
+                                    {{ contract.client.name }}
+                                    <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                                </Link>
+                            </div>
+                            <div v-if="contract.client.email">
+                                <label class="block text-sm font-medium text-white/70 mb-1">Email</label>
+                                <a :href="`mailto:${contract.client.email}`" class="text-primary-400 hover:text-primary-300 break-all">
+                                    {{ contract.client.email }}
+                                </a>
+                            </div>
+                            <div v-if="contract.client.phone">
+                                <label class="block text-sm font-medium text-white/70 mb-1">Phone</label>
+                                <a :href="`tel:${contract.client.phone}`" class="text-primary-400 hover:text-primary-300">
+                                    {{ contract.client.phone }}
+                                </a>
+                            </div>
+                            <div v-if="contract.client.city">
+                                <label class="block text-sm font-medium text-white/70 mb-1">City</label>
+                                <p class="text-white">{{ contract.client.city }}</p>
+                            </div>
+                            <div v-if="contract.client.address">
+                                <label class="block text-sm font-medium text-white/70 mb-1">Address</label>
+                                <p class="text-white">{{ contract.client.address }}</p>
+                            </div>
+                        </div>
+                    </AxontisCard>
+
+                    <!-- Documents du contrat -->
+                    <AxontisCard title="Contract Documents" :subtitle="`${contract.files.length} files`">
+                        <div v-if="contract.files.length > 0" class="flex flex-col gap-3">
                             <div
                                 v-for="file in contract.files"
                                 :key="file.uuid"
-                                class="flex items-center justify-between p-4 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200"
+                                class="flex items-center justify-between p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200"
                             >
-                                <div class="flex items-center flex-1">
-                                    <i class="fas fa-file text-primary-400 mr-3"></i>
-                                    <div>
-                                        <p class="font-medium text-white">{{ file.name }}</p>
-                                        <p class="text-sm text-gray-400">{{ formatDate(file.created_at) }}</p>
+                                <div class="flex items-center flex-1 min-w-0">
+                                    <i class="fas fa-file text-primary-400 mr-3 flex-shrink-0"></i>
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-white truncate">{{ file.name }}</p>
+                                        <p class="text-xs text-gray-400">{{ formatDate(file.created_at) }}</p>
                                     </div>
                                 </div>
-                                <div class="flex items-center space-x-2">
-                                    <a :href="file.url" target="_blank" class="text-blue-400 hover:text-blue-300">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                </div>
+                                <a :href="file.url" target="_blank" class="text-blue-400 hover:text-blue-300 ml-3 flex-shrink-0">
+                                    <i class="fas fa-download"></i>
+                                </a>
                             </div>
+                        </div>
+                        <div v-else class="text-center py-8">
+                            <i class="fas fa-file text-3xl text-white/20 mb-3"></i>
+                            <p class="text-white/60">No documents attached to this contract</p>
                         </div>
                     </AxontisCard>
                 </div>
 
-                <!-- Sidebar -->
-                <div class="space-y-6">
+                <!-- Colonne 3 : Quick Stats + Financial Information -->
+                <div class="flex flex-col gap-6">
                     <!-- Quick Stats -->
                     <AxontisCard title="Quick Stats">
-                        <div class="space-y-4">
+                        <div class="flex flex-col gap-4">
                             <div class="flex items-center justify-between">
                                 <span class="text-white/70">Installations</span>
                                 <span class="font-semibold text-white">{{ contract.installations.length }}</span>
@@ -204,7 +172,7 @@
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-white/70">Total Paid</span>
-                                <span class="font-semibold text-success-400">{{ contract.total_paid.toFixed(2) }} {{ contract.currency }}</span>
+                                <span class="font-semibold text-success-400 font-mono">{{ contract.total_paid.toFixed(2) }} {{ contract.currency }}</span>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-white/70">Files</span>
@@ -217,20 +185,48 @@
                         </div>
                     </AxontisCard>
 
-                    <!-- Record Information -->
-                    <AxontisCard title="Record Information">
-                        <div class="space-y-3 text-sm">
-                            <div>
-                                <span class="text-white/70">Created:</span>
-                                <p class="text-white">{{ formatDate(contract.created_at) }}</p>
+                    <!-- Financial Information -->
+                    <AxontisCard title="Financial Information">
+                        <!-- Monthly Amounts -->
+                        <div class="mb-6">
+                            <h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Monthly Amount</h4>
+                            <div class="flex flex-col gap-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-white/70 text-sm">HT</span>
+                                    <span class="text-white font-mono text-sm">{{ contract.monthly_ht.toFixed(2) }} {{ contract.currency }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-white/70 text-sm">TVA ({{ contract.vat_rate_percentage }}%)</span>
+                                    <span class="text-white font-mono text-sm">{{ contract.monthly_tva.toFixed(2) }} {{ contract.currency }}</span>
+                                </div>
+                                <div class="flex justify-between items-center pt-2 border-t border-gray-700">
+                                    <span class="text-white font-semibold text-sm">TTC</span>
+                                    <span class="text-primary-400 font-semibold font-mono">{{ contract.monthly_ttc.toFixed(2) }} {{ contract.currency }}</span>
+                                </div>
                             </div>
-                            <div>
-                                <span class="text-white/70">Last Updated:</span>
-                                <p class="text-white">{{ formatDate(contract.updated_at) }}</p>
+                        </div>
+
+                        <!-- Subscription Amounts -->
+                        <div>
+                            <h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Subscription Amount</h4>
+                            <div class="flex flex-col gap-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-white/70 text-sm">HT</span>
+                                    <span class="text-white font-mono text-sm">{{ contract.subscription_ht.toFixed(2) }} {{ contract.currency }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-white/70 text-sm">TVA ({{ contract.vat_rate_percentage }}%)</span>
+                                    <span class="text-white font-mono text-sm">{{ contract.subscription_tva.toFixed(2) }} {{ contract.currency }}</span>
+                                </div>
+                                <div class="flex justify-between items-center pt-2 border-t border-gray-700">
+                                    <span class="text-white font-semibold text-sm">TTC</span>
+                                    <span class="text-primary-400 font-semibold font-mono">{{ contract.subscription_ttc.toFixed(2) }} {{ contract.currency }}</span>
+                                </div>
                             </div>
                         </div>
                     </AxontisCard>
                 </div>
+
             </div>
         </div>
     </AxontisDashboardLayout>

@@ -52,11 +52,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Entity search routes - accessible for authenticated web users
 Route::middleware('web')->group(function () {
+    // Routes accessibles aux techniciens et niveaux supérieurs (operator, manager, administrator)
+    Route::middleware('role:operator,manager,administrator')->group(function () {
+        Route::get('/dashboard/scheduled-contracts', [\App\Http\Controllers\Api\DashboardController::class, 'getScheduledContracts']);
+    });
+
+    // Routes accessibles aux managers et administrateurs uniquement
     Route::middleware('role:manager,administrator')->group(function () {
         Route::get('/dashboard/charts', [\App\Http\Controllers\Api\DashboardController::class, 'getChartData']);
         Route::get('/dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
-        Route::get('/dashboard/scheduled-contracts', [\App\Http\Controllers\Api\DashboardController::class, 'getScheduledContracts']);
     });
+
     Route::prefix('entities')->group(function () {
         Route::get('/types', [\App\Http\Controllers\Api\EntitySearchController::class, 'getEntityTypes']);
         Route::get('/search', [\App\Http\Controllers\Api\EntitySearchController::class, 'search']);
