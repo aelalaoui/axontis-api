@@ -1,6 +1,6 @@
 <template>
     <AxontisDashboardLayout :title="`Contract: ${contract.description}`" subtitle="Contract details and related information">
-        <div class="max-w-7xl mx-auto">
+        <div class="w-full">
             <!-- Header Actions -->
             <div class="flex justify-between items-center mb-6">
                 <Link :href="route('crm.contracts.index')" class="btn-axontis-secondary">
