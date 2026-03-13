@@ -131,6 +131,12 @@ class Contract extends Model
         return $this->hasMany(Installation::class, 'contract_uuid', 'uuid');
     }
 
+    public function product(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Product::class, 'contract_uuid', 'uuid')
+                    ->whereNull('id_parent');
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class, 'contract_uuid', 'uuid');

@@ -126,6 +126,12 @@ Route::middleware([
                 ->name('contracts.edit');
             Route::put('contracts/{uuid}', [\App\Http\Controllers\ContractController::class, 'update'])
                 ->name('contracts.update');
+
+            // Installation assignment
+            Route::post(
+                'installations/{uuid}/assign',
+                [\App\Http\Controllers\InstallationAssignmentController::class, 'assign']
+            )->name('installations.assign');
         });
 
         Route::resourceWithFiles('orders', \App\Http\Controllers\OrderController::class);
@@ -170,19 +176,21 @@ Route::middleware([
         Route::get('users/{userId}/communications', [\App\Http\Controllers\CommunicationController::class, 'forUser'])
             ->name('users.communications');
 
-        // API Routes for autocomplete and search
-        Route::prefix('api')->name('api.')->group(function () {
-            Route::get('suppliers/search', [\App\Http\Controllers\SupplierController::class, 'searchSuppliers'])
-                ->name('suppliers.search');
-            Route::get('devices/search', [\App\Http\Controllers\DeviceController::class, 'searchDevices'])
-                ->name('devices.search');
+            // API Routes for autocomplete and search
+            Route::prefix('api')->name('api.')->group(function () {
+                Route::get('suppliers/search', [\App\Http\Controllers\SupplierController::class, 'searchSuppliers'])
+                    ->name('suppliers.search');
+                Route::get('devices/search', [\App\Http\Controllers\DeviceController::class, 'searchDevices'])
+                    ->name('devices.search');
+                Route::get('staff', [\App\Http\Controllers\InstallationAssignmentController::class, 'staff'])
+                    ->name('staff');
 
-            // Generic API file routes
-            Route::apiFileRoutes('suppliers', \App\Http\Controllers\SupplierController::class);
-            Route::apiFileRoutes('devices', \App\Http\Controllers\DeviceController::class);
-            Route::apiFileRoutes('products', \App\Http\Controllers\ProductController::class);
-            Route::apiFileRoutes('orders', \App\Http\Controllers\OrderController::class);
-        });
+                // Generic API file routes
+                Route::apiFileRoutes('suppliers', \App\Http\Controllers\SupplierController::class);
+                Route::apiFileRoutes('devices', \App\Http\Controllers\DeviceController::class);
+                Route::apiFileRoutes('products', \App\Http\Controllers\ProductController::class);
+                Route::apiFileRoutes('orders', \App\Http\Controllers\OrderController::class);
+            });
     });
 
     // Installation schedule routes - protected by client.active

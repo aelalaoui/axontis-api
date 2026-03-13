@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Task extends Model
 {
@@ -68,27 +68,21 @@ class Task extends Model
 
     public function devices(): BelongsToMany
     {
-        return $this->belongsToMany(Device::class, 'task_devices')
-                    ->using(TaskDevice::class)
+        return $this->belongsToMany(Device::class, 'installation_devices')
+                    ->using(InstallationDevice::class)
                     ->withPivot([
                         'id',
-                        'ht_price',
-                        'tva_price', 
-                        'ttc_price',
+                        'uuid',
                         'serial_number',
-                        'inventory_number',
                         'status',
-                        'assigned_date',
-                        'installation_date',
-                        'return_date',
-                        'notes'
+                        'notes',
                     ])
                     ->withTimestamps();
     }
 
-    public function taskDevices(): HasMany
+    public function installationDevices(): HasMany
     {
-        return $this->hasMany(TaskDevice::class);
+        return $this->hasMany(InstallationDevice::class);
     }
 
     // Scopes
@@ -141,8 +135,8 @@ class Task extends Model
     // Accessors
     public function getIsOverdueAttribute(): bool
     {
-        return $this->scheduled_date && 
-               $this->scheduled_date->isPast() && 
+        return $this->scheduled_date &&
+               $this->scheduled_date->isPast() &&
                in_array($this->status, ['scheduled', 'in_progress']);
     }
 

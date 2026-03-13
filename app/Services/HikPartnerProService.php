@@ -16,9 +16,9 @@ use Illuminate\Support\Str;
  */
 class HikPartnerProService
 {
-    private string $arcId;
-    private string $arcKey;
-    private string $baseUrl;
+    private ?string $arcId;
+    private ?string $arcKey;
+    private ?string $baseUrl;
     private int $connectTimeout;
     private int $requestTimeout;
 

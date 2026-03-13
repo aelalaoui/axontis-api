@@ -72,7 +72,8 @@
                             <div
                                 v-for="installation in contract.installations"
                                 :key="installation.uuid"
-                                class="flex items-center justify-between p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200"
+                                class="flex items-center justify-between p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200 cursor-pointer group"
+                                @click="openAssignmentPanel(installation)"
                             >
                                 <div class="flex-1">
                                     <p class="font-medium text-white">
@@ -86,6 +87,7 @@
                                         </span>
                                     </p>
                                 </div>
+                                <i class="fas fa-chevron-right text-white/20 group-hover:text-primary-400 transition-colors ml-3 flex-shrink-0"></i>
                             </div>
                         </div>
                         <div v-else class="text-center py-8">
@@ -230,16 +232,41 @@
             </div>
         </div>
     </AxontisDashboardLayout>
+
+    <!-- Installation Assignment Panel -->
+    <InstallationAssignmentPanel
+        :show="showAssignmentPanel"
+        :installation="selectedInstallation"
+        :sub-products="contract.sub_products ?? []"
+        @close="closeAssignmentPanel"
+        @assigned="closeAssignmentPanel"
+    />
 </template>
 
 <script setup>
+import {ref} from 'vue'
 import {Link} from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
+import InstallationAssignmentPanel from '@/Components/right-menu/InstallationAssignmentPanel.vue'
 
 const props = defineProps({
     contract: Object,
 })
+
+// ── Right menu state ───────────────────────────────────────────────────────
+const showAssignmentPanel = ref(false)
+const selectedInstallation = ref(null)
+
+const openAssignmentPanel = (installation) => {
+    selectedInstallation.value = installation
+    showAssignmentPanel.value = true
+}
+
+const closeAssignmentPanel = () => {
+    showAssignmentPanel.value = false
+    selectedInstallation.value = null
+}
 
 // Methods
 const formatDate = (dateString) => {

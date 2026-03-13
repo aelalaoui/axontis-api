@@ -5,8 +5,8 @@ namespace App\Models;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Claim extends Model
 {
@@ -49,9 +49,9 @@ class Claim extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
-    public function taskDevice(): BelongsTo
+    public function installationDevice(): BelongsTo
     {
-        return $this->belongsTo(TaskDevice::class, 'task_device_id');
+        return $this->belongsTo(InstallationDevice::class, 'task_device_id');
     }
 
     public function files(): MorphMany
@@ -189,7 +189,7 @@ class Claim extends Model
     public function assignTo(User $user): bool
     {
         $this->assigned_to = $user->id;
-        
+
         if ($this->status === 'open') {
             $this->status = 'in_progress';
         }
@@ -205,9 +205,9 @@ class Claim extends Model
         return $this->save();
     }
 
-    public function assignToDevice(TaskDevice $taskDevice): bool
+    public function assignToDevice(InstallationDevice $installationDevice): bool
     {
-        $this->task_device_id = $taskDevice->id;
+        $this->task_device_id = $installationDevice->id;
         return $this->save();
     }
 }

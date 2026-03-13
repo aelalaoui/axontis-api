@@ -376,7 +376,14 @@ class ContractController extends Controller
     {
         try {
             $contract = Contract::where('uuid', $uuid)
-                ->with(['client', 'installations', 'files', 'signatures', 'payments'])
+                ->with([
+                    'client',
+                    'installations',
+                    'files',
+                    'signatures',
+                    'payments',
+                    'product.children.device',
+                ])
                 ->firstOrFail();
 
             return inertia('CRM/Contracts/Show', [
@@ -444,6 +451,29 @@ class ContractController extends Controller
                             'created_at' => $payment->created_at->format('Y-m-d H:i:s'),
                         ];
                     }),
+                    'product' => $contract->product ? [
+                        'id'   => $contract->product->id,
+                        'name' => $contract->product->name,
+                    ] : null,
+                    'sub_products' => $contract->product
+                        ? $contract->product->children->map(function ($child) {
+                            return [
+                                'id'            => $child->id,
+                                'name'          => $child->name,
+                                'property_name' => $child->property_name,
+                                'default_value' => $child->default_value,
+                                'device'        => $child->device ? [
+                                    'id'        => $child->device->id,
+                                    'uuid'      => $child->device->uuid,
+                                    'brand'     => $child->device->brand,
+                                    'model'     => $child->device->model,
+                                    'category'  => $child->device->category,
+                                    'stock_qty' => $child->device->stock_qty,
+                                    'full_name' => $child->device->full_name,
+                                ] : null,
+                            ];
+                        })->values()->all()
+                        : [],
                 ],
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

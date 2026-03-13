@@ -73,27 +73,21 @@ class Device extends Model
 
     public function tasks(): BelongsToMany
     {
-        return $this->belongsToMany(Task::class, 'task_devices')
-            ->using(TaskDevice::class)
+        return $this->belongsToMany(Task::class, 'installation_devices')
+            ->using(InstallationDevice::class)
             ->withPivot([
                 'id',
-                'ht_price',
-                'tva_price',
-                'ttc_price',
+                'uuid',
                 'serial_number',
-                'inventory_number',
                 'status',
-                'assigned_date',
-                'installation_date',
-                'return_date',
-                'notes'
+                'notes',
             ])
             ->withTimestamps();
     }
 
-    public function taskDevices(): HasMany
+    public function installationDevices(): HasMany
     {
-        return $this->hasMany(TaskDevice::class);
+        return $this->hasMany(InstallationDevice::class);
     }
 
     public function products(): HasMany
