@@ -191,6 +191,45 @@ class DashboardController extends Controller
     }
 
     /**
+     * Get scheduled contracts for dashboard upcoming tasks
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getScheduledContracts(Request $request)
+    {
+        try {
+            $contracts = Contract::with('client')
+                ->where('status', \App\Enums\ContractStatus::SCHEDULED->value)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($contract) {
+                    return [
+                        'uuid' => $contract->uuid,
+                        'description' => $contract->description,
+                        'status' => $contract->status,
+                        'client_name' => $contract->client ? $contract->client->full_name : 'N/A',
+                        'client_uuid' => $contract->client_uuid,
+                        'monthly_amount' => $contract->monthly_amount_cents / 100,
+                        'currency' => $contract->currency,
+                        'start_date' => $contract->start_date,
+                        'created_at' => $contract->created_at,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $contracts
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error retrieving scheduled contracts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get chart data for dashboard
      *
      * @param Request $request

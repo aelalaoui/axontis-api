@@ -68,10 +68,10 @@
             />
         </div>
 
-        <!-- Recent Activity & Quick Actions -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recent Activity & Upcoming Tasks -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Recent Activity -->
-            <div class="lg:col-span-2">
+            <div>
                 <AxontisCard title="Recent Activity" subtitle="Latest updates from your CRM">
                     <div class="space-y-4">
                         <div
@@ -104,78 +104,64 @@
                     </template>
                 </AxontisCard>
             </div>
-        </div>
 
-        <!-- Upcoming Tasks -->
-        <AxontisCard title="Upcoming Tasks" subtitle="Tasks requiring your attention">
-            <div class="overflow-x-auto">
-                <table class="axontis-table">
-                    <thead>
-                    <tr>
-                        <th>Task</th>
-                        <th>Client</th>
-                        <th>Due Date</th>
-                        <th>Priority</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr v-for="task in upcomingTasks" :key="task.id">
-                        <td>
-                            <div class="font-medium text-white">{{ task.title }}</div>
-                            <div class="text-xs text-white/60">{{ task.description }}</div>
-                        </td>
-                        <td class="text-white/80">{{ task.client }}</td>
-                        <td class="text-white/80">{{ task.dueDate }}</td>
-                        <td>
-                                <span :class="[
-                                    'axontis-badge',
-                                    task.priority === 'high' ? 'error' :
-                                    task.priority === 'medium' ? 'warning' : 'primary'
-                                ]">
-                                    {{ task.priority }}
-                                </span>
-                        </td>
-                        <td>
-                                <span :class="[
-                                    'axontis-badge',
-                                    task.status === 'completed' ? 'success' :
-                                    task.status === 'in-progress' ? 'warning' : 'primary'
-                                ]">
-                                    {{ task.status }}
-                                </span>
-                        </td>
-                        <td>
-                            <div class="flex items-center gap-2">
-                                <AxontisButton
-                                    variant="icon"
-                                    size="sm"
-                                    icon="fas fa-eye"
-                                    @click="viewTask(task.id)"
-                                />
-                                <AxontisButton
-                                    variant="icon"
-                                    size="sm"
-                                    icon="fas fa-edit"
-                                    @click="editTask(task.id)"
-                                />
+            <!-- Upcoming Tasks -->
+            <div>
+                <AxontisCard title="Upcoming Tasks" subtitle="Contracts scheduled for installation">
+                    <div v-if="scheduledContractsLoading" class="flex items-center justify-center py-8">
+                        <i class="fas fa-spinner fa-spin text-primary-400 text-2xl"></i>
+                    </div>
+                    <div v-else-if="scheduledContracts.length === 0" class="flex flex-col items-center justify-center py-8 text-white/40">
+                        <i class="fas fa-calendar-check text-3xl mb-3"></i>
+                        <p class="text-sm">Aucun contrat planifié</p>
+                    </div>
+                    <div v-else class="space-y-3">
+                        <Link
+                            v-for="contract in scheduledContracts"
+                            :key="contract.uuid"
+                            :href="`/crm/contracts/${contract.uuid}`"
+                            class="flex items-start gap-4 p-4 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200 group block"
+                        >
+                            <div class="w-10 h-10 rounded-full bg-info-500/20 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-file-contract text-info-400"></i>
                             </div>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-white group-hover:text-primary-400 transition-colors truncate">
+                                    {{ contract.description || 'Contrat' }}
+                                </p>
+                                <p class="text-xs text-white/60 mt-1 truncate">
+                                    <i class="fas fa-user mr-1"></i>{{ contract.client_name }}
+                                </p>
+                                <p v-if="contract.start_date" class="text-xs text-white/40 mt-1">
+                                    <i class="fas fa-calendar mr-1"></i>{{ formatContractDate(contract.start_date) }}
+                                </p>
+                            </div>
+                            <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium bg-info-500/20 text-info-300">
+                                    Planifié
+                                </span>
+                                <span class="text-xs text-white/40 group-hover:text-primary-400 transition-colors">
+                                    <i class="fas fa-arrow-right"></i>
+                                </span>
+                            </div>
+                        </Link>
+                    </div>
+                    <template #footer>
+                        <Link href="/crm/contracts" class="text-primary-400 hover:text-primary-300 text-sm">
+                            Voir tous les contrats →
+                        </Link>
+                    </template>
+                </AxontisCard>
             </div>
-        </AxontisCard>
+        </div>
     </AxontisDashboardLayout>
 </template>
 
 <script setup>
 import {computed, onMounted, ref} from 'vue'
-import {Link, router, usePage} from '@inertiajs/vue3'
+import {Link, usePage} from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
-import AxontisButton from '@/Components/AxontisButton.vue'
 import AxontisStatCard from '@/Components/AxontisStatCard.vue'
 import AxontisChartCard from '@/Components/AxontisChartCard.vue'
 
@@ -260,49 +246,20 @@ const recentActivity = ref([
     }
 ])
 
-const upcomingTasks = ref([
-    {
-        id: 1,
-        title: 'Contract renewal',
-        description: 'Renew contract for ABC Corp',
-        client: 'ABC Corp',
-        dueDate: 'Tomorrow',
-        priority: 'high',
-        status: 'pending'
-    },
-    {
-        id: 2,
-        title: 'Device installation',
-        description: 'Install new devices at client site',
-        client: 'XYZ Ltd',
-        dueDate: 'Dec 25, 2024',
-        priority: 'medium',
-        status: 'in-progress'
-    },
-    {
-        id: 3,
-        title: 'Monthly report',
-        description: 'Generate monthly performance report',
-        client: 'Internal',
-        dueDate: 'Dec 31, 2024',
-        priority: 'low',
-        status: 'pending'
-    }
-])
+// Scheduled contracts (real data from API)
+const scheduledContracts = ref([])
+const scheduledContractsLoading = ref(false)
+
+const formatContractDate = (dateString) => {
+    if (!dateString) return ''
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    })
+}
 
 // Methods
-const navigateTo = (url) => {
-    router.visit(url)
-}
-
-const viewTask = (taskId) => {
-    router.visit(`/tasks/${taskId}`)
-}
-
-const editTask = (taskId) => {
-    router.visit(`/tasks/${taskId}/edit`)
-}
-
 const onRevenueViewChanged = (view) => {
     // Handle revenue view change if needed
     console.log('Revenue view changed to:', view)
@@ -313,10 +270,21 @@ const onClientViewChanged = (view) => {
     console.log('Client view changed to:', view)
 }
 
-// Calculate total revenue based on current data
-const calculateTotalRevenue = () => {
-    // This will be updated when chart data changes
-    // The calculation happens in the component based on selected view
+// Load scheduled contracts from API
+const loadScheduledContracts = async () => {
+    try {
+        scheduledContractsLoading.value = true
+        const response = await fetch('/api/dashboard/scheduled-contracts')
+        const result = await response.json()
+
+        if (response.ok && result.success && result.data) {
+            scheduledContracts.value = result.data
+        }
+    } catch (error) {
+        console.error('Error loading scheduled contracts:', error)
+    } finally {
+        scheduledContractsLoading.value = false
+    }
 }
 
 // Load Chart.js dynamically
@@ -408,6 +376,7 @@ onMounted(() => {
     if (userIsManager.value || userIsAdmin.value) {
         loadDashboardStats()
         loadChartData()
+        loadScheduledContracts()
     } else {
         statsLoading.value = false
         chartsLoading.value = false

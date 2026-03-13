@@ -55,6 +55,7 @@ Route::middleware('web')->group(function () {
     Route::middleware('role:manager,administrator')->group(function () {
         Route::get('/dashboard/charts', [\App\Http\Controllers\Api\DashboardController::class, 'getChartData']);
         Route::get('/dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
+        Route::get('/dashboard/scheduled-contracts', [\App\Http\Controllers\Api\DashboardController::class, 'getScheduledContracts']);
     });
     Route::prefix('entities')->group(function () {
         Route::get('/types', [\App\Http\Controllers\Api\EntitySearchController::class, 'getEntityTypes']);

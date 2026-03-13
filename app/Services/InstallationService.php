@@ -89,7 +89,7 @@ class InstallationService
                 'scheduled_time' => $time,
             ]);
 
-            $installation->contract()->update(['status' => 'scheduled']);
+            $installation->contract()->update(['status' => ContractStatus::SCHEDULED->value]);
 
             return $installation->refresh();
         });
