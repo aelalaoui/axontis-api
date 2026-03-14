@@ -4,14 +4,46 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+DROP TABLE IF EXISTS `alarm_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alarm_events` (
+  `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `installation_device_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `installation_uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `cid_code` smallint DEFAULT NULL,
+  `standard_cid_code` smallint DEFAULT NULL,
+  `event_type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `category` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `severity` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `zone_number` smallint DEFAULT NULL,
+  `zone_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `triggered_at` timestamp NOT NULL,
+  `source_ip` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `raw_payload` json NOT NULL,
+  `processed` tinyint(1) NOT NULL DEFAULT '0',
+  `processed_at` timestamp NULL DEFAULT NULL,
+  `alert_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`uuid`),
+  KEY `idx_alarm_events_installation_triggered` (`installation_uuid`,`triggered_at`),
+  KEY `idx_alarm_events_unprocessed` (`processed`,`created_at`),
+  KEY `idx_alarm_events_severity` (`installation_uuid`,`severity`,`triggered_at`),
+  KEY `alarm_events_cid_code_index` (`cid_code`),
+  KEY `idx_alarm_events_installation_device_triggered` (`installation_device_uuid`,`triggered_at`),
+  KEY `alarm_events_alert_uuid_foreign` (`alert_uuid`),
+  CONSTRAINT `alarm_events_alert_uuid_foreign` FOREIGN KEY (`alert_uuid`) REFERENCES `alerts` (`uuid`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `alerts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `alerts` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `client_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `contract_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `client_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `contract_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `type` enum('intrusion','fire','flood','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `severity` enum('low','medium','critical') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
@@ -66,10 +98,10 @@ DROP TABLE IF EXISTS `cities`;
 CREATE TABLE `cities` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `region_id` bigint unsigned NOT NULL,
-  `name_ar` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name_en` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name_fr` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `country_code` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MA',
+  `name_ar` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_fr` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `country_code` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MA',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -117,8 +149,8 @@ CREATE TABLE `clients` (
   `address` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `city` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `country` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Morocco',
-  `status` enum('created','signed','refused','paid','active','formal_notice','disabled','closed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'created',
-  `step` enum('email_step','price_step','info_step','installation_step','document_step','signature_step','payment_step','password_step','schedule_step','completed_steps') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'email_step',
+  `status` enum('created','signed','refused','paid','active','formal_notice','disabled','closed') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'created',
+  `step` enum('email_step','price_step','info_step','installation_step','document_step','signature_step','payment_step','password_step','schedule_step','completed_steps') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'email_step',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -140,12 +172,22 @@ CREATE TABLE `communications` (
   `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `handled_by` bigint unsigned DEFAULT NULL,
   `sent_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `status` enum('pending','sent','delivered','failed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT 'Statut de la communication',
+  `notification_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Classe de notification utilisée',
+  `provider` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Provider utilisé (resend, mailgun, brevo, twilio)',
+  `metadata` json DEFAULT NULL COMMENT 'Données supplémentaires (erreurs, tracking, etc.)',
+  `retry_count` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'Nombre de tentatives',
+  `failed_at` timestamp NULL DEFAULT NULL COMMENT 'Date d''échec définitif',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `communications_uuid_unique` (`uuid`),
   KEY `communications_communicable_type_communicable_id_index` (`communicable_type`,`communicable_id`),
-  KEY `communications_handled_by_foreign` (`handled_by`)
+  KEY `communications_handled_by_foreign` (`handled_by`),
+  KEY `communications_status_index` (`status`),
+  KEY `communications_notification_type_index` (`notification_type`(100)),
+  KEY `communications_provider_index` (`provider`),
+  KEY `communications_failed_at_index` (`failed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `contracts`;
@@ -154,21 +196,24 @@ DROP TABLE IF EXISTS `contracts`;
 CREATE TABLE `contracts` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `client_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `client_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `product_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `start_date` date NOT NULL,
-  `due_date` varchar(5) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` enum('created','signed','paid','pending','active','suspended','terminated') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'created',
+  `due_date` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('created','signed','paid','pending','scheduled','active','suspended','terminated') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `termination_date` date DEFAULT NULL,
   `monthly_amount_cents` bigint unsigned NOT NULL DEFAULT '0',
   `subscription_price_cents` bigint unsigned NOT NULL DEFAULT '0' COMMENT 'Initial subscription/caution price in cents',
   `vat_rate_percentage` int unsigned NOT NULL DEFAULT '20',
-  `currency` varchar(3) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MAD',
+  `currency` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MAD',
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `contracts_uuid_unique` (`uuid`),
-  KEY `contracts_client_uuid_index` (`client_uuid`)
+  KEY `contracts_client_uuid_index` (`client_uuid`),
+  KEY `contracts_product_uuid_index` (`product_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `devices`;
@@ -185,7 +230,7 @@ CREATE TABLE `devices` (
   `min_stock_level` int NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `installation_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `installation_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `devices_uuid_unique` (`uuid`),
   KEY `devices_installation_uuid_foreign` (`installation_uuid`)
@@ -227,21 +272,43 @@ CREATE TABLE `files` (
   KEY `files_fileable_type_fileable_id_index` (`fileable_type`,`fileable_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `installation_devices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `installation_devices` (
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `task_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `device_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `serial_number` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('assigned','installed','returned','maintenance','replaced') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'assigned',
+  `notes` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`uuid`),
+  UNIQUE KEY `installation_devices_uuid_unique` (`uuid`),
+  KEY `idx_installation_devices_task_uuid` (`task_uuid`),
+  KEY `idx_installation_devices_device_uuid` (`device_uuid`),
+  CONSTRAINT `installation_devices_device_uuid_foreign` FOREIGN KEY (`device_uuid`) REFERENCES `devices` (`uuid`) ON DELETE CASCADE,
+  CONSTRAINT `installation_devices_task_uuid_foreign` FOREIGN KEY (`task_uuid`) REFERENCES `tasks` (`uuid`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `installations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `installations` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `client_uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `contract_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `address` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `country` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MA',
+  `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `client_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `contract_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `address` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `country` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MA',
+  `type` enum('first_installation','curative','scheduled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'first_installation',
+  `scheduled_date` date DEFAULT NULL,
+  `scheduled_time` time DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `city_id` int DEFAULT NULL,
-  `country_code` varchar(2) COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `installations_uuid_unique` (`uuid`),
   KEY `installations_client_uuid_foreign` (`client_uuid`),
@@ -257,6 +324,33 @@ CREATE TABLE `migrations` (
   `batch` int NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `notification_preferences`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `notification_preferences` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `notifiable_type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `notifiable_id` bigint unsigned NOT NULL,
+  `notify_email` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Email activé',
+  `notify_sms` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'SMS activé',
+  `notify_whatsapp` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'WhatsApp activé',
+  `notify_telegram` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Telegram activé',
+  `notify_slack` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Slack activé',
+  `phone_number` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Numéro pour SMS',
+  `whatsapp_number` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Numéro WhatsApp',
+  `telegram_chat_id` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Chat ID Telegram',
+  `slack_webhook_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Webhook Slack personnalisé',
+  `notification_types` json DEFAULT NULL COMMENT 'Types de notifications activés',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `notification_preferences_uuid_unique` (`uuid`),
+  KEY `notification_preferences_notifiable_type_notifiable_id_index` (`notifiable_type`,`notifiable_id`),
+  KEY `notification_preferences_notify_email_index` (`notify_email`),
+  KEY `notification_preferences_notify_sms_index` (`notify_sms`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `order_device`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -332,14 +426,14 @@ DROP TABLE IF EXISTS `payments`;
 CREATE TABLE `payments` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `contract_uuid` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `contract_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `amount` decimal(10,2) NOT NULL,
-  `currency` varchar(3) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'EUR',
+  `currency` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'EUR',
   `payment_date` datetime DEFAULT NULL,
-  `method` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `method` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('pending','successful','failed','refunded') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
   `transaction_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `provider_response` text COLLATE utf8mb4_unicode_ci,
+  `provider_response` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -415,10 +509,10 @@ DROP TABLE IF EXISTS `regions`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `regions` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `name_ar` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name_en` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name_fr` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `country_code` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MA',
+  `name_ar` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_fr` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `country_code` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MA',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -429,7 +523,7 @@ DROP TABLE IF EXISTS `seeder_logs`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `seeder_logs` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `seeder_name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `seeder_name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `executed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -459,20 +553,20 @@ CREATE TABLE `signatures` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `signable_type` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `signable_uuid` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `signable_uuid` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `signable_by_type` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `signable_by_uuid` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `signable_by_uuid` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `signature_file` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `signature_type` enum('digital','electronic','handwritten') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `signed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `ip_address` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `metadata` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  `provider` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `provider_envelope_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `provider_status` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `provider` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `provider_envelope_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `provider_status` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `webhook_payload` json DEFAULT NULL,
   `webhook_received_at` timestamp NULL DEFAULT NULL,
-  `signing_url` text COLLATE utf8mb4_unicode_ci,
+  `signing_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -507,33 +601,6 @@ CREATE TABLE `suppliers` (
   UNIQUE KEY `suppliers_uuid_unique` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `task_devices`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `task_devices` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `task_id` bigint unsigned NOT NULL,
-  `device_id` bigint unsigned NOT NULL,
-  `ht_price` decimal(10,2) NOT NULL,
-  `tva_price` decimal(10,2) NOT NULL,
-  `ttc_price` decimal(10,2) NOT NULL,
-  `serial_number` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `inventory_number` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` enum('assigned','installed','returned','maintenance','replaced') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'assigned',
-  `assigned_date` date NOT NULL DEFAULT '2025-09-29',
-  `installation_date` date DEFAULT NULL,
-  `return_date` date DEFAULT NULL,
-  `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `task_devices_task_id_device_id_inventory_number_unique` (`task_id`,`device_id`,`inventory_number`),
-  UNIQUE KEY `task_devices_inventory_number_unique` (`inventory_number`),
-  UNIQUE KEY `task_devices_uuid_unique` (`uuid`),
-  KEY `task_devices_device_id_foreign` (`device_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `tasks`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -541,7 +608,7 @@ CREATE TABLE `tasks` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `taskable_type` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `taskable_id` bigint unsigned NOT NULL,
+  `taskable_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `address` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('scheduled','in_progress','completed') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'scheduled',
   `type` enum('installation','sav','prospection') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -552,8 +619,8 @@ CREATE TABLE `tasks` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `tasks_uuid_unique` (`uuid`),
-  KEY `tasks_taskable_type_taskable_id_index` (`taskable_type`,`taskable_id`),
-  KEY `tasks_user_id_foreign` (`user_id`)
+  KEY `tasks_user_id_foreign` (`user_id`),
+  KEY `tasks_taskable_type_taskable_uuid_index` (`taskable_type`,`taskable_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `users`;
@@ -564,6 +631,10 @@ CREATE TABLE `users` (
   `uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'user',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `invitation_token` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `invitation_sent_at` timestamp NULL DEFAULT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
   `password` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `two_factor_secret` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
@@ -644,3 +715,21 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (81,'2024_01_15_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (82,'2024_01_15_000001_create_cities_table',23);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (83,'2026_01_04_110142_update_columns_to_installations',24);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (84,'2026_01_04_124056_add_paid_status_to_contracts',24);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (85,'2026_01_05_000000_add_scheduled_fields_to_installations_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (86,'2026_01_13_213346_add_role_to_users',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (87,'2026_01_18_update_contract_status_enum',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (88,'2026_01_29_203105_add_invitation_fields_to_users_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (89,'2026_01_29_204743_fix_invalid_user_roles',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (90,'2026_01_30_203231_add_soft_deletes_to_contracts_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (91,'2026_02_08_000001_create_notification_preferences_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (92,'2026_02_09_000050_add_notification_tracking_to_communications_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (93,'2026_02_28_000001_create_alarm_events_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (94,'2026_03_13_000001_replace_task_devices_with_installation_devices',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (95,'2026_03_13_000002_add_contract_uuid_to_products_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (96,'2026_03_13_000003_add_foreign_keys_to_installation_devices',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (97,'2026_03_14_000001_move_product_uuid_to_contracts_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (98,'2026_03_14_000002_add_installation_device_uuid_to_alarm_events_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (99,'2026_03_14_000003_drop_device_uuid_from_alarm_events_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (100,'2026_03_14_000004_make_uuid_primary_key_on_installation_devices',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (101,'2026_03_14_000005_migrate_tasks_taskable_id_to_uuid',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (102,'2026_03_14_000006_make_uuid_primary_key_on_alarm_events',25);

@@ -75,7 +75,7 @@ class CreateAlertFromAlarmEventJob implements ShouldQueue
             $alert = Alert::create([
                 'client_uuid' => $clientUuid,
                 'contract_uuid' => $contractUuid,
-                'type' => 'alarm_' . ($this->alarmEvent->category ?? 'unknown'),
+                'type' => $this->mapCategoryToAlertType($this->alarmEvent->category),
                 'severity' => $this->alarmEvent->severity ?? 'high',
                 'description' => $description,
                 'triggered_at' => $this->alarmEvent->triggered_at,
@@ -110,6 +110,19 @@ class CreateAlertFromAlarmEventJob implements ShouldQueue
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Mappe la category AlarmEvent vers le type Alert (enum: intrusion, fire, flood, other).
+     */
+    private function mapCategoryToAlertType(?string $category): string
+    {
+        return match ($category) {
+            'intrusion', 'panic', 'tamper' => 'intrusion',
+            'fire'                          => 'fire',
+            'flood', 'water'               => 'flood',
+            default                        => 'other',
+        };
     }
 
     private function buildAlertDescription(?array $cidInfo, InstallationDevice $installationDevice, $device): string

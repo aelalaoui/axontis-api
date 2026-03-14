@@ -16,7 +16,7 @@ class Task extends Model
 
     protected $fillable = [
         'taskable_type',
-        'taskable_id',
+        'taskable_uuid',
         'address',
         'status',
         'type',
@@ -38,7 +38,8 @@ class Task extends Model
     // Relationships
     public function taskable(): MorphTo
     {
-        return $this->morphTo();
+        // taskable_uuid stocke l'uuid du modèle lié (ex: installations.uuid)
+        return $this->morphTo('taskable', 'taskable_type', 'taskable_uuid', 'uuid');
     }
 
     public function user(): BelongsTo
@@ -68,21 +69,14 @@ class Task extends Model
 
     public function devices(): BelongsToMany
     {
-        return $this->belongsToMany(Device::class, 'installation_devices')
-                    ->using(InstallationDevice::class)
-                    ->withPivot([
-                        'id',
-                        'uuid',
-                        'serial_number',
-                        'status',
-                        'notes',
-                    ])
+        return $this->belongsToMany(Device::class, 'installation_devices', 'task_uuid', 'device_uuid', 'uuid', 'uuid')
+                    ->withPivot(['uuid', 'serial_number', 'status', 'notes'])
                     ->withTimestamps();
     }
 
     public function installationDevices(): HasMany
     {
-        return $this->hasMany(InstallationDevice::class);
+        return $this->hasMany(InstallationDevice::class, 'task_uuid', 'uuid');
     }
 
     // Scopes

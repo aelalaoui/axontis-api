@@ -2,11 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\ArmStatus;
-use App\Enums\DeviceCategory;
 use App\Traits\HasProperties;
 use App\Traits\HasUuid;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,7 +20,6 @@ class Device extends Model
         'category',
         'description',
         'min_stock_level',
-        'installation_uuid',
     ];
 
     protected $casts = [
@@ -37,10 +33,6 @@ class Device extends Model
     ];
 
     // Relationships
-    public function installation()
-    {
-        return $this->belongsTo(Installation::class, 'installation_uuid', 'uuid');
-    }
 
     public function arrivals(): HasMany
     {
@@ -73,21 +65,14 @@ class Device extends Model
 
     public function tasks(): BelongsToMany
     {
-        return $this->belongsToMany(Task::class, 'installation_devices')
-            ->using(InstallationDevice::class)
-            ->withPivot([
-                'id',
-                'uuid',
-                'serial_number',
-                'status',
-                'notes',
-            ])
+        return $this->belongsToMany(Task::class, 'installation_devices', 'device_uuid', 'task_uuid', 'uuid', 'uuid')
+            ->withPivot(['uuid', 'serial_number', 'status', 'notes'])
             ->withTimestamps();
     }
 
     public function installationDevices(): HasMany
     {
-        return $this->hasMany(InstallationDevice::class);
+        return $this->hasMany(InstallationDevice::class, 'device_uuid', 'uuid');
     }
 
     public function products(): HasMany
@@ -178,78 +163,5 @@ class Device extends Model
         return $availableStock <= $this->min_stock_level;
     }
 
-    // ─── Alarm Panel ─────────────────────────────────────────
-
-    /**
-     * Relation vers les événements alarme de cette centrale.
-     */
-    public function alarmEvents(): HasMany
-    {
-        return $this->hasMany(AlarmEvent::class, 'device_uuid', 'uuid');
-    }
-
-    /**
-     * Vérifie si ce Device est une centrale d'alarme.
-     */
-    public function isAlarmPanel(): bool
-    {
-        return $this->category === DeviceCategory::ALARM_PANEL->value
-            || $this->category === 'alarm_panel';
-    }
-
-    /**
-     * Scope pour filtrer uniquement les centrales alarme.
-     */
-    public function scopeAlarmPanels(Builder $query): Builder
-    {
-        return $query->where('category', 'alarm_panel');
-    }
-
-    /**
-     * Retourne le statut d'armement depuis les properties.
-     */
-    public function getArmStatus(): string
-    {
-        return $this->getProperty('arm_status', ArmStatus::UNKNOWN->value);
-    }
-
-    /**
-     * Retourne le statut de connexion depuis les properties.
-     */
-    public function getConnectionStatus(): string
-    {
-        return $this->getProperty('connection_status', 'unknown');
-    }
-
-    /**
-     * Retourne le numéro de série du panel depuis les properties.
-     */
-    public function getPanelSerialNumber(): ?string
-    {
-        return $this->getProperty('panel_serial_number');
-    }
-
-    /**
-     * Retourne l'ID HPP du device depuis les properties.
-     */
-    public function getHppDeviceId(): ?string
-    {
-        return $this->getProperty('hpp_device_id');
-    }
-
-    /**
-     * Retourne le secret webhook depuis les properties.
-     */
-    public function getWebhookSecret(): ?string
-    {
-        return $this->getProperty('webhook_secret');
-    }
-
-    /**
-     * Retourne la whitelist IP du webhook depuis les properties.
-     */
-    public function getWebhookIpWhitelist(): array
-    {
-        return $this->getProperty('webhook_ip_whitelist', []);
-    }
 }
+

@@ -17,8 +17,8 @@ class AlarmEvent extends Model
     protected $table = 'alarm_events';
 
     protected $fillable = [
-        'installation_device_uuid',  // ← nouvelle FK (InstallationDevice)
-        'device_uuid',               // @deprecated — conservé le temps de la migration
+        'uuid',
+        'installation_device_uuid',
         'installation_uuid',
         'cid_code',
         'standard_cid_code',
@@ -59,13 +59,6 @@ class AlarmEvent extends Model
         return $this->belongsTo(InstallationDevice::class, 'installation_device_uuid', 'uuid');
     }
 
-    /**
-     * @deprecated Utiliser installationDevice() — device_uuid référence le catalogue, pas l'unité physique.
-     */
-    public function device(): BelongsTo
-    {
-        return $this->belongsTo(Device::class, 'device_uuid', 'uuid');
-    }
 
     public function installation(): BelongsTo
     {

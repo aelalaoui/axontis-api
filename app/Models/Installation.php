@@ -51,23 +51,6 @@ class Installation extends Model
         return $this->morphMany(Task::class, 'taskable');
     }
 
-    /**
-     * @deprecated Ancrée sur Device.installation_uuid (champ dénormalisé). Préférer la traversée via tasks().
-     */
-    public function devices()
-    {
-        return $this->hasMany(Device::class, 'installation_uuid', 'uuid');
-    }
-
-    /**
-     * Centrales d'alarme de cette installation.
-     * @deprecated Utiliser alarmPanelInstallationDevices() — ancrée sur Device.installation_uuid (dénormalisé)
-     */
-    public function alarmPanels()
-    {
-        return $this->hasMany(Device::class, 'installation_uuid', 'uuid')
-            ->where('category', 'alarm_panel');
-    }
 
     /**
      * Centrales d'alarme via la chaîne correcte Installation → Task → InstallationDevice.

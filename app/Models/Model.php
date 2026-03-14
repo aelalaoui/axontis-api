@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Traits\FromUuid;
-use \Illuminate\Database\Eloquent\Model as EloquentModel;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 
 class Model extends EloquentModel
 {
@@ -27,4 +27,10 @@ class Model extends EloquentModel
      * @var string
      */
     protected $keyType = 'string';
+
+    /**
+     * uuid n'est pas auto-incrémenté — nécessaire pour qu'Eloquent
+     * inclue la PK dans les INSERT et ne tente pas de la récupérer via lastInsertId().
+     */
+    public $incrementing = false;
 }
