@@ -2,7 +2,9 @@
     <RightMenu
         :show="show"
         :title="installation ? `Assigner — ${formatType(installation.type)}` : 'Assignation'"
-        :subtitle="installation ? (installation.address || '') : ''"
+        :subtitle="installation
+            ? [(installation.address || ''), product ? product.name : ''].filter(Boolean).join(' · ')
+            : ''"
         width="680px"
         @close="$emit('close')"
     >
@@ -116,6 +118,7 @@ const props = defineProps({
     show: { type: Boolean, default: false },
     installation: { type: Object, default: null },
     subProducts: { type: Array, default: () => [] },
+    product: { type: Object, default: null },
 })
 
 const emit = defineEmits(['close', 'assigned'])

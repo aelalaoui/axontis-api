@@ -21,7 +21,6 @@ class Product extends Model
         'caution_price',
         'subscription_price',
         'device_uuid',
-        'contract_uuid',
     ];
 
     protected $casts = [
@@ -33,9 +32,9 @@ class Product extends Model
     protected $keyType = 'string';
 
     // Relationships
-    public function contract(): BelongsTo
+    public function contracts(): HasMany
     {
-        return $this->belongsTo(Contract::class, 'contract_uuid', 'uuid');
+        return $this->hasMany(Contract::class, 'product_uuid', 'id');
     }
 
     public function device(): BelongsTo

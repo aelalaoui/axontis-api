@@ -206,6 +206,7 @@ class ContractController extends Controller
             $monthlyAmountCents = 0;
             $subscriptionPriceCents = 0;
             $currency = 'MAD';
+            $parentProduct = null;
 
             if ($storedOfferData) {
                 // Use stored offer data directly (prices are already calculated)
@@ -213,6 +214,12 @@ class ContractController extends Controller
                 $monthlyAmountCents = (int) (($storedOfferData['monthly_amount'] ?? 0) * 100);
                 $subscriptionPriceCents = (int) (($storedOfferData['subscription_amount'] ?? 0) * 100);
                 $currency = $storedOfferData['currency'] ?? 'MAD';
+
+                // Resolve the parent product from stored offer data
+                $parentProduct = $this->clientService->findParentProduct(
+                    $storedOfferData['parent_property'],
+                    $storedOfferData['parent_value']
+                );
             } else {
                 // Fallback: try to recalculate from stored parent product info
                 $parentProperty = $client->getProperty('offer_parent_property');
@@ -237,6 +244,11 @@ class ContractController extends Controller
                 $subscriptionPriceCents,
                 $currency
             );
+
+            // 2. Link the parent product to the contract
+            if ($parentProduct) {
+                $contract->update(['product_uuid' => $parentProduct->id]);
+            }
 
             // 2. Get PDF Content
             // Assuming the contract generation attaches exactly one file which is the contract
@@ -377,7 +389,7 @@ class ContractController extends Controller
         try {
             $contract = Contract::where('uuid', $uuid)
                 ->with([
-                    'client',
+                    'client.properties',
                     'installations',
                     'files',
                     'signatures',
@@ -456,23 +468,33 @@ class ContractController extends Controller
                         'name' => $contract->product->name,
                     ] : null,
                     'sub_products' => $contract->product
-                        ? $contract->product->children->map(function ($child) {
-                            return [
-                                'id'            => $child->id,
-                                'name'          => $child->name,
-                                'property_name' => $child->property_name,
-                                'default_value' => $child->default_value,
-                                'device'        => $child->device ? [
-                                    'id'        => $child->device->id,
-                                    'uuid'      => $child->device->uuid,
-                                    'brand'     => $child->device->brand,
-                                    'model'     => $child->device->model,
-                                    'category'  => $child->device->category,
-                                    'stock_qty' => $child->device->stock_qty,
-                                    'full_name' => $child->device->full_name,
-                                ] : null,
-                            ];
-                        })->values()->all()
+                        ? $contract->product->children
+                            ->filter(function ($child) use ($contract) {
+                                // Only include sub-products that match the client's stored properties
+                                // (same logic as ClientService::calculateOfferPrices)
+                                if (!$child->property_name) {
+                                    return true; // No filter condition → always include
+                                }
+                                $clientValue = $contract->client->getProperty($child->property_name);
+                                return $clientValue !== null && $clientValue == $child->default_value;
+                            })
+                            ->map(function ($child) {
+                                return [
+                                    'id'            => $child->id,
+                                    'name'          => $child->name,
+                                    'property_name' => $child->property_name,
+                                    'default_value' => $child->default_value,
+                                    'device'        => $child->device ? [
+                                        'id'        => $child->device->id,
+                                        'uuid'      => $child->device->uuid,
+                                        'brand'     => $child->device->brand,
+                                        'model'     => $child->device->model,
+                                        'category'  => $child->device->category,
+                                        'stock_qty' => $child->device->stock_qty,
+                                        'full_name' => $child->device->full_name,
+                                    ] : null,
+                                ];
+                            })->values()->all()
                         : [],
                 ],
             ]);

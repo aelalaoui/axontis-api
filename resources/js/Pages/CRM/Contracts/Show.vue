@@ -63,11 +63,32 @@
                                 <label class="block text-sm font-medium text-white/70 mb-1">Last Updated</label>
                                 <p class="text-white text-sm">{{ formatDate(contract.updated_at) }}</p>
                             </div>
+                            <div v-if="contract.product">
+                                <label class="block text-sm font-medium text-white/70 mb-1">Produit associé</label>
+                                <p class="text-primary-400 font-medium flex items-center gap-2">
+                                    <i class="fas fa-box text-xs"></i>
+                                    {{ contract.product.name }}
+                                    <span class="text-xs text-white/40 font-normal">
+                                        ({{ (contract.sub_products ?? []).length }} sous-produit(s))
+                                    </span>
+                                </p>
+                            </div>
+                            <div v-else>
+                                <label class="block text-sm font-medium text-white/70 mb-1">Produit associé</label>
+                                <p class="text-white/30 text-sm italic">Aucun produit lié</p>
+                            </div>
                         </div>
                     </AxontisCard>
 
                     <!-- Installations liées -->
                     <AxontisCard title="Linked Installations" :subtitle="`${contract.installations.length} installations`">
+
+                        <!-- Warning: no product linked -->
+                        <div v-if="!contract.product" class="flex items-center gap-2 mb-4 p-3 rounded-lg bg-warning-500/10 border border-warning-500/20 text-warning-400 text-sm">
+                            <i class="fas fa-exclamation-triangle flex-shrink-0"></i>
+                            <span>Aucun produit lié à ce contrat — l'assignation des devices ne sera pas possible.</span>
+                        </div>
+
                         <div v-if="contract.installations.length > 0" class="flex flex-col gap-3">
                             <div
                                 v-for="installation in contract.installations"
@@ -80,10 +101,16 @@
                                         <i class="fas fa-tools text-warning-400 mr-2"></i>
                                         {{ installation.address || 'Installation' }}
                                     </p>
-                                    <p class="text-sm text-gray-400 mt-1">
+                                    <p class="text-sm text-gray-400 mt-1 flex items-center gap-2">
                                         {{ formatInstallationType(installation.type) }}
-                                        <span v-if="installation.scheduled_date" class="ml-2 text-white/50">
+                                        <span v-if="installation.scheduled_date" class="text-white/50">
                                             · {{ installation.scheduled_date }}
+                                        </span>
+                                        <span
+                                            v-if="contract.product"
+                                            class="px-1.5 py-0.5 rounded text-xs bg-primary-500/15 text-primary-400"
+                                        >
+                                            {{ (contract.sub_products ?? []).length }} équip.
                                         </span>
                                     </p>
                                 </div>
@@ -238,9 +265,30 @@
         :show="showAssignmentPanel"
         :installation="selectedInstallation"
         :sub-products="contract.sub_products ?? []"
+        :product="contract.product ?? null"
         @close="closeAssignmentPanel"
         @assigned="closeAssignmentPanel"
     />
+
+    <!-- No product warning toast -->
+    <Teleport to="body">
+        <Transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 translate-y-4"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition-all duration-200 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-4"
+        >
+            <div
+                v-if="noProductWarning"
+                class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-xl bg-warning-500/20 border border-warning-500/30 text-warning-300 shadow-xl"
+            >
+                <i class="fas fa-exclamation-triangle flex-shrink-0"></i>
+                <p class="text-sm font-medium">Aucun sous-produit disponible — liez un produit à ce contrat d'abord.</p>
+            </div>
+        </Transition>
+    </Teleport>
 </template>
 
 <script setup>
@@ -257,8 +305,14 @@ const props = defineProps({
 // ── Right menu state ───────────────────────────────────────────────────────
 const showAssignmentPanel = ref(false)
 const selectedInstallation = ref(null)
+const noProductWarning = ref(false)
 
 const openAssignmentPanel = (installation) => {
+    if (!props.contract.product || !(props.contract.sub_products ?? []).length) {
+        noProductWarning.value = true
+        setTimeout(() => { noProductWarning.value = false }, 4000)
+        return
+    }
     selectedInstallation.value = installation
     showAssignmentPanel.value = true
 }

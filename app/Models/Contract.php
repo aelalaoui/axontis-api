@@ -94,6 +94,7 @@ class Contract extends Model
 
     protected $fillable = [
         'client_uuid',
+        'product_uuid',
         'start_date',
         'due_date',
         'termination_date',
@@ -131,10 +132,9 @@ class Contract extends Model
         return $this->hasMany(Installation::class, 'contract_uuid', 'uuid');
     }
 
-    public function product(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->hasOne(Product::class, 'contract_uuid', 'uuid')
-                    ->whereNull('id_parent');
+        return $this->belongsTo(Product::class, 'product_uuid', 'id');
     }
 
     public function payments(): HasMany
