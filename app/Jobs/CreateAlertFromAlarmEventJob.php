@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Events\AlarmReceivedEvent;
 use App\Models\AlarmEvent;
 use App\Models\Alert;
+use App\Models\InstallationDevice;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -45,16 +46,20 @@ class CreateAlertFromAlarmEventJob implements ShouldQueue
         ]);
 
         try {
-            $device = $this->alarmEvent->device;
+            /** @var InstallationDevice|null $installationDevice */
+            $installationDevice = $this->alarmEvent->installationDevice;
             $installation = $this->alarmEvent->installation;
 
-            if (!$device || !$installation) {
-                Log::error('CreateAlertFromAlarmEventJob: device or installation not found', [
+            if (!$installationDevice || !$installation) {
+                Log::error('CreateAlertFromAlarmEventJob: installationDevice or installation not found', [
                     'event_uuid' => $this->alarmEvent->uuid,
                 ]);
-                $this->fail(new \RuntimeException('Device or Installation not found'));
+                $this->fail(new \RuntimeException('InstallationDevice or Installation not found'));
                 return;
             }
+
+            // Device catalogue (brand/model uniquement)
+            $device = $installationDevice->device;
 
             // 1. Créer l'Alert (utilise le modèle existant)
             $clientUuid = $installation->client_uuid;
@@ -65,7 +70,7 @@ class CreateAlertFromAlarmEventJob implements ShouldQueue
                 ?? $cidMapping[$this->alarmEvent->standard_cid_code]
                 ?? null;
 
-            $description = $this->buildAlertDescription($cidInfo);
+            $description = $this->buildAlertDescription($cidInfo, $installationDevice, $device);
 
             $alert = Alert::create([
                 'client_uuid' => $clientUuid,
@@ -84,7 +89,7 @@ class CreateAlertFromAlarmEventJob implements ShouldQueue
 
             // 3. Broadcast via Reverb
             try {
-                broadcast(new AlarmReceivedEvent($alert, $device, $this->alarmEvent));
+                broadcast(new AlarmReceivedEvent($alert, $installationDevice, $this->alarmEvent));
             } catch (\Exception $e) {
                 // Ne pas échouer le job pour un broadcast raté
                 Log::warning('CreateAlertFromAlarmEventJob: broadcast failed', [
@@ -107,19 +112,19 @@ class CreateAlertFromAlarmEventJob implements ShouldQueue
         }
     }
 
-    private function buildAlertDescription(?array $cidInfo): string
+    private function buildAlertDescription(?array $cidInfo, InstallationDevice $installationDevice, $device): string
     {
-        $device = $this->alarmEvent->device;
         $parts = [];
 
         $parts[] = $cidInfo['description'] ?? 'Alarme détectée';
 
         if ($device) {
             $parts[] = "Centrale: {$device->brand} {$device->model}";
-            $serialNumber = $device->getPanelSerialNumber();
-            if ($serialNumber) {
-                $parts[] = "SN: {$serialNumber}";
-            }
+        }
+
+        $serialNumber = $installationDevice->getPanelSerialNumber();
+        if ($serialNumber) {
+            $parts[] = "SN: {$serialNumber}";
         }
 
         if ($this->alarmEvent->zone_number !== null) {
@@ -136,11 +141,9 @@ class CreateAlertFromAlarmEventJob implements ShouldQueue
     {
         return [
             'alarm-alert',
-            'device:' . $this->alarmEvent->device_uuid,
+            'installation_device:' . $this->alarmEvent->installation_device_uuid,
             'installation:' . $this->alarmEvent->installation_uuid,
         ];
     }
 }
-
-
 

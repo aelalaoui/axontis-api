@@ -212,36 +212,38 @@ Route::middleware([
                 ->name('installations.show');
 
             // ─── Alarm — Centrales d'alarme Hikvision AX PRO ────────
-            Route::prefix('alarm')->name('alarm.')->group(function () {
-                // Dashboard temps réel
-                Route::get('/dashboard', [\App\Http\Controllers\ClientAlarmDashboardController::class, 'index'])
-                    ->name('dashboard');
+            Route::prefix('installations/{installationUuid}')->name('installations.')->group(function () {
+                Route::prefix('alarm')->name('alarm.')->group(function () {
+                    // Dashboard temps réel
+                    Route::get('/dashboard', [\App\Http\Controllers\ClientAlarmDashboardController::class, 'index'])
+                        ->name('dashboard');
 
-                // Détail d'une centrale
-                Route::get('/devices/{uuid}', [\App\Http\Controllers\ClientAlarmDeviceController::class, 'show'])
-                    ->name('devices.show');
+                    // Historique & Export
+                    Route::get('/history', [\App\Http\Controllers\ClientAlarmHistoryController::class, 'index'])
+                        ->name('history');
+                    Route::get('/history/export', [\App\Http\Controllers\ClientAlarmHistoryController::class, 'export'])
+                        ->name('history.export');
 
-                // Arm / Disarm
-                Route::post('/devices/{uuid}/arm', [\App\Http\Controllers\ClientAlarmDeviceController::class, 'arm'])
-                    ->name('devices.arm');
-                Route::post('/devices/{uuid}/disarm', [\App\Http\Controllers\ClientAlarmDeviceController::class, 'disarm'])
-                    ->name('devices.disarm');
+                    // Détail, Arm/Disarm et gestion utilisateurs panel par InstallationDevice
+                    Route::prefix('devices/{uuid}')->name('devices.')->group(function () {
+                        Route::get('/', [\App\Http\Controllers\ClientAlarmDeviceController::class, 'show'])
+                            ->name('show');
+                        Route::post('/arm', [\App\Http\Controllers\ClientAlarmDeviceController::class, 'arm'])
+                            ->name('arm');
+                        Route::post('/disarm', [\App\Http\Controllers\ClientAlarmDeviceController::class, 'disarm'])
+                            ->name('disarm');
 
-                // Historique & Export
-                Route::get('/history', [\App\Http\Controllers\ClientAlarmHistoryController::class, 'index'])
-                    ->name('history');
-                Route::get('/history/export', [\App\Http\Controllers\ClientAlarmHistoryController::class, 'export'])
-                    ->name('history.export');
-
-                // Gestion utilisateurs panel (administrator uniquement)
-                Route::get('/devices/{uuid}/panel-users', [\App\Http\Controllers\ClientAlarmPanelUserController::class, 'index'])
-                    ->name('panel-users.index');
-                Route::post('/devices/{uuid}/panel-users', [\App\Http\Controllers\ClientAlarmPanelUserController::class, 'store'])
-                    ->name('panel-users.store');
-                Route::put('/devices/{uuid}/panel-users/{userId}', [\App\Http\Controllers\ClientAlarmPanelUserController::class, 'update'])
-                    ->name('panel-users.update');
-                Route::delete('/devices/{uuid}/panel-users/{userId}', [\App\Http\Controllers\ClientAlarmPanelUserController::class, 'destroy'])
-                    ->name('panel-users.destroy');
+                        // Gestion utilisateurs panel (administrator uniquement)
+                        Route::get('/panel-users', [\App\Http\Controllers\ClientAlarmPanelUserController::class, 'index'])
+                            ->name('panel-users.index');
+                        Route::post('/panel-users', [\App\Http\Controllers\ClientAlarmPanelUserController::class, 'store'])
+                            ->name('panel-users.store');
+                        Route::put('/panel-users/{userId}', [\App\Http\Controllers\ClientAlarmPanelUserController::class, 'update'])
+                            ->name('panel-users.update');
+                        Route::delete('/panel-users/{userId}', [\App\Http\Controllers\ClientAlarmPanelUserController::class, 'destroy'])
+                            ->name('panel-users.destroy');
+                    });
+                });
             });
         });
 

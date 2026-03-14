@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Device;
+use App\Models\InstallationDevice;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -36,14 +36,14 @@ class HikPartnerProService
     /**
      * Armer la centrale.
      *
-     * @param Device $device
+     * @param InstallationDevice $installationDevice
      * @param string $mode 'away' | 'stay' | 'instant'
      * @throws \Exception
      */
-    public function arm(Device $device, string $mode): array
+    public function arm(InstallationDevice $installationDevice, string $mode): array
     {
-        $hppDeviceId = $device->getHppDeviceId();
-        $siteId = $device->getProperty('hpp_site_id');
+        $hppDeviceId = $installationDevice->getHppDeviceId();
+        $siteId = $installationDevice->getProperty('hpp_site_id');
 
         $modeMap = [
             'away' => 'AWAY_ARM',
@@ -61,10 +61,10 @@ class HikPartnerProService
     /**
      * Désarmer la centrale.
      */
-    public function disarm(Device $device): array
+    public function disarm(InstallationDevice $installationDevice): array
     {
-        $hppDeviceId = $device->getHppDeviceId();
-        $siteId = $device->getProperty('hpp_site_id');
+        $hppDeviceId = $installationDevice->getHppDeviceId();
+        $siteId = $installationDevice->getProperty('hpp_site_id');
 
         $response = $this->post("/api/v1/estate/{$siteId}/devices/{$hppDeviceId}/disarm", []);
 
@@ -76,10 +76,10 @@ class HikPartnerProService
     /**
      * Récupérer le statut du device (zones, arm_status, connectivity).
      */
-    public function getDeviceStatus(Device $device): array
+    public function getDeviceStatus(InstallationDevice $installationDevice): array
     {
-        $hppDeviceId = $device->getHppDeviceId();
-        $siteId = $device->getProperty('hpp_site_id');
+        $hppDeviceId = $installationDevice->getHppDeviceId();
+        $siteId = $installationDevice->getProperty('hpp_site_id');
 
         $response = $this->get("/api/v1/estate/{$siteId}/devices/{$hppDeviceId}/status");
 
@@ -91,10 +91,10 @@ class HikPartnerProService
     /**
      * Liste les utilisateurs du panel.
      */
-    public function listPanelUsers(Device $device): array
+    public function listPanelUsers(InstallationDevice $installationDevice): array
     {
-        $hppDeviceId = $device->getHppDeviceId();
-        $siteId = $device->getProperty('hpp_site_id');
+        $hppDeviceId = $installationDevice->getHppDeviceId();
+        $siteId = $installationDevice->getProperty('hpp_site_id');
 
         $response = $this->get("/api/v1/estate/{$siteId}/devices/{$hppDeviceId}/users");
 
@@ -104,10 +104,10 @@ class HikPartnerProService
     /**
      * Créer un utilisateur sur le panel.
      */
-    public function createPanelUser(Device $device, array $data): array
+    public function createPanelUser(InstallationDevice $installationDevice, array $data): array
     {
-        $hppDeviceId = $device->getHppDeviceId();
-        $siteId = $device->getProperty('hpp_site_id');
+        $hppDeviceId = $installationDevice->getHppDeviceId();
+        $siteId = $installationDevice->getProperty('hpp_site_id');
 
         $response = $this->post("/api/v1/estate/{$siteId}/devices/{$hppDeviceId}/users", $data);
 
@@ -117,10 +117,10 @@ class HikPartnerProService
     /**
      * Modifier un utilisateur du panel.
      */
-    public function updatePanelUser(Device $device, string $userId, array $data): array
+    public function updatePanelUser(InstallationDevice $installationDevice, string $userId, array $data): array
     {
-        $hppDeviceId = $device->getHppDeviceId();
-        $siteId = $device->getProperty('hpp_site_id');
+        $hppDeviceId = $installationDevice->getHppDeviceId();
+        $siteId = $installationDevice->getProperty('hpp_site_id');
 
         $response = $this->put("/api/v1/estate/{$siteId}/devices/{$hppDeviceId}/users/{$userId}", $data);
 
@@ -130,10 +130,10 @@ class HikPartnerProService
     /**
      * Supprimer un utilisateur du panel.
      */
-    public function deletePanelUser(Device $device, string $userId): void
+    public function deletePanelUser(InstallationDevice $installationDevice, string $userId): void
     {
-        $hppDeviceId = $device->getHppDeviceId();
-        $siteId = $device->getProperty('hpp_site_id');
+        $hppDeviceId = $installationDevice->getHppDeviceId();
+        $siteId = $installationDevice->getProperty('hpp_site_id');
 
         $this->delete("/api/v1/estate/{$siteId}/devices/{$hppDeviceId}/users/{$userId}");
     }

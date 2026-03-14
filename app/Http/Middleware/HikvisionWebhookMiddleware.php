@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Device;
+use App\Models\InstallationDevice;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -12,11 +12,11 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Middleware de sécurité pour les webhooks Hikvision AX PRO.
  *
- * 1. Lookup Device par panel_serial_number (property)
+ * 1. Lookup InstallationDevice par serial_number (champ natif)
  * 2. Vérification IP source contre webhook_ip_whitelist
  * 3. Vérification signature HMAC (X-Hikvision-Signature)
  * 4. Rate limiting Redis : 500 req/min par IP
- * 5. Déduplication Redis : fenêtre 60s par (device_uuid + cid_code)
+ * 5. Déduplication Redis : fenêtre 60s par (installation_device_uuid + cid_code)
  */
 class HikvisionWebhookMiddleware
 {
@@ -24,21 +24,21 @@ class HikvisionWebhookMiddleware
     {
         $serialNumber = $request->route('serial_number');
 
-        // 1. Lookup Device par panel_serial_number
-        $device = $this->resolveDevice($serialNumber);
+        // 1. Lookup InstallationDevice par serial_number
+        $installationDevice = $this->resolveInstallationDevice($serialNumber);
 
-        if (!$device) {
+        if (!$installationDevice) {
             // 404 silencieux — pas 401, pour éviter l'énumération
             Log::warning('Hikvision webhook: unknown serial', ['serial' => $serialNumber]);
             abort(404);
         }
 
-        // Stocker le device résolu pour le controller
-        $request->attributes->set('alarm_device', $device);
+        // Stocker l'InstallationDevice résolu pour le controller
+        $request->attributes->set('alarm_device', $installationDevice);
 
         // 2. Vérification IP source
         $sourceIp = $request->ip();
-        $whitelist = $device->getWebhookIpWhitelist();
+        $whitelist = $installationDevice->getWebhookIpWhitelist();
 
         if (!empty($whitelist) && !in_array($sourceIp, $whitelist)) {
             Log::warning('Hikvision webhook: IP not whitelisted', [
@@ -50,7 +50,7 @@ class HikvisionWebhookMiddleware
         }
 
         // 3. Vérification signature HMAC
-        $webhookSecret = $device->getWebhookSecret();
+        $webhookSecret = $installationDevice->getWebhookSecret();
         $signature = $request->header('X-Hikvision-Signature');
 
         if ($webhookSecret && $signature) {
@@ -80,17 +80,17 @@ class HikvisionWebhookMiddleware
 
         Cache::put($rateLimitKey, $currentCount + 1, 60);
 
-        // 5. Déduplication : fenêtre configurable par (device_uuid + cid_code)
+        // 5. Déduplication : fenêtre configurable par (installation_device_uuid + cid_code)
         $payload = $request->all();
         $cidCode = $payload['CIDEvent']['code'] ?? $payload['cid_code'] ?? null;
 
         if ($cidCode !== null) {
             $deduplicateWindow = config('hikvision.webhook.deduplicate_window', 60);
-            $dedupKey = "hikvision_dedup:{$device->uuid}:{$cidCode}";
+            $dedupKey = "hikvision_dedup:{$installationDevice->uuid}:{$cidCode}";
 
             if (Cache::has($dedupKey)) {
                 Log::debug('Hikvision webhook: deduplicated', [
-                    'device' => $device->uuid,
+                    'installation_device' => $installationDevice->uuid,
                     'cid_code' => $cidCode,
                 ]);
                 // Toujours répondre 202 pour éviter les retransmissions
@@ -104,15 +104,14 @@ class HikvisionWebhookMiddleware
     }
 
     /**
-     * Résout un Device depuis la property panel_serial_number.
+     * Résout un InstallationDevice depuis son serial_number (champ natif).
+     * Eager-load task.taskable (→ Installation) et device (→ catalogue) pour
+     * éviter des requêtes supplémentaires dans le controller.
      */
-    private function resolveDevice(string $serialNumber): ?Device
+    private function resolveInstallationDevice(string $serialNumber): ?InstallationDevice
     {
-        return Device::alarmPanels()
-            ->whereHas('properties', function ($query) use ($serialNumber) {
-                $query->where('property', 'panel_serial_number')
-                    ->where('value', $serialNumber);
-            })
+        return InstallationDevice::with(['task.taskable', 'device'])
+            ->where('serial_number', $serialNumber)
             ->first();
     }
 }

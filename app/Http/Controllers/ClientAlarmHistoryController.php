@@ -15,11 +15,9 @@ use Inertia\Response as InertiaResponse;
 class ClientAlarmHistoryController extends Controller
 {
     /**
-     * GET /client/alarm/history
-     *
-     * Historique avec filtres persistés en URL via Inertia.
+     * GET /client/installations/{installationUuid}/alarm/history
      */
-    public function index(Request $request): InertiaResponse
+    public function index(Request $request, string $installationUuid): InertiaResponse
     {
         $user = $request->user();
         $client = $user->client;
@@ -28,12 +26,12 @@ class ClientAlarmHistoryController extends Controller
             ->pluck('uuid');
 
         $query = AlarmEvent::whereIn('installation_uuid', $installationUuids)
-            ->with(['device:uuid,brand,model'])
+            ->with(['installationDevice.device:id,uuid,brand,model'])
             ->latest('triggered_at');
 
         // Filtres
-        if ($request->filled('device_uuid')) {
-            $query->where('device_uuid', $request->input('device_uuid'));
+        if ($request->filled('installation_device_uuid')) {
+            $query->where('installation_device_uuid', $request->input('installation_device_uuid'));
         }
 
         if ($request->filled('category')) {
@@ -67,25 +65,23 @@ class ClientAlarmHistoryController extends Controller
             'zone_name' => $event->zone_name,
             'triggered_at' => $event->triggered_at?->toIso8601String(),
             'has_alert' => $event->has_alert,
-            'device' => $event->device ? [
-                'uuid' => $event->device->uuid,
-                'brand' => $event->device->brand,
-                'model' => $event->device->model,
+            'device' => $event->installationDevice ? [
+                'uuid' => $event->installationDevice->uuid,
+                'brand' => $event->installationDevice->device?->brand,
+                'model' => $event->installationDevice->device?->model,
             ] : null,
         ]);
 
         return Inertia::render('Client/Alarm/History', [
             'events' => $events,
-            'filters' => $request->only(['device_uuid', 'category', 'severity', 'date_from', 'date_to']),
+            'filters' => $request->only(['installation_device_uuid', 'category', 'severity', 'date_from', 'date_to']),
         ]);
     }
 
     /**
-     * GET /client/alarm/history/export
-     *
-     * Export CSV synchrone si < 1000 lignes, sinon async via job + email.
+     * GET /client/installations/{installationUuid}/alarm/history/export
      */
-    public function export(Request $request): Response|\Illuminate\Http\RedirectResponse
+    public function export(Request $request, string $installationUuid): Response|\Illuminate\Http\RedirectResponse
     {
         $user = $request->user();
         $client = $user->client;
@@ -102,12 +98,12 @@ class ClientAlarmHistoryController extends Controller
             ->pluck('uuid');
 
         $query = AlarmEvent::whereIn('installation_uuid', $installationUuids)
-            ->with(['device:uuid,brand,model'])
+            ->with(['installationDevice.device:id,uuid,brand,model'])
             ->latest('triggered_at');
 
         // Appliquer les mêmes filtres que l'historique
-        if ($request->filled('device_uuid')) {
-            $query->where('device_uuid', $request->input('device_uuid'));
+        if ($request->filled('installation_device_uuid')) {
+            $query->where('installation_device_uuid', $request->input('installation_device_uuid'));
         }
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
@@ -144,8 +140,9 @@ class ClientAlarmHistoryController extends Controller
         $csv = "Date;Type;Catégorie;Sévérité;Zone;Centrale;Code CID\n";
 
         foreach ($events as $event) {
-            $deviceName = $event->device
-                ? "{$event->device->brand} {$event->device->model}"
+            $installationDevice = $event->installationDevice;
+            $deviceName = $installationDevice
+                ? "{$installationDevice->device?->brand} {$installationDevice->device?->model}"
                 : '';
 
             $csv .= implode(';', [

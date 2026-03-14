@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\AlarmEventSeverity;
 use App\Models\AlarmEvent;
+use App\Models\InstallationDevice;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -16,8 +17,8 @@ use Illuminate\Support\Facades\Log;
  *
  * Pipeline :
  * 1. Enrichissement CID (category, severity, zone_name)
- * 2. Si code arming → device.setProperty('arm_status', ...)
- * 3. Mise à jour device.setProperty('last_event_at', now())
+ * 2. Si code arming → installationDevice.setProperty('arm_status', ...)
+ * 3. Mise à jour installationDevice.setProperty('last_event_at', now())
  * 4. Si severity critical/high → Dispatch CreateAlertFromAlarmEventJob
  * 5. Mark processed = true
  */
@@ -47,14 +48,15 @@ class ProcessAlarmEventJob implements ShouldQueue
         ]);
 
         try {
-            $device = $this->alarmEvent->device;
+            /** @var InstallationDevice|null $installationDevice */
+            $installationDevice = $this->alarmEvent->installationDevice;
 
-            if (!$device) {
-                Log::error('ProcessAlarmEventJob: device not found', [
+            if (!$installationDevice) {
+                Log::error('ProcessAlarmEventJob: installation device not found', [
                     'event_uuid' => $this->alarmEvent->uuid,
-                    'device_uuid' => $this->alarmEvent->device_uuid,
+                    'installation_device_uuid' => $this->alarmEvent->installation_device_uuid,
                 ]);
-                $this->fail(new \RuntimeException('Device not found'));
+                $this->fail(new \RuntimeException('InstallationDevice not found'));
                 return;
             }
 
@@ -62,15 +64,15 @@ class ProcessAlarmEventJob implements ShouldQueue
             $this->enrichFromCid();
 
             // 2. Si code arming → mettre à jour arm_status
-            $this->handleArmingUpdate($device);
+            $this->handleArmingUpdate($installationDevice);
 
             // 3. Mettre à jour last_event_at
-            $device->setProperty('last_event_at', now()->toIso8601String(), 'date');
+            $installationDevice->setProperty('last_event_at', now()->toIso8601String(), 'date');
 
             // Update heartbeat si c'est un heartbeat
             if ($this->alarmEvent->event_type === 'heartbeat') {
-                $device->setProperty('last_heartbeat_at', now()->toIso8601String(), 'date');
-                $device->setProperty('connection_status', 'online');
+                $installationDevice->setProperty('last_heartbeat_at', now()->toIso8601String(), 'date');
+                $installationDevice->setProperty('connection_status', 'online');
             }
 
             // 4. Si severity critical/high → dispatch alert job
@@ -131,7 +133,7 @@ class ProcessAlarmEventJob implements ShouldQueue
     /**
      * Gère les mises à jour de statut d'armement.
      */
-    private function handleArmingUpdate($device): void
+    private function handleArmingUpdate(InstallationDevice $installationDevice): void
     {
         $cidMapping = config('hikvision.cid_mapping');
 
@@ -140,10 +142,10 @@ class ProcessAlarmEventJob implements ShouldQueue
             ?? null;
 
         if ($info && isset($info['arm_status'])) {
-            $device->setProperty('arm_status', $info['arm_status']);
+            $installationDevice->setProperty('arm_status', $info['arm_status']);
 
             Log::info('ProcessAlarmEventJob: arm_status updated', [
-                'device_uuid' => $device->uuid,
+                'installation_device_uuid' => $installationDevice->uuid,
                 'arm_status' => $info['arm_status'],
             ]);
         }
@@ -156,10 +158,8 @@ class ProcessAlarmEventJob implements ShouldQueue
     {
         return [
             'alarm-event',
-            'device:' . $this->alarmEvent->device_uuid,
+            'installation_device:' . $this->alarmEvent->installation_device_uuid,
             'installation:' . $this->alarmEvent->installation_uuid,
         ];
     }
 }
-
-

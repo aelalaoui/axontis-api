@@ -17,7 +17,8 @@ class AlarmEvent extends Model
     protected $table = 'alarm_events';
 
     protected $fillable = [
-        'device_uuid',
+        'installation_device_uuid',  // ← nouvelle FK (InstallationDevice)
+        'device_uuid',               // @deprecated — conservé le temps de la migration
         'installation_uuid',
         'cid_code',
         'standard_cid_code',
@@ -50,6 +51,17 @@ class AlarmEvent extends Model
 
     // ─── Relations ───────────────────────────────────────────
 
+    /**
+     * Unité installée (centrale d'alarme physique) ayant émis cet événement.
+     */
+    public function installationDevice(): BelongsTo
+    {
+        return $this->belongsTo(InstallationDevice::class, 'installation_device_uuid', 'uuid');
+    }
+
+    /**
+     * @deprecated Utiliser installationDevice() — device_uuid référence le catalogue, pas l'unité physique.
+     */
     public function device(): BelongsTo
     {
         return $this->belongsTo(Device::class, 'device_uuid', 'uuid');
@@ -84,7 +96,7 @@ class AlarmEvent extends Model
 
     public function scopeForDevice(Builder $query, string $uuid): Builder
     {
-        return $query->where('device_uuid', $uuid);
+        return $query->where('installation_device_uuid', $uuid);
     }
 
     public function scopeInPeriod(Builder $query, Carbon $from, Carbon $to): Builder

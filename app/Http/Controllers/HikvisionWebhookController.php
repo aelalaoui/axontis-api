@@ -4,14 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ProcessAlarmEventJob;
 use App\Models\AlarmEvent;
-use App\Models\Device;
+use App\Models\Installation;
+use App\Models\InstallationDevice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
  * Réception des webhooks depuis les centrales Hikvision AX PRO.
  *
- * Le Device est résolu par le middleware HikvisionWebhookMiddleware
+ * L'InstallationDevice est résolu par le middleware HikvisionWebhookMiddleware
  * et injecté dans $request->attributes.
  */
 class HikvisionWebhookController extends Controller
@@ -24,8 +25,13 @@ class HikvisionWebhookController extends Controller
      */
     public function handle(Request $request, string $serial_number): JsonResponse
     {
-        /** @var Device $device */
-        $device = $request->attributes->get('alarm_device');
+        /** @var InstallationDevice $installationDevice */
+        $installationDevice = $request->attributes->get('alarm_device');
+
+        // Traversée polymorphique pour récupérer l'Installation
+        // La relation task.taskable est déjà eager-loadée par le middleware
+        $installation = $installationDevice->task?->taskable;
+        $installationUuid = ($installation instanceof Installation) ? $installation->uuid : null;
 
         $payload = $request->all();
         $eventType = $payload['eventType'] ?? 'unknown';
@@ -42,8 +48,8 @@ class HikvisionWebhookController extends Controller
 
         // INSERT brut en base — processed = false
         $alarmEvent = AlarmEvent::create([
-            'device_uuid' => $device->uuid,
-            'installation_uuid' => $device->installation_uuid,
+            'installation_device_uuid' => $installationDevice->uuid,
+            'installation_uuid' => $installationUuid,
             'cid_code' => $cidCode,
             'standard_cid_code' => $standardCidCode,
             'event_type' => $eventType,
@@ -64,6 +70,3 @@ class HikvisionWebhookController extends Controller
         return response()->json(['status' => 'accepted'], 202);
     }
 }
-
-
-

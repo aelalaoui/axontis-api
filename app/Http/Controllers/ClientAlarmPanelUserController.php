@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Device;
 use App\Models\Installation;
+use App\Models\InstallationDevice;
 use App\Services\HikPartnerProService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,30 +21,30 @@ class ClientAlarmPanelUserController extends Controller
     ) {}
 
     /**
-     * GET /client/alarm/devices/{uuid}/panel-users
+     * GET /client/installations/{installationUuid}/alarm/devices/{installationDeviceUuid}/panel-users
      */
-    public function index(Request $request, string $uuid): InertiaResponse
+    public function index(Request $request, string $installationUuid, string $uuid): InertiaResponse
     {
-        $device = $this->resolveClientDevice($request, $uuid);
+        $installationDevice = $this->resolveClientInstallationDevice($request, $installationUuid, $uuid);
 
-        $users = $this->hpp->listPanelUsers($device);
+        $users = $this->hpp->listPanelUsers($installationDevice);
 
         return Inertia::render('Client/Alarm/PanelUsers', [
             'device' => [
-                'uuid' => $device->uuid,
-                'brand' => $device->brand,
-                'model' => $device->model,
-                'serial_number' => $device->getPanelSerialNumber(),
+                'uuid' => $installationDevice->uuid,
+                'brand' => $installationDevice->device?->brand,
+                'model' => $installationDevice->device?->model,
+                'serial_number' => $installationDevice->getPanelSerialNumber(),
             ],
             'panelUsers' => $users,
-            'maxUsers' => 14, // Limite hardware DS-PWA64-L-WB (hors installateur et admin)
+            'maxUsers' => 14,
         ]);
     }
 
     /**
-     * POST /client/alarm/devices/{uuid}/panel-users
+     * POST /client/installations/{installationUuid}/alarm/devices/{installationDeviceUuid}/panel-users
      */
-    public function store(Request $request, string $uuid): \Illuminate\Http\RedirectResponse
+    public function store(Request $request, string $installationUuid, string $uuid): \Illuminate\Http\RedirectResponse
     {
         $this->authorizeAdministrator($request);
 
@@ -54,10 +54,9 @@ class ClientAlarmPanelUserController extends Controller
             'type' => 'sometimes|string|in:normal,admin',
         ]);
 
-        $device = $this->resolveClientDevice($request, $uuid);
+        $installationDevice = $this->resolveClientInstallationDevice($request, $installationUuid, $uuid);
 
-        // Vérifier la limite de 14 utilisateurs normaux
-        $existingUsers = $this->hpp->listPanelUsers($device);
+        $existingUsers = $this->hpp->listPanelUsers($installationDevice);
         $normalUsers = collect($existingUsers)->where('type', '!=', 'installer')->where('type', '!=', 'admin');
 
         if ($normalUsers->count() >= 14 && ($request->input('type', 'normal') === 'normal')) {
@@ -67,10 +66,8 @@ class ClientAlarmPanelUserController extends Controller
         }
 
         try {
-            $this->hpp->createPanelUser($device, $request->only(['name', 'code', 'type']));
-
-            // Mettre à jour le compteur
-            $device->setProperty('panel_user_count', count($existingUsers) + 1, 'integer');
+            $this->hpp->createPanelUser($installationDevice, $request->only(['name', 'code', 'type']));
+            $installationDevice->setProperty('panel_user_count', count($existingUsers) + 1, 'integer');
 
             return back()->with('success', 'Utilisateur créé sur la centrale.');
         } catch (\Exception $e) {
@@ -81,9 +78,9 @@ class ClientAlarmPanelUserController extends Controller
     }
 
     /**
-     * PUT /client/alarm/devices/{uuid}/panel-users/{userId}
+     * PUT /client/installations/{installationUuid}/alarm/devices/{installationDeviceUuid}/panel-users/{userId}
      */
-    public function update(Request $request, string $uuid, string $userId): \Illuminate\Http\RedirectResponse
+    public function update(Request $request, string $installationUuid, string $uuid, string $userId): \Illuminate\Http\RedirectResponse
     {
         $this->authorizeAdministrator($request);
 
@@ -92,10 +89,10 @@ class ClientAlarmPanelUserController extends Controller
             'code' => 'sometimes|string|min:4|max:6',
         ]);
 
-        $device = $this->resolveClientDevice($request, $uuid);
+        $installationDevice = $this->resolveClientInstallationDevice($request, $installationUuid, $uuid);
 
         try {
-            $this->hpp->updatePanelUser($device, $userId, $request->only(['name', 'code']));
+            $this->hpp->updatePanelUser($installationDevice, $userId, $request->only(['name', 'code']));
             return back()->with('success', 'Utilisateur modifié.');
         } catch (\Exception $e) {
             return back()->withErrors([
@@ -105,19 +102,19 @@ class ClientAlarmPanelUserController extends Controller
     }
 
     /**
-     * DELETE /client/alarm/devices/{uuid}/panel-users/{userId}
+     * DELETE /client/installations/{installationUuid}/alarm/devices/{installationDeviceUuid}/panel-users/{userId}
      */
-    public function destroy(Request $request, string $uuid, string $userId): \Illuminate\Http\RedirectResponse
+    public function destroy(Request $request, string $installationUuid, string $uuid, string $userId): \Illuminate\Http\RedirectResponse
     {
         $this->authorizeAdministrator($request);
 
-        $device = $this->resolveClientDevice($request, $uuid);
+        $installationDevice = $this->resolveClientInstallationDevice($request, $installationUuid, $uuid);
 
         try {
-            $this->hpp->deletePanelUser($device, $userId);
+            $this->hpp->deletePanelUser($installationDevice, $userId);
 
-            $existingUsers = $this->hpp->listPanelUsers($device);
-            $device->setProperty('panel_user_count', count($existingUsers), 'integer');
+            $existingUsers = $this->hpp->listPanelUsers($installationDevice);
+            $installationDevice->setProperty('panel_user_count', count($existingUsers), 'integer');
 
             return back()->with('success', 'Utilisateur supprimé de la centrale.');
         } catch (\Exception $e) {
@@ -129,25 +126,28 @@ class ClientAlarmPanelUserController extends Controller
 
     // ─── Helpers ─────────────────────────────────────────────
 
-    private function resolveClientDevice(Request $request, string $uuid): Device
+    private function resolveClientInstallationDevice(Request $request, string $installationUuid, string $uuid): InstallationDevice
     {
         $user = $request->user();
         $client = $user->client;
 
-        $installationUuids = Installation::where('client_uuid', $client->uuid)
-            ->pluck('uuid');
+        $installation = Installation::where('uuid', $installationUuid)
+            ->where('client_uuid', $client->uuid)
+            ->firstOrFail();
 
-        return Device::alarmPanels()
+        return InstallationDevice::alarmPanels()
             ->where('uuid', $uuid)
-            ->whereIn('installation_uuid', $installationUuids)
+            ->whereHas('task', function ($q) use ($installation) {
+                $q->where('taskable_id', $installation->id)
+                  ->where('taskable_type', Installation::class);
+            })
+            ->with(['device', 'task.taskable'])
             ->firstOrFail();
     }
 
     private function authorizeAdministrator(Request $request): void
     {
-        $user = $request->user();
-
-        if ($user->role !== \App\Enums\UserRole::ADMINISTRATOR->value) {
+        if ($request->user()->role !== \App\Enums\UserRole::ADMINISTRATOR->value) {
             abort(403, 'Seul un administrateur peut gérer les utilisateurs du panel.');
         }
     }

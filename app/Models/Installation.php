@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\InstallationType;
 use App\Traits\HasUuid;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Installation extends Model
@@ -41,6 +43,17 @@ class Installation extends Model
         return $this->belongsTo(Contract::class, 'contract_uuid', 'uuid');
     }
 
+    /**
+     * Toutes les tâches rattachées à cette installation (relation polymorphique).
+     */
+    public function tasks(): MorphMany
+    {
+        return $this->morphMany(Task::class, 'taskable');
+    }
+
+    /**
+     * @deprecated Ancrée sur Device.installation_uuid (champ dénormalisé). Préférer la traversée via tasks().
+     */
     public function devices()
     {
         return $this->hasMany(Device::class, 'installation_uuid', 'uuid');
@@ -48,11 +61,25 @@ class Installation extends Model
 
     /**
      * Centrales d'alarme de cette installation.
+     * @deprecated Utiliser alarmPanelInstallationDevices() — ancrée sur Device.installation_uuid (dénormalisé)
      */
     public function alarmPanels()
     {
         return $this->hasMany(Device::class, 'installation_uuid', 'uuid')
             ->where('category', 'alarm_panel');
+    }
+
+    /**
+     * Centrales d'alarme via la chaîne correcte Installation → Task → InstallationDevice.
+     */
+    public function alarmPanelInstallationDevices(): Collection
+    {
+        return $this->tasks()
+            ->with('installationDevices.device')
+            ->get()
+            ->flatMap(fn (Task $task) => $task->installationDevices)
+            ->filter(fn (InstallationDevice $id) => $id->device?->category === 'alarm_panel')
+            ->values();
     }
 
     /**

@@ -4,7 +4,7 @@ namespace App\Events;
 
 use App\Models\AlarmEvent;
 use App\Models\Alert;
-use App\Models\Device;
+use App\Models\InstallationDevice;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -20,12 +20,12 @@ class AlarmReceivedEvent implements ShouldBroadcast
 
     public function __construct(
         public Alert $alert,
-        public Device $device,
+        public InstallationDevice $installationDevice,
         public AlarmEvent $alarmEvent
     ) {}
 
     /**
-     * Canal privé scopé par installation.
+     * Canal privé scopé par installation — inchangé.
      */
     public function broadcastOn(): array
     {
@@ -50,10 +50,10 @@ class AlarmReceivedEvent implements ShouldBroadcast
                 'triggered_at' => $this->alert->triggered_at?->toIso8601String(),
             ],
             'device' => [
-                'uuid' => $this->device->uuid,
-                'brand' => $this->device->brand,
-                'model' => $this->device->model,
-                'serial_number' => $this->device->getPanelSerialNumber(),
+                'uuid' => $this->installationDevice->uuid,                           // uuid de l'unité installée
+                'brand' => $this->installationDevice->device?->brand,
+                'model' => $this->installationDevice->device?->model,
+                'serial_number' => $this->installationDevice->getPanelSerialNumber(),
             ],
             'event' => [
                 'uuid' => $this->alarmEvent->uuid,
@@ -66,4 +66,3 @@ class AlarmReceivedEvent implements ShouldBroadcast
         ];
     }
 }
-

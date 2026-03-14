@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Jobs\CommandRetryJob;
 use App\Models\AlarmEvent;
 use App\Models\Client;
-use App\Models\Device;
 use App\Models\Installation;
+use App\Models\InstallationDevice;
 use App\Services\HikPartnerProService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,15 +23,13 @@ class ClientAlarmDeviceController extends Controller
     ) {}
 
     /**
-     * GET /client/alarm/devices/{uuid}
-     *
-     * Détail d'une centrale avec son statut.
+     * GET /client/installations/{installationUuid}/alarm/devices/{installationDeviceUuid}
      */
-    public function show(Request $request, string $uuid): InertiaResponse
+    public function show(Request $request, string $installationUuid, string $uuid): InertiaResponse
     {
-        $device = $this->resolveClientDevice($request, $uuid);
+        $installationDevice = $this->resolveClientInstallationDevice($request, $installationUuid, $uuid);
 
-        $recentEvents = AlarmEvent::where('device_uuid', $device->uuid)
+        $recentEvents = AlarmEvent::where('installation_device_uuid', $installationDevice->uuid)
             ->latest('triggered_at')
             ->take(20)
             ->get()
@@ -50,52 +48,47 @@ class ClientAlarmDeviceController extends Controller
 
         return Inertia::render('Client/Alarm/DeviceShow', [
             'device' => [
-                'uuid' => $device->uuid,
-                'brand' => $device->brand,
-                'model' => $device->model,
-                'description' => $device->description,
-                'installation_uuid' => $device->installation_uuid,
-                'arm_status' => $device->getArmStatus(),
-                'connection_status' => $device->getConnectionStatus(),
-                'serial_number' => $device->getPanelSerialNumber(),
-                'last_event_at' => $device->getProperty('last_event_at'),
-                'last_heartbeat_at' => $device->getProperty('last_heartbeat_at'),
-                'zone_count' => $device->getProperty('panel_zone_count', 0),
-                'user_count' => $device->getProperty('panel_user_count', 0),
+                'uuid' => $installationDevice->uuid,
+                'brand' => $installationDevice->device?->brand,
+                'model' => $installationDevice->device?->model,
+                'description' => $installationDevice->device?->description,
+                'installation_uuid' => $installationDevice->installation_uuid,
+                'arm_status' => $installationDevice->getArmStatus(),
+                'connection_status' => $installationDevice->getConnectionStatus(),
+                'serial_number' => $installationDevice->getPanelSerialNumber(),
+                'last_event_at' => $installationDevice->getProperty('last_event_at'),
+                'last_heartbeat_at' => $installationDevice->getProperty('last_heartbeat_at'),
+                'zone_count' => $installationDevice->getProperty('panel_zone_count', 0),
+                'user_count' => $installationDevice->getProperty('panel_user_count', 0),
             ],
             'recentEvents' => $recentEvents,
         ]);
     }
 
     /**
-     * POST /client/alarm/devices/{uuid}/arm
-     *
-     * Armer la centrale.
+     * POST /client/installations/{installationUuid}/alarm/devices/{installationDeviceUuid}/arm
      */
-    public function arm(Request $request, string $uuid): JsonResponse|\Illuminate\Http\RedirectResponse
+    public function arm(Request $request, string $installationUuid, string $uuid): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $request->validate([
             'mode' => 'required|in:away,stay,instant',
             'force' => 'sometimes|boolean',
         ]);
 
-        $device = $this->resolveClientDevice($request, $uuid);
+        $installationDevice = $this->resolveClientInstallationDevice($request, $installationUuid, $uuid);
 
-        // Vérifier que l'utilisateur a le droit d'armer
         $user = $request->user();
         $this->authorizeArmAction($user, $request->boolean('force'));
 
-        // Vérifier que le device est en ligne
-        if ($device->getConnectionStatus() === 'offline') {
+        if ($installationDevice->getConnectionStatus() === 'offline') {
             return back()->withErrors([
                 'device' => 'La centrale est hors ligne. Impossible d\'envoyer la commande.',
             ]);
         }
 
         try {
-            // Vérifier les zones ouvertes si pas de force
             if (!$request->boolean('force')) {
-                $status = $this->hpp->getDeviceStatus($device);
+                $status = $this->hpp->getDeviceStatus($installationDevice);
                 $openZones = $status['openZones'] ?? [];
 
                 if (!empty($openZones)) {
@@ -107,13 +100,11 @@ class ClientAlarmDeviceController extends Controller
                 }
             }
 
-            // Envoyer la commande d'armement
-            $this->hpp->arm($device, $request->input('mode'));
+            $this->hpp->arm($installationDevice, $request->input('mode'));
 
-            // Créer un événement de commande
             AlarmEvent::create([
-                'device_uuid' => $device->uuid,
-                'installation_uuid' => $device->installation_uuid,
+                'installation_device_uuid' => $installationDevice->uuid,
+                'installation_uuid' => $installationUuid,
                 'event_type' => 'pwa_command',
                 'category' => 'arming',
                 'severity' => 'info',
@@ -133,8 +124,7 @@ class ClientAlarmDeviceController extends Controller
             return back()->with('success', 'Commande d\'armement envoyée. En attente de confirmation...');
 
         } catch (\Exception $e) {
-            // HPP indisponible → dispatch retry job
-            CommandRetryJob::dispatch($device, 'arm', ['mode' => $request->input('mode')])
+            CommandRetryJob::dispatch($installationDevice, 'arm', ['mode' => $request->input('mode')])
                 ->onQueue(config('hikvision.events.queue', 'alarm-events'));
 
             return back()->with('warning', 'La commande a été mise en file d\'attente et sera réessayée automatiquement.');
@@ -142,29 +132,27 @@ class ClientAlarmDeviceController extends Controller
     }
 
     /**
-     * POST /client/alarm/devices/{uuid}/disarm
-     *
-     * Désarmer la centrale.
+     * POST /client/installations/{installationUuid}/alarm/devices/{installationDeviceUuid}/disarm
      */
-    public function disarm(Request $request, string $uuid): JsonResponse|\Illuminate\Http\RedirectResponse
+    public function disarm(Request $request, string $installationUuid, string $uuid): JsonResponse|\Illuminate\Http\RedirectResponse
     {
-        $device = $this->resolveClientDevice($request, $uuid);
+        $installationDevice = $this->resolveClientInstallationDevice($request, $installationUuid, $uuid);
 
         $user = $request->user();
         $this->authorizeArmAction($user, false);
 
-        if ($device->getConnectionStatus() === 'offline') {
+        if ($installationDevice->getConnectionStatus() === 'offline') {
             return back()->withErrors([
                 'device' => 'La centrale est hors ligne. Impossible d\'envoyer la commande.',
             ]);
         }
 
         try {
-            $this->hpp->disarm($device);
+            $this->hpp->disarm($installationDevice);
 
             AlarmEvent::create([
-                'device_uuid' => $device->uuid,
-                'installation_uuid' => $device->installation_uuid,
+                'installation_device_uuid' => $installationDevice->uuid,
+                'installation_uuid' => $installationUuid,
                 'event_type' => 'pwa_command',
                 'category' => 'arming',
                 'severity' => 'info',
@@ -182,7 +170,7 @@ class ClientAlarmDeviceController extends Controller
             return back()->with('success', 'Commande de désarmement envoyée. En attente de confirmation...');
 
         } catch (\Exception $e) {
-            CommandRetryJob::dispatch($device, 'disarm')
+            CommandRetryJob::dispatch($installationDevice, 'disarm')
                 ->onQueue(config('hikvision.events.queue', 'alarm-events'));
 
             return back()->with('warning', 'La commande a été mise en file d\'attente et sera réessayée automatiquement.');
@@ -192,29 +180,31 @@ class ClientAlarmDeviceController extends Controller
     // ─── Helpers ─────────────────────────────────────────────
 
     /**
-     * Résout un device alarm_panel appartenant au client authentifié.
+     * Résout un InstallationDevice alarm_panel appartenant à l'installation du client authentifié.
+     * L'installationUuid dans l'URL fournit une autorisation de première ligne.
      */
-    private function resolveClientDevice(Request $request, string $uuid): Device
+    private function resolveClientInstallationDevice(Request $request, string $installationUuid, string $uuid): InstallationDevice
     {
         $user = $request->user();
         $client = Client::where('email', $user->email)->firstOrFail();
 
-        $installationUuids = Installation::where('client_uuid', $client->uuid)
-            ->pluck('uuid');
-
-        $device = Device::alarmPanels()
-            ->where('uuid', $uuid)
-            ->whereIn('installation_uuid', $installationUuids)
+        // Vérifier que l'installation appartient bien au client
+        $installation = Installation::where('uuid', $installationUuid)
+            ->where('client_uuid', $client->uuid)
             ->firstOrFail();
 
-        return $device;
+        return InstallationDevice::alarmPanels()
+            ->where('uuid', $uuid)
+            ->whereHas('task', function ($q) use ($installation) {
+                $q->where('taskable_id', $installation->id)
+                  ->where('taskable_type', Installation::class);
+            })
+            ->with(['device', 'task.taskable'])
+            ->firstOrFail();
     }
 
     /**
      * Vérifie que l'utilisateur a le droit d'armer/désarmer.
-     *
-     * Rôles autorisés : administrator, manager, operator
-     * Force : administrator uniquement
      */
     private function authorizeArmAction($user, bool $force = false): void
     {
@@ -233,7 +223,3 @@ class ClientAlarmDeviceController extends Controller
         }
     }
 }
-
-
-
-

@@ -2,7 +2,7 @@
 
 namespace App\Events;
 
-use App\Models\Device;
+use App\Models\InstallationDevice;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -17,7 +17,7 @@ class DeviceArmStateChanged implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public Device $device,
+        public InstallationDevice $installationDevice,
         public string $newStatus,
         public string $installationUuid
     ) {}
@@ -37,11 +37,10 @@ class DeviceArmStateChanged implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'device_uuid' => $this->device->uuid,
+            'device_uuid' => $this->installationDevice->uuid,   // uuid de l'unité installée
             'arm_status' => $this->newStatus,
-            'brand' => $this->device->brand,
-            'model' => $this->device->model,
+            'brand' => $this->installationDevice->device?->brand,
+            'model' => $this->installationDevice->device?->model,
         ];
     }
 }
-
