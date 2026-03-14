@@ -11,6 +11,13 @@ enum DeviceCategory: string
     case ACCESSORY = 'accessory';
     case ALARM_PANEL = 'alarm_panel';
     case SENSOR = 'sensor';
+    case MOTION_SENSOR = 'motion_sensor';
+    case MAGNETIC_SENSOR = 'magnetic_sensor';
+    case SMOCK_SENSOR = 'smock_sensor';
+    case FLOOD_SENSOR = 'flood_sensor';
+    case SIRENE = 'sirene';
+    case KEYPAD = 'keypad';
+    case BRIS_GLASS = 'bris_glass';
     case OTHER = 'other';
 
     /**
