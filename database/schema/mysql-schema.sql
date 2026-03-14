@@ -230,10 +230,8 @@ CREATE TABLE `devices` (
   `min_stock_level` int NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `installation_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `devices_uuid_unique` (`uuid`),
-  KEY `devices_installation_uuid_foreign` (`installation_uuid`)
+  UNIQUE KEY `devices_uuid_unique` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `failed_jobs`;
@@ -733,3 +731,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (99,'2026_03_14_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (100,'2026_03_14_000004_make_uuid_primary_key_on_installation_devices',25);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (101,'2026_03_14_000005_migrate_tasks_taskable_id_to_uuid',25);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (102,'2026_03_14_000006_make_uuid_primary_key_on_alarm_events',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (103,'2026_03_14_221725_drop_installation_uuid_from_devices_table',26);
