@@ -6,7 +6,6 @@ use App\Enums\ClientStatus;
 use App\Enums\ClientStep;
 use App\Models\Client;
 use App\Models\Product;
-use Exception;
 
 class ClientService
 {
@@ -145,9 +144,9 @@ class ClientService
         // Get all sub-products
         $subProducts = $this->getSubProducts($parentProduct);
 
-        // Initialize totals
-        $totalSubscriptionAmount = 0;
-        $totalMonthlyAmount = 0;
+        // Initialize totals in cents (integers) to avoid floating-point errors
+        $totalSubscriptionAmountCents = 0;
+        $totalMonthlyAmountCents = 0;
         $matchedProducts = [];
 
         // For each sub-product, check if client has the corresponding property
@@ -158,8 +157,8 @@ class ClientService
 
                 // If client has this property and it matches the product's default value
                 if ($clientPropertyValue !== null && $clientPropertyValue == $subProduct->default_value) {
-                    $totalSubscriptionAmount += $subProduct->caution_price ?? 0;
-                    $totalMonthlyAmount += $subProduct->subscription_price ?? 0;
+                    $totalSubscriptionAmountCents += $subProduct->caution_price_cents ?? 0;
+                    $totalMonthlyAmountCents += $subProduct->subscription_price_cents ?? 0;
 
                     // Load files from the associated device
                     $files = $subProduct->device->files->map(function ($file) {
@@ -178,6 +177,9 @@ class ClientService
                         'property_name' => $subProduct->property_name,
                         'client_property_value' => $clientPropertyValue,
                         'product_default_value' => $subProduct->default_value,
+                        'caution_price_cents' => $subProduct->caution_price_cents ?? 0,
+                        'subscription_price_cents' => $subProduct->subscription_price_cents ?? 0,
+                        // Convenience accessors (human-readable)
                         'caution_price' => $subProduct->caution_price ?? 0,
                         'subscription_price' => $subProduct->subscription_price ?? 0,
                         'files' => $files->toArray()
@@ -187,10 +189,14 @@ class ClientService
         }
 
         // Store offer data in client properties for later use (contract generation)
+        // We store cents values so no precision is lost
         $client->setProperty('offer_parent_property', $parentProduct->property_name);
         $client->setProperty('offer_parent_value', $parentProduct->default_value);
-        $client->setProperty('offer_monthly_amount', $totalMonthlyAmount);
-        $client->setProperty('offer_subscription_amount', $totalSubscriptionAmount);
+        $client->setProperty('offer_monthly_amount_cents', $totalMonthlyAmountCents);
+        $client->setProperty('offer_subscription_amount_cents', $totalSubscriptionAmountCents);
+        // Keep legacy keys for backwards compatibility
+        $client->setProperty('offer_monthly_amount', $totalMonthlyAmountCents / 100);
+        $client->setProperty('offer_subscription_amount', $totalSubscriptionAmountCents / 100);
         $client->setProperty('offer_currency', 'MAD');
 
         return [
@@ -211,9 +217,12 @@ class ClientService
                 })
             ],
             'pricing' => [
-                'monthly_amount' => $totalMonthlyAmount,
-                'subscription_amount' => $totalSubscriptionAmount,
-                'currency' => 'MAD' // TODO Assuming MAD, adjust as needed
+                'monthly_amount_cents' => $totalMonthlyAmountCents,
+                'subscription_amount_cents' => $totalSubscriptionAmountCents,
+                // Convenience values in MAD
+                'monthly_amount' => $totalMonthlyAmountCents / 100,
+                'subscription_amount' => $totalSubscriptionAmountCents / 100,
+                'currency' => 'MAD'
             ],
             'matched_products' => $matchedProducts,
             'matched_products_count' => count($matchedProducts),
@@ -296,6 +305,9 @@ class ClientService
         return [
             'parent_property' => $parentProperty,
             'parent_value' => $parentValue,
+            'monthly_amount_cents' => (int) $client->getProperty('offer_monthly_amount_cents', 0),
+            'subscription_amount_cents' => (int) $client->getProperty('offer_subscription_amount_cents', 0),
+            // Convenience accessors in MAD
             'monthly_amount' => (float) $client->getProperty('offer_monthly_amount', 0),
             'subscription_amount' => (float) $client->getProperty('offer_subscription_amount', 0),
             'currency' => $client->getProperty('offer_currency', 'MAD'),

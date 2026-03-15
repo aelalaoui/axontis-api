@@ -18,20 +18,49 @@ class Product extends Model
         'name',
         'property_name',
         'default_value',
-        'caution_price',
-        'subscription_price',
+        'caution_price_cents',
+        'subscription_price_cents',
         'device_uuid',
     ];
 
     protected $casts = [
-        'caution_price' => 'float',
-        'subscription_price' => 'float',
+        'caution_price_cents' => 'integer',
+        'subscription_price_cents' => 'integer',
+    ];
+
+    /**
+     * Append computed attributes for convenience.
+     */
+    protected $appends = [
+        'caution_price',
+        'subscription_price',
     ];
 
     public $incrementing = false;
     protected $keyType = 'string';
 
+    // -----------------------------------------------
+    // Accessors: expose prices in MAD (divide by 100)
+    // -----------------------------------------------
+
+    public function getCautionPriceAttribute(): ?float
+    {
+        return $this->caution_price_cents !== null
+            ? $this->caution_price_cents / 100
+            : null;
+    }
+
+    public function getSubscriptionPriceAttribute(): ?float
+    {
+        return $this->subscription_price_cents !== null
+            ? $this->subscription_price_cents / 100
+            : null;
+    }
+
+    // -----------------------------------------------
     // Relationships
+    // -----------------------------------------------
+
     public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class, 'product_uuid', 'id');

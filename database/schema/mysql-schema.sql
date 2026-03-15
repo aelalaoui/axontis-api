@@ -468,8 +468,8 @@ CREATE TABLE `products` (
   `name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `property_name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `default_value` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `caution_price` double(8,2) DEFAULT NULL,
-  `subscription_price` double(8,2) DEFAULT NULL,
+  `caution_price_cents` bigint unsigned DEFAULT NULL,
+  `subscription_price_cents` bigint unsigned DEFAULT NULL,
   `device_uuid` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -732,3 +732,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (100,'2026_03_14_00
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (101,'2026_03_14_000005_migrate_tasks_taskable_id_to_uuid',25);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (102,'2026_03_14_000006_make_uuid_primary_key_on_alarm_events',25);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (103,'2026_03_14_221725_drop_installation_uuid_from_devices_table',26);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (104,'2026_03_15_134726_change_caution_subscription_price_to_integer_in_products_table',27);

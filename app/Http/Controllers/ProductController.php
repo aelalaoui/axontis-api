@@ -115,26 +115,34 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'property_name' => 'nullable|string|max:255',
             'default_value' => 'nullable|string|max:255',
-            'caution_price' => 'nullable|numeric',
-            'subscription_price' => 'nullable|numeric',
+            'caution_price' => 'nullable|numeric|min:0',
+            'subscription_price' => 'nullable|numeric|min:0',
             'documents' => 'nullable|array',
             'documents.*' => FileService::getFileValidationRules(),
             'sub_products' => 'array',
             'sub_products.*.name' => 'required|string|max:255',
             'sub_products.*.property_name' => 'nullable|string|max:255',
             'sub_products.*.default_value' => 'nullable|string|max:255',
-            'sub_products.*.caution_price' => 'nullable|numeric',
-            'sub_products.*.subscription_price' => 'nullable|numeric',
+            'sub_products.*.caution_price' => 'nullable|numeric|min:0',
+            'sub_products.*.subscription_price' => 'nullable|numeric|min:0',
             'sub_products.*.device_uuid' => 'nullable|exists:devices,uuid',
         ]);
+
+        // Convert prices to cents (integer) to avoid floating-point errors
+        $cautionPriceCents = $validated['caution_price'] !== null
+            ? (int) round($validated['caution_price'] * 100)
+            : null;
+        $subscriptionPriceCents = $validated['subscription_price'] !== null
+            ? (int) round($validated['subscription_price'] * 100)
+            : null;
 
         // Create parent product
         $product = Product::create([
             'name' => $validated['name'],
             'property_name' => $validated['property_name'],
             'default_value' => $validated['default_value'],
-            'caution_price' => $validated['caution_price'],
-            'subscription_price' => $validated['subscription_price'],
+            'caution_price_cents' => $cautionPriceCents,
+            'subscription_price_cents' => $subscriptionPriceCents,
             'device_uuid' => null, // Parent products don't have devices directly
         ]);
 
@@ -146,13 +154,21 @@ class ProductController extends Controller
         // Create sub-products
         if (!empty($validated['sub_products'])) {
             foreach ($validated['sub_products'] as $subProductData) {
+                $subCautionCents = $subProductData['caution_price'] !== null && $subProductData['caution_price'] !== ''
+                    ? (int) round($subProductData['caution_price'] * 100)
+                    : $cautionPriceCents;
+
+                $subSubscriptionCents = $subProductData['subscription_price'] !== null && $subProductData['subscription_price'] !== ''
+                    ? (int) round($subProductData['subscription_price'] * 100)
+                    : $subscriptionPriceCents;
+
                 Product::create([
                     'id_parent' => $product->id,
                     'name' => $subProductData['name'],
                     'property_name' => $subProductData['property_name'] ?? null,
                     'default_value' => $subProductData['default_value'] ?? null,
-                    'caution_price' => $subProductData['caution_price'] ?: $validated['caution_price'],
-                    'subscription_price' => $subProductData['subscription_price'] ?: $validated['subscription_price'],
+                    'caution_price_cents' => $subCautionCents,
+                    'subscription_price_cents' => $subSubscriptionCents,
                     'device_uuid' => $subProductData['device_uuid'] ?? null,
                 ]);
             }
@@ -213,8 +229,8 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'property_name' => 'nullable|string|max:255',
             'default_value' => 'nullable|string|max:255',
-            'caution_price' => 'nullable|numeric',
-            'subscription_price' => 'nullable|numeric',
+            'caution_price' => 'nullable|numeric|min:0',
+            'subscription_price' => 'nullable|numeric|min:0',
             'documents' => 'nullable|array',
             'documents.*' => FileService::getFileValidationRules(),
             'documents_to_delete' => 'nullable|array',
@@ -224,18 +240,26 @@ class ProductController extends Controller
             'sub_products.*.name' => 'required|string|max:255',
             'sub_products.*.property_name' => 'nullable|string|max:255',
             'sub_products.*.default_value' => 'nullable|string|max:255',
-            'sub_products.*.caution_price' => 'nullable|numeric',
-            'sub_products.*.subscription_price' => 'nullable|numeric',
+            'sub_products.*.caution_price' => 'nullable|numeric|min:0',
+            'sub_products.*.subscription_price' => 'nullable|numeric|min:0',
             'sub_products.*.device_uuid' => 'nullable|exists:devices,uuid',
         ]);
+
+        // Convert prices to cents (integer) to avoid floating-point errors
+        $cautionPriceCents = $validated['caution_price'] !== null
+            ? (int) round($validated['caution_price'] * 100)
+            : null;
+        $subscriptionPriceCents = $validated['subscription_price'] !== null
+            ? (int) round($validated['subscription_price'] * 100)
+            : null;
 
         // Update parent product
         $product->update([
             'name' => $validated['name'],
             'property_name' => $validated['property_name'],
             'default_value' => $validated['default_value'],
-            'caution_price' => $validated['caution_price'],
-            'subscription_price' => $validated['subscription_price'],
+            'caution_price_cents' => $cautionPriceCents,
+            'subscription_price_cents' => $subscriptionPriceCents,
         ]);
 
         // Handle document deletion using FileService
@@ -271,14 +295,22 @@ class ProductController extends Controller
 
         // Update or create sub-products
         foreach ($validated['sub_products'] ?? [] as $subProductData) {
+            $subCautionCents = $subProductData['caution_price'] !== null && $subProductData['caution_price'] !== ''
+                ? (int) round($subProductData['caution_price'] * 100)
+                : $cautionPriceCents;
+
+            $subSubscriptionCents = $subProductData['subscription_price'] !== null && $subProductData['subscription_price'] !== ''
+                ? (int) round($subProductData['subscription_price'] * 100)
+                : $subscriptionPriceCents;
+
             if (!empty($subProductData['id'])) {
                 // Update existing sub-product
                 Product::where('id', $subProductData['id'])->update([
                     'name' => $subProductData['name'],
                     'property_name' => $subProductData['property_name'] ?? null,
                     'default_value' => $subProductData['default_value'] ?? null,
-                    'caution_price' => $subProductData['caution_price'] ?: $validated['caution_price'],
-                    'subscription_price' => $subProductData['subscription_price'] ?: $validated['subscription_price'],
+                    'caution_price_cents' => $subCautionCents,
+                    'subscription_price_cents' => $subSubscriptionCents,
                     'device_uuid' => $subProductData['device_uuid'] ?? null,
                 ]);
             } else {
@@ -288,8 +320,8 @@ class ProductController extends Controller
                     'name' => $subProductData['name'],
                     'property_name' => $subProductData['property_name'] ?? null,
                     'default_value' => $subProductData['default_value'] ?? null,
-                    'caution_price' => $subProductData['caution_price'] ?: $validated['caution_price'],
-                    'subscription_price' => $subProductData['subscription_price'] ?: $validated['subscription_price'],
+                    'caution_price_cents' => $subCautionCents,
+                    'subscription_price_cents' => $subSubscriptionCents,
                     'device_uuid' => $subProductData['device_uuid'] ?? null,
                 ]);
             }
