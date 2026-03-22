@@ -90,6 +90,14 @@ class DeviceSeeder extends Seeder
                     'description' => 'Détecteur de fuite d\'eau sans fil',
                     'min_stock_level' => 5,
                 ],
+                [
+                    'brand' => 'Hikvision',
+                    'model' => 'DS-PR1-WE(B)',
+                    'stock_qty' => 0,
+                    'category' => DeviceCategory::REPETER->value,
+                    'description' => 'Répéteur sans fil Plus',
+                    'min_stock_level' => 5,
+                ],
             ];
 
             foreach ($devices as $deviceData) {

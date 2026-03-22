@@ -18,6 +18,7 @@ enum DeviceCategory: string
     case SIRENE = 'sirene';
     case KEYPAD = 'keypad';
     case BRIS_GLASS = 'bris_glass';
+    case REPETER = 'repeter';
     case OTHER = 'other';
 
     /**
