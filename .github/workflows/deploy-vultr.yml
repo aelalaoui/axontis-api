@@ -579,7 +579,7 @@ jobs:
           # ============================================
           echo ""
           echo "🗄️ Exécution des migrations..."
-          php artisan migrate
+          php artisan migrate --force --no-interaction
           echo "✅ Migrations exécutées"
 
           # ============================================
