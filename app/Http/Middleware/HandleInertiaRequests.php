@@ -38,6 +38,16 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+
+            // Flash messages – available as $page.props.flash in every Vue component
+            'flash' => [
+                'success'                    => fn () => $request->session()->get('success'),
+                'error'                      => fn () => $request->session()->get('error'),
+                'message'                    => fn () => $request->session()->get('message'),
+                'installation_choice_success' => fn () => $request->session()->get('installation_choice_success'),
+                'installation_mode'          => fn () => $request->session()->get('installation_mode'),
+            ],
+
             'auth' => [
                 'user' => $request->user() ? [
                     'id' => $request->user()->id,

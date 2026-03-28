@@ -463,15 +463,16 @@ class ClientController extends Controller
 
         return Inertia::render('Client/Home', [
             'client' => [
-                'uuid' => $client->uuid,
-                'full_name' => $client->full_name,
-                'email' => $client->email,
-                'phone' => $client->phone,
-                'address' => $client->address,
-                'city' => $client->city,
-                'country' => $client->country,
-                'status' => $client->status->value,
-                'step' => $client->step->value,
+                'uuid'              => $client->uuid,
+                'full_name'         => $client->full_name,
+                'email'             => $client->email,
+                'phone'             => $client->phone,
+                'address'           => $client->address,
+                'city'              => $client->city,
+                'country'           => $client->country,
+                'status'            => $client->status->value,
+                'step'              => $client->step->value,
+                'installation_mode' => $client->getProperty('installation_mode'), // null | 'technician' | 'self'
             ],
             'contracts' => $client->contracts->map(function ($contract) {
                 $installation = $contract->installations()

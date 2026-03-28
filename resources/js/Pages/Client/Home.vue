@@ -17,7 +17,14 @@ const props = defineProps({
 
 const page = usePage();
 const installationChoiceSuccess = computed(() => page.props.flash?.installation_choice_success ?? null);
-const installationMode          = computed(() => page.props.flash?.installation_mode ?? null);
+
+// Flash mode (just after redirect) OR persisted mode from client prop
+const installationMode = computed(() =>
+    page.props.flash?.installation_mode ?? props.client.installation_mode ?? null
+);
+
+// True if the client has already gone through the installation choice onboarding
+const hasChosenInstallationMode = computed(() => !!props.client.installation_mode);
 
 /**
  * Check if a scheduled date is in the past
@@ -80,8 +87,9 @@ const hasScheduledContracts = computed(() => {
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
 
-            <!-- ✅ Installation choice confirmation banner (flash, shown once) -->
-            <div v-if="installationChoiceSuccess"
+            <!-- ✅ Installation choice confirmation banner -->
+            <!-- Show right after redirect (flash) OR permanently when mode is already chosen -->
+            <div v-if="installationChoiceSuccess || hasChosenInstallationMode"
                  class="mb-8 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-2xl p-6 border border-green-500/30">
                 <div class="flex items-start gap-4">
                     <div class="w-12 h-12 bg-green-500/30 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
@@ -94,9 +102,22 @@ const hasScheduledContracts = computed(() => {
                     </div>
                     <div class="flex-1">
                         <h2 class="text-lg font-bold text-green-100 mb-1">
-                            {{ installationMode === 'technician' ? '🔧 Installation par technicien confirmée' : '📦 Livraison confirmée' }}
+                            <template v-if="installationMode === 'technician'">
+                                🔧 Installation par technicien confirmée
+                            </template>
+                            <template v-else>
+                                📦 Livraison à domicile confirmée
+                            </template>
                         </h2>
-                        <p class="text-green-100/80">{{ installationChoiceSuccess }}</p>
+                        <p class="text-green-100/80">
+                            <template v-if="installationChoiceSuccess">{{ installationChoiceSuccess }}</template>
+                            <template v-else-if="installationMode === 'technician'">
+                                Un technicien Axontis vous contactera sous 48h pour confirmer la date d'intervention.
+                            </template>
+                            <template v-else>
+                                Votre matériel sera livré à l'adresse indiquée. Un guide d'installation sera inclus dans votre colis.
+                            </template>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -148,8 +169,8 @@ const hasScheduledContracts = computed(() => {
                 </div>
             </div>
 
-            <!-- Pending Installation Alert -->
-            <div v-if="hasPendingContracts" class="mb-8 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-2xl p-6 border border-amber-500/30 animate-pulse">
+            <!-- Pending Installation Alert — hidden once the client has chosen their installation mode -->
+            <div v-if="hasPendingContracts && !hasChosenInstallationMode" class="mb-8 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-2xl p-6 border border-amber-500/30 animate-pulse">
                 <div class="flex items-start gap-4">
                     <div class="w-12 h-12 bg-amber-500/30 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-300">
