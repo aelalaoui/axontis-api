@@ -174,10 +174,10 @@ class TaskController extends Controller
     public function assignTechnician(Request $request, string $uuid)
     {
         $request->validate([
-            'technician_id'  => 'required|exists:users,id',
-            'scheduled_date' => 'nullable|date',
-            'devices'        => 'required|array|min:1',
-            'devices.*.device_id'     => 'required|exists:devices,id',
+            'technician_id'           => 'required|exists:users,id',
+            'scheduled_date'          => 'nullable|date',
+            'devices'                 => 'nullable|array',
+            'devices.*.device_id'     => 'nullable|exists:devices,id',
             'devices.*.serial_number' => 'nullable|string|max:191',
             'devices.*.status'        => 'nullable|in:assigned,installed,returned,maintenance,replaced',
             'devices.*.notes'         => 'nullable|string',
@@ -195,8 +195,9 @@ class TaskController extends Controller
                     'status'         => 'scheduled',
                 ]);
 
-                // Attacher les devices
-                $this->attachDevices($task, $request->devices);
+                // Filtrer les devices sans device_id valide (ex: "Installation Technicien" sans device)
+                $validDevices = array_values(array_filter($request->devices ?? [], fn($d) => !empty($d['device_id']) && (int)$d['device_id'] > 0));
+                $this->attachDevices($task, $validDevices);
             });
 
             return redirect()
