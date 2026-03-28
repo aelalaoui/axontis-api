@@ -21,11 +21,12 @@ class ClientInstallationController extends Controller
 
         // Get all installations for this client with related data
         $installations = Installation::where('client_uuid', $client->uuid)
-            ->with(['devices', 'contract'])
+            ->with(['tasks.installationDevices.device', 'contract'])
             ->orderBy('scheduled_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($installation) {
+                $installationDevices = $installation->tasks->flatMap(fn ($task) => $task->installationDevices)->values();
                 return [
                     'uuid' => $installation->uuid,
                     'type' => $installation->type,
@@ -36,15 +37,16 @@ class ClientInstallationController extends Controller
                     'country' => $installation->country,
                     'scheduled_date' => $installation->scheduled_date?->format('Y-m-d'),
                     'scheduled_time' => $installation->scheduled_time?->format('H:i'),
-                    'devices' => $installation->devices->map(function ($device) {
+                    'devices' => $installationDevices->map(function ($installationDevice) {
+                        $device = $installationDevice->device;
                         return [
-                            'id' => $device->id,
-                            'uuid' => $device->uuid ?? null,
-                            'name' => $device->name ?? null,
-                            'type' => $device->type ?? 'device',
-                            'model' => $device->model ?? null,
-                            'serial_number' => $device->serial_number ?? null,
-                            'location' => $device->location ?? null,
+                            'uuid' => $installationDevice->uuid ?? null,
+                            'name' => $device?->name ?? null,
+                            'type' => $device?->category ?? 'device',
+                            'model' => $device?->model ?? null,
+                            'brand' => $device?->brand ?? null,
+                            'serial_number' => $installationDevice->serial_number ?? null,
+                            'status' => $installationDevice->status ?? null,
                         ];
                     }),
                     'contract' => $installation->contract ? [
@@ -80,8 +82,10 @@ class ClientInstallationController extends Controller
         // Get the installation and verify it belongs to this client
         $installation = Installation::where('uuid', $uuid)
             ->where('client_uuid', $client->uuid)
-            ->with(['devices', 'contract'])
+            ->with(['tasks.installationDevices.device', 'contract'])
             ->firstOrFail();
+
+        $installationDevices = $installation->tasks->flatMap(fn ($task) => $task->installationDevices)->values();
 
         return Inertia::render('Client/Installations/[uuid]', [
             'client' => [
@@ -101,15 +105,16 @@ class ClientInstallationController extends Controller
                 'country' => $installation->country,
                 'scheduled_date' => $installation->scheduled_date?->format('Y-m-d'),
                 'scheduled_time' => $installation->scheduled_time?->format('H:i'),
-                'devices' => $installation->devices->map(function ($device) {
+                'devices' => $installationDevices->map(function ($installationDevice) {
+                    $device = $installationDevice->device;
                     return [
-                        'id' => $device->id,
-                        'uuid' => $device->uuid ?? null,
-                        'name' => $device->name ?? null,
-                        'type' => $device->type ?? 'device',
-                        'model' => $device->model ?? null,
-                        'serial_number' => $device->serial_number ?? null,
-                        'location' => $device->location ?? null,
+                        'uuid' => $installationDevice->uuid ?? null,
+                        'name' => $device?->name ?? null,
+                        'type' => $device?->category ?? 'device',
+                        'model' => $device?->model ?? null,
+                        'brand' => $device?->brand ?? null,
+                        'serial_number' => $installationDevice->serial_number ?? null,
+                        'status' => $installationDevice->status ?? null,
                     ];
                 }),
                 'contract' => $installation->contract ? [

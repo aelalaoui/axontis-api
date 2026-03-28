@@ -12,7 +12,7 @@ class InstallationService
 {
     public function getAllInstallations()
     {
-        return Installation::with(['client', 'contract', 'devices'])->get();
+        return Installation::with(['client', 'contract', 'tasks.installationDevices.device'])->get();
     }
 
     public function createInstallation(array $data)
@@ -30,7 +30,7 @@ class InstallationService
 
     public function findInstallationByUuid(string $uuid)
     {
-        return Installation::with(['client', 'contract', 'devices'])->where('uuid', $uuid)->first();
+        return Installation::with(['client', 'contract', 'tasks.installationDevices.device'])->where('uuid', $uuid)->first();
     }
 
     public function updateInstallation(Installation $installation, array $data)
