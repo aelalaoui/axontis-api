@@ -178,12 +178,14 @@
                     subtitle="Renseignez les équipements, le technicien et la date d'intervention"
                 >
                     <!-- Groupes de sous-produits -->
-                    <div v-if="deviceGroups.length > 0" class="mb-6 space-y-5">
+                    <div v-if="deviceGroups.length > 0" class="mb-6 space-y-4">
                         <p class="text-xs text-white/40 uppercase tracking-wider">Équipements à assigner</p>
 
-                        <div v-for="group in deviceGroups" :key="group.key" class="rounded-xl border border-white/10 bg-dark-800/20 overflow-hidden">
+                        <div v-for="(group, gIdx) in deviceGroups" :key="group.key"
+                             class="rounded-xl border border-white/10 bg-dark-800/20 overflow-visible">
+
                             <!-- En-tête du groupe -->
-                            <div class="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-dark-800/30">
+                            <div class="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-dark-800/30 rounded-t-xl">
                                 <i class="fas fa-microchip text-primary-400 flex-shrink-0"></i>
                                 <div class="flex-1 min-w-0">
                                     <span class="font-medium text-white text-sm">{{ group.name }}</span>
@@ -194,26 +196,25 @@
                                         </span>
                                     </span>
                                 </div>
-                                <!-- Badge quantité si > 1 -->
                                 <span v-if="group.quantity > 1"
                                       class="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 text-xs font-semibold border border-primary-500/30">
                                     × {{ group.quantity }}
                                 </span>
                             </div>
 
-                            <!-- "Installation Technicien" → autocomplete technicien + date, PAS de SN -->
-                            <div v-if="group.isTechnicianFee" class="px-4 py-4">
+                            <!-- "Installation Technicien" → autocomplete technicien + date+heure -->
+                            <div v-if="group.isTechnicianFee" class="px-4 py-4 overflow-visible">
                                 <p class="text-xs text-white/40 mb-3">
                                     <i class="fas fa-info-circle mr-1"></i>
                                     Ce sous-produit correspond aux frais d'installation technicien.
                                 </p>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-visible">
+                                    <!-- Autocomplete technicien -->
                                     <div>
                                         <label class="block text-xs text-white/50 mb-1.5">
                                             Technicien assigné <span class="text-error-400">*</span>
                                         </label>
-                                        <!-- Autocomplete technicien -->
-                                        <div class="relative">
+                                        <div class="relative" style="z-index: 50;">
                                             <input
                                                 v-model="technicianSearch"
                                                 type="text"
@@ -224,38 +225,43 @@
                                                 @blur="hideTechnicianDropdown"
                                                 autocomplete="off"
                                             />
-                                            <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-white/30 text-xs"></i>
-                                            <!-- Dropdown résultats -->
+                                            <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-white/30 text-xs pointer-events-none"></i>
                                             <div v-if="showTechnicianDropdown && filteredStaff.length > 0"
-                                                 class="absolute z-20 top-full left-0 right-0 mt-1 rounded-xl border border-white/10 bg-dark-900 shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                                                 class="absolute top-full left-0 right-0 mt-1 rounded-xl border border-white/10 bg-dark-900 shadow-2xl overflow-hidden max-h-52 overflow-y-auto"
+                                                 style="z-index: 9999; position: absolute;">
                                                 <button
-                                                    v-for="s in filteredStaff"
-                                                    :key="s.id"
+                                                    v-for="s in filteredStaff" :key="s.id"
                                                     type="button"
                                                     class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-primary-500/10 transition-colors border-b border-white/5 last:border-0"
                                                     @mousedown.prevent="selectTechnician(s)"
                                                 >
-                                                    <div class="w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0 text-xs font-bold text-primary-400">
+                                                    <span class="w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0 text-xs font-bold text-primary-400">
                                                         {{ s.name.charAt(0) }}
-                                                    </div>
-                                                    <div>
-                                                        <p class="text-sm text-white font-medium">{{ s.name }}</p>
-                                                        <p class="text-xs text-white/40">{{ roleLabel(s.role) }}</p>
-                                                    </div>
+                                                    </span>
+                                                    <span class="flex flex-col">
+                                                        <span class="text-sm text-white font-medium">{{ s.name }}</span>
+                                                        <span class="text-xs text-white/40">{{ roleLabel(s.role) }}</span>
+                                                    </span>
                                                     <i v-if="techForm.technician_id === s.id" class="fas fa-check ml-auto text-primary-400 flex-shrink-0"></i>
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label class="block text-xs text-white/50 mb-1.5">Date d'intervention</label>
-                                        <input
-                                            v-model="techForm.scheduled_date"
-                                            type="date"
-                                            class="axontis-input w-full text-sm"
-                                        />
-                                        <p v-if="task.scheduled_date" class="text-xs text-info-400 mt-1">
-                                            <i class="fas fa-info-circle mr-1"></i>Date prévue par le client : {{ formatDate(task.scheduled_date) }}
+                                    <!-- Date + heure -->
+                                    <div class="flex flex-col gap-3">
+                                        <div>
+                                            <label class="block text-xs text-white/50 mb-1.5">Date d'intervention</label>
+                                            <input v-model="techForm.scheduled_date" type="date" class="axontis-input w-full text-sm" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-white/50 mb-1.5">Heure d'intervention</label>
+                                            <input v-model="techForm.scheduled_time" type="time" class="axontis-input w-full text-sm" />
+                                        </div>
+                                        <p v-if="task.scheduled_date" class="text-xs text-info-400">
+                                            <i class="fas fa-info-circle mr-1"></i>
+                                            Prévu par le client :
+                                            {{ formatDate(task.scheduled_date) }}
+                                            <span v-if="task.scheduled_time" class="ml-1">à {{ task.scheduled_time }}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -264,31 +270,27 @@
                             <!-- Devices normaux → N lignes de SN (une par quantité) -->
                             <div v-else class="divide-y divide-white/5">
                                 <div
-                                    v-for="(entry, entryIdx) in group.entries"
-                                    :key="entryIdx"
+                                    v-for="unitIdx in group.quantity" :key="unitIdx"
                                     class="flex items-center gap-3 px-4 py-3"
                                 >
-                                    <!-- Numéro de la ligne si > 1 -->
                                     <span v-if="group.quantity > 1"
-                                          class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/50 flex-shrink-0">
-                                        {{ entryIdx + 1 }}
+                                          class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/50 flex-shrink-0 font-medium">
+                                        {{ unitIdx }}
                                     </span>
                                     <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
                                             <label class="block text-xs text-white/50 mb-1">Numéro de série</label>
                                             <input
-                                                v-model="techForm.devices[entry.formIdx].serial_number"
-                                                type="text"
-                                                placeholder="SN-..."
+                                                v-model="techForm.devices[groupDeviceRanges[gIdx].start + unitIdx - 1].serial_number"
+                                                type="text" placeholder="SN-..."
                                                 class="axontis-input w-full text-sm"
                                             />
                                         </div>
                                         <div>
                                             <label class="block text-xs text-white/50 mb-1">Notes</label>
                                             <input
-                                                v-model="techForm.devices[entry.formIdx].notes"
-                                                type="text"
-                                                placeholder="Optionnel..."
+                                                v-model="techForm.devices[groupDeviceRanges[gIdx].start + unitIdx - 1].notes"
+                                                type="text" placeholder="Optionnel..."
                                                 class="axontis-input w-full text-sm"
                                             />
                                         </div>
@@ -299,50 +301,60 @@
                     </div>
 
                     <!-- Technicien + date (si pas dans un groupe "Installation Technicien") -->
-                    <div v-if="!hasTechnicianFeeProduct" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/10">
-                        <div>
-                            <label class="block text-sm font-medium text-white/70 mb-2">
-                                Technicien <span class="text-error-400">*</span>
-                            </label>
-                            <div class="relative">
-                                <input
-                                    v-model="technicianSearch"
-                                    type="text"
-                                    placeholder="Rechercher un technicien..."
-                                    class="axontis-input w-full pr-8"
-                                    @input="onTechnicianSearch"
-                                    @focus="showTechnicianDropdown = true"
-                                    @blur="hideTechnicianDropdown"
-                                    autocomplete="off"
-                                />
-                                <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-white/30 text-xs"></i>
-                                <div v-if="showTechnicianDropdown && filteredStaff.length > 0"
-                                     class="absolute z-20 top-full left-0 right-0 mt-1 rounded-xl border border-white/10 bg-dark-900 shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-                                    <button
-                                        v-for="s in filteredStaff"
-                                        :key="s.id"
-                                        type="button"
-                                        class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-primary-500/10 transition-colors border-b border-white/5 last:border-0"
-                                        @mousedown.prevent="selectTechnician(s)"
-                                    >
-                                        <div class="w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0 text-xs font-bold text-primary-400">
-                                            {{ s.name.charAt(0) }}
-                                        </div>
-                                        <div>
-                                            <p class="text-sm text-white font-medium">{{ s.name }}</p>
-                                            <p class="text-xs text-white/40">{{ roleLabel(s.role) }}</p>
-                                        </div>
-                                        <i v-if="techForm.technician_id === s.id" class="fas fa-check ml-auto text-primary-400 flex-shrink-0"></i>
-                                    </button>
+                    <div v-if="!hasTechnicianFeeProduct" class="space-y-4 pt-4 border-t border-white/10">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-white/70 mb-2">
+                                    Technicien <span class="text-error-400">*</span>
+                                </label>
+                                <div class="relative" style="z-index: 50;">
+                                    <input
+                                        v-model="technicianSearch"
+                                        type="text"
+                                        placeholder="Rechercher un technicien..."
+                                        class="axontis-input w-full pr-8"
+                                        @input="onTechnicianSearch"
+                                        @focus="showTechnicianDropdown = true"
+                                        @blur="hideTechnicianDropdown"
+                                        autocomplete="off"
+                                    />
+                                    <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-white/30 text-xs pointer-events-none"></i>
+                                    <div v-if="showTechnicianDropdown && filteredStaff.length > 0"
+                                         class="absolute top-full left-0 right-0 mt-1 rounded-xl border border-white/10 bg-dark-900 shadow-2xl overflow-hidden max-h-52 overflow-y-auto"
+                                         style="z-index: 9999; position: absolute;">
+                                        <button
+                                            v-for="s in filteredStaff" :key="s.id"
+                                            type="button"
+                                            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-primary-500/10 transition-colors border-b border-white/5 last:border-0"
+                                            @mousedown.prevent="selectTechnician(s)"
+                                        >
+                                            <span class="w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0 text-xs font-bold text-primary-400">
+                                                {{ s.name.charAt(0) }}
+                                            </span>
+                                            <span class="flex flex-col">
+                                                <span class="text-sm text-white font-medium">{{ s.name }}</span>
+                                                <span class="text-xs text-white/40">{{ roleLabel(s.role) }}</span>
+                                            </span>
+                                            <i v-if="techForm.technician_id === s.id" class="fas fa-check ml-auto text-primary-400 flex-shrink-0"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-white/70 mb-2">Date d'intervention</label>
-                            <input v-model="techForm.scheduled_date" type="date" class="axontis-input w-full" />
-                            <p v-if="task.scheduled_date" class="text-xs text-info-400 mt-1">
-                                <i class="fas fa-info-circle mr-1"></i>Date prévue par le client : {{ formatDate(task.scheduled_date) }}
-                            </p>
+                            <div class="flex flex-col gap-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-white/70 mb-2">Date d'intervention</label>
+                                    <input v-model="techForm.scheduled_date" type="date" class="axontis-input w-full" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-white/70 mb-2">Heure d'intervention</label>
+                                    <input v-model="techForm.scheduled_time" type="time" class="axontis-input w-full" />
+                                </div>
+                                <p v-if="task.scheduled_date" class="text-xs text-info-400">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Prévu par le client : {{ formatDate(task.scheduled_date) }}
+                                    <span v-if="task.scheduled_time" class="ml-1">à {{ task.scheduled_time }}</span>
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -362,9 +374,10 @@
                     subtitle="Renseignez les équipements et les informations d'envoi"
                 >
                     <!-- Groupes de sous-produits -->
-                    <div v-if="deviceGroups.length > 0" class="mb-6 space-y-5">
+                    <div v-if="deviceGroups.length > 0" class="mb-6 space-y-4">
                         <p class="text-xs text-white/40 uppercase tracking-wider">Équipements à expédier</p>
-                        <div v-for="group in deviceGroups" :key="group.key" class="rounded-xl border border-white/10 bg-dark-800/20 overflow-hidden">
+                        <div v-for="(group, gIdx) in deviceGroups" :key="group.key"
+                             class="rounded-xl border border-white/10 bg-dark-800/20 overflow-hidden">
                             <div class="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-dark-800/30">
                                 <i class="fas fa-box text-warning-400 flex-shrink-0"></i>
                                 <div class="flex-1 min-w-0">
@@ -382,19 +395,27 @@
                                 </span>
                             </div>
                             <div class="divide-y divide-white/5">
-                                <div v-for="(entry, entryIdx) in group.entries" :key="entryIdx" class="flex items-center gap-3 px-4 py-3">
+                                <div v-for="unitIdx in group.quantity" :key="unitIdx" class="flex items-center gap-3 px-4 py-3">
                                     <span v-if="group.quantity > 1"
-                                          class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/50 flex-shrink-0">
-                                        {{ entryIdx + 1 }}
+                                          class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/50 flex-shrink-0 font-medium">
+                                        {{ unitIdx }}
                                     </span>
                                     <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
                                             <label class="block text-xs text-white/50 mb-1">Numéro de série</label>
-                                            <input v-model="postalForm.devices[entry.formIdx].serial_number" type="text" placeholder="SN-..." class="axontis-input w-full text-sm" />
+                                            <input
+                                                v-model="postalForm.devices[groupDeviceRanges[gIdx].start + unitIdx - 1].serial_number"
+                                                type="text" placeholder="SN-..."
+                                                class="axontis-input w-full text-sm"
+                                            />
                                         </div>
                                         <div>
                                             <label class="block text-xs text-white/50 mb-1">Notes</label>
-                                            <input v-model="postalForm.devices[entry.formIdx].notes" type="text" placeholder="Optionnel..." class="axontis-input w-full text-sm" />
+                                            <input
+                                                v-model="postalForm.devices[groupDeviceRanges[gIdx].start + unitIdx - 1].notes"
+                                                type="text" placeholder="Optionnel..."
+                                                class="axontis-input w-full text-sm"
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -477,48 +498,56 @@ const props = defineProps({
 })
 
 // ── Groupes de sous-produits ──────────────────────────────────────────────────
-// On regroupe les sous-produits ayant le même nom (ex: 2× magnetic sensor → 1 groupe × 2)
-// "Installation Technicien" est identifié par property_name = 'installation_mode'
+// Chaque sous-produit backend représente UN type d'équipement.
+// Le champ `quantity` (= default_value numérique) indique combien d'unités physiques
+// il faut saisir (ex: auxiliaryEntries=2 → 2 lignes SN pour le même device).
+// On regroupe par property_name pour éviter les doublons (cas où 2 sub-products
+// auraient le même nom par hasard, ce qui ne devrait pas arriver, mais sécurité).
 const deviceGroups = computed(() => {
-    const grouped = new Map()
-    props.subProducts.forEach((sp, idx) => {
-        const key = sp.name  // regroupement par nom
-        if (!grouped.has(key)) {
-            grouped.set(key, {
-                key,
-                name:            sp.name,
-                device:          sp.device ?? null,
-                property_name:   sp.property_name,
-                default_value:   sp.default_value,
-                // "Installation Technicien" = sous-produit sans device et property_name = 'installation_mode'
-                isTechnicianFee: sp.property_name === 'installation_mode' && sp.default_value === 'technician',
-                quantity:        0,
-                entries:         [],
-            })
-        }
-        const g = grouped.get(key)
-        g.quantity++
-        g.entries.push({ formIdx: idx, sp })
-    })
-    return Array.from(grouped.values())
+    return props.subProducts.map((sp, idx) => ({
+        key:             String(sp.id ?? idx),
+        name:            sp.name,
+        device:          sp.device ?? null,
+        property_name:   sp.property_name,
+        default_value:   sp.default_value,
+        isTechnicianFee: sp.property_name === 'installation_mode' && sp.default_value === 'technician',
+        // quantity vient du backend ; fallback = 1
+        quantity:        (sp.quantity && Number.isInteger(sp.quantity) && sp.quantity > 0) ? sp.quantity : 1,
+        // formIdx de base : idx dans subProducts ; les lignes supplémentaires sont dans formExtras
+        baseIdx:         idx,
+    }))
 })
 
-// Y a-t-il un groupe "Installation Technicien" dans les sous-produits ?
 const hasTechnicianFeeProduct = computed(() => deviceGroups.value.some(g => g.isTechnicianFee))
 
 // ── Init formulaires ──────────────────────────────────────────────────────────
-const initDevices = () => props.subProducts.map(sp => ({
-    device_id:     sp.device?.id ?? null,
-    serial_number: '',
-    status:        'assigned',
-    notes:         '',
-    properties:    sp.property_name ? { [sp.property_name]: sp.default_value ?? '' } : {},
-}))
+// On "expand" chaque sous-produit selon sa quantité :
+// auxiliaryEntries(quantity=2) → 2 entrées dans devices[], chacune avec le même device_id
+const initDevices = () => {
+    const rows = []
+    props.subProducts.forEach(sp => {
+        const qty = (sp.quantity && sp.quantity > 0) ? sp.quantity : 1
+        for (let i = 0; i < qty; i++) {
+            rows.push({
+                device_id:     sp.device?.id ?? null,
+                serial_number: '',
+                status:        'assigned',
+                notes:         '',
+                properties:    sp.property_name ? { [sp.property_name]: sp.default_value ?? '' } : {},
+                // Mémoriser l'index du sous-produit parent pour l'affichage
+                _spIdx: props.subProducts.indexOf(sp),
+                _unitIdx: i,   // numéro de l'unité dans ce groupe (0-based)
+            })
+        }
+    })
+    return rows
+}
 
 const techForm = ref({
     technician_id:  props.task.technician?.id ?? null,
-    // Pré-remplir avec la date planifiée par le client (format YYYY-MM-DD pour input[type=date])
+    // Pré-remplir date ET heure choisies par le client via le scheduling
     scheduled_date: props.task.scheduled_date ?? '',
+    scheduled_time: props.task.scheduled_time ?? '',
     devices: initDevices(),
 })
 
@@ -533,6 +562,19 @@ watch(() => props.subProducts, () => {
     techForm.value.devices   = initDevices()
     postalForm.value.devices = initDevices()
 }, { immediate: false })
+
+// Pré-calculer pour chaque groupe l'index de départ dans techForm.devices[]
+// (car devices est maintenant "expanded")
+const groupDeviceRanges = computed(() => {
+    const ranges = []
+    let cursor = 0
+    props.subProducts.forEach(sp => {
+        const qty = (sp.quantity && sp.quantity > 0) ? sp.quantity : 1
+        ranges.push({ start: cursor, count: qty })
+        cursor += qty
+    })
+    return ranges
+})
 
 // ── Autocomplete technicien ───────────────────────────────────────────────────
 // Initialiser avec le nom du technicien déjà assigné si présent
@@ -588,7 +630,8 @@ const submitTechnician = () => {
         {
             technician_id:  techForm.value.technician_id,
             scheduled_date: techForm.value.scheduled_date || null,
-            devices:        devicesToSend.length > 0 ? devicesToSend : [{ device_id: 0 }],
+            scheduled_time: techForm.value.scheduled_time || null,
+            devices:        devicesToSend.length > 0 ? devicesToSend : [],
         },
         { onFinish: () => { submitting.value = false } }
     )

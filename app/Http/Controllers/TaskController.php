@@ -131,6 +131,11 @@ class TaskController extends Controller
                         'name'          => $child->name,
                         'property_name' => $child->property_name,
                         'default_value' => $child->default_value,
+                        // quantity = default_value si c'est un entier > 1 (mainDoors=1, auxiliaryEntries=2, etc.)
+                        // Pour les non-numériques (installation_mode='technician') quantity = 1
+                        'quantity'      => is_numeric($child->default_value) && (int)$child->default_value > 1
+                                            ? (int)$child->default_value
+                                            : 1,
                         'device'        => $child->device ? [
                             'id'        => $child->device->id,
                             'uuid'      => $child->device->uuid,
@@ -176,6 +181,7 @@ class TaskController extends Controller
         $request->validate([
             'technician_id'           => 'required|exists:users,id',
             'scheduled_date'          => 'nullable|date',
+            'scheduled_time'          => 'nullable|date_format:H:i',
             'devices'                 => 'nullable|array',
             'devices.*.device_id'     => 'nullable|exists:devices,id',
             'devices.*.serial_number' => 'nullable|string|max:191',
@@ -194,6 +200,14 @@ class TaskController extends Controller
                     'scheduled_date' => $request->scheduled_date,
                     'status'         => 'scheduled',
                 ]);
+
+                // Mettre à jour la date/heure sur l'Installation si elle existe
+                if ($task->taskable instanceof Installation && $request->scheduled_date) {
+                    $task->taskable->update([
+                        'scheduled_date' => $request->scheduled_date,
+                        'scheduled_time' => $request->scheduled_time,
+                    ]);
+                }
 
                 // Filtrer les devices sans device_id valide (ex: "Installation Technicien" sans device)
                 $validDevices = array_values(array_filter($request->devices ?? [], fn($d) => !empty($d['device_id']) && (int)$d['device_id'] > 0));
@@ -292,13 +306,30 @@ class TaskController extends Controller
             }
         }
 
+        // Date et heure d'intervention planifiées par le client (sur l'Installation)
+        $scheduledDate = null;
+        $scheduledTime = null;
+        if ($task->taskable instanceof Installation) {
+            $scheduledDate = $task->taskable->scheduled_date?->format('Y-m-d');
+            $scheduledTime = $task->taskable->scheduled_time
+                ? (is_string($task->taskable->scheduled_time)
+                    ? $task->taskable->scheduled_time
+                    : $task->taskable->scheduled_time->format('H:i'))
+                : null;
+        }
+        // Fallback sur task.scheduled_date si l'installation n'en a pas
+        if (!$scheduledDate) {
+            $scheduledDate = $task->scheduled_date?->format('Y-m-d');
+        }
+
         return [
             'uuid'              => $task->uuid,
             'type'              => $task->type,
             'status'            => $task->status,
             'address'           => $task->address,
             'notes'             => $task->notes,
-            'scheduled_date'    => $task->scheduled_date?->format('Y-m-d'),
+            'scheduled_date'    => $scheduledDate,
+            'scheduled_time'    => $scheduledTime,
             'is_overdue'        => $task->is_overdue,
             'created_at'        => $task->created_at->format('Y-m-d H:i'),
             'installation_mode' => $installationMode,
