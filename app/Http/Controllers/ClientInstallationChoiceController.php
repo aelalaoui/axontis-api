@@ -133,13 +133,17 @@ class ClientInstallationChoiceController extends Controller
         $feeAmount = ($feeProduct?->caution_price_cents ?? 50000) / 100;
         $currency  = $installation->contract?->currency ?? 'MAD';
 
-        $client->notify(new InstallationChoiceNotification(
-            clientName:            $client->full_name,
-            installationMode:      $mode,
-            deliveryAddress:       $deliveryAddress,
-            installationFeeAmount: $mode === 'technician' ? $feeAmount : null,
-            currency:              $currency,
-        ));
+        // Notify via the associated User (which has the Notifiable trait).
+        // Client model does not implement Notifiable directly.
+        if ($client->user) {
+            $client->user->notify(new InstallationChoiceNotification(
+                clientName:            $client->full_name,
+                installationMode:      $mode,
+                deliveryAddress:       $deliveryAddress,
+                installationFeeAmount: $mode === 'technician' ? $feeAmount : null,
+                currency:              $currency,
+            ));
+        }
 
         // ── Flash message and redirect ─────────────────────────────────────
         $flashMessage = $mode === 'technician'
@@ -151,4 +155,5 @@ class ClientInstallationChoiceController extends Controller
             ->with('installation_mode', $mode);
     }
 }
+
 
