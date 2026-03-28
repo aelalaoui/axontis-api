@@ -105,56 +105,86 @@
                 </AxontisCard>
             </div>
 
-            <!-- Upcoming Tasks -->
+            <!-- Tâches à traiter -->
             <div>
-                <AxontisCard title="Upcoming Tasks" subtitle="Contracts scheduled for installation">
-                    <div v-if="scheduledContractsLoading" class="flex items-center justify-center py-8">
+                <AxontisCard title="Tâches à traiter" subtitle="Interventions et livraisons en attente d'assignation">
+                    <div v-if="pendingTasksLoading" class="flex items-center justify-center py-8">
                         <i class="fas fa-spinner fa-spin text-primary-400 text-2xl"></i>
                     </div>
-                    <div v-else-if="scheduledContracts.length === 0" class="flex flex-col items-center justify-center py-8 text-white/40">
-                        <i class="fas fa-calendar-check text-3xl mb-3"></i>
-                        <p class="text-sm">Aucun contrat planifié</p>
+                    <div v-else-if="pendingTasks.length === 0" class="flex flex-col items-center justify-center py-8 text-white/40">
+                        <i class="fas fa-check-double text-3xl mb-3"></i>
+                        <p class="text-sm">Toutes les tâches sont assignées 🎉</p>
                     </div>
-                    <div v-else class="space-y-3">
-                        <Link
-                            v-for="contract in scheduledContracts"
-                            :key="contract.uuid"
-                            :href="`/crm/contracts/${contract.uuid}`"
-                            class="flex items-start gap-4 p-4 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200 group block"
+                    <div v-else class="space-y-2">
+                        <div
+                            v-for="task in pendingTasks"
+                            :key="task.uuid"
+                            class="flex items-start gap-3 p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200 cursor-pointer group"
+                            @click="openTaskPanel(task)"
                         >
-                            <div class="w-10 h-10 rounded-full bg-info-500/20 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-file-contract text-info-400"></i>
+                            <!-- Icône mode -->
+                            <div
+                                class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                                :class="task.installation_mode === 'self'
+                                    ? 'bg-warning-500/20'
+                                    : 'bg-primary-500/20'"
+                            >
+                                <i
+                                    :class="task.installation_mode === 'self' ? 'fas fa-box text-warning-400' : 'fas fa-tools text-primary-400'"
+                                ></i>
                             </div>
+
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-white group-hover:text-primary-400 transition-colors truncate">
-                                    {{ contract.description || 'Contrat' }}
+                                <p class="text-sm font-medium text-white truncate group-hover:text-primary-300 transition-colors">
+                                    {{ task.client_name || 'Client inconnu' }}
                                 </p>
-                                <p class="text-xs text-white/60 mt-1 truncate">
-                                    <i class="fas fa-user mr-1"></i>{{ contract.client_name }}
-                                </p>
-                                <p v-if="contract.start_date" class="text-xs text-white/40 mt-1">
-                                    <i class="fas fa-calendar mr-1"></i>{{ formatContractDate(contract.start_date) }}
+                                <p class="text-xs text-white/50 truncate mt-0.5">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>{{ task.address || '—' }}
                                 </p>
                             </div>
-                            <div class="flex flex-col items-end gap-2 flex-shrink-0">
-                                <span class="px-2 py-1 rounded-full text-xs font-medium bg-info-500/20 text-info-300">
-                                    Planifié
+
+                            <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                <span
+                                    class="px-2 py-0.5 rounded-full text-xs font-medium"
+                                    :class="task.installation_mode === 'self'
+                                        ? 'bg-warning-500/10 text-warning-300'
+                                        : 'bg-primary-500/10 text-primary-300'"
+                                >
+                                    {{ task.installation_mode === 'self' ? 'Postal' : 'Technicien' }}
                                 </span>
-                                <span class="text-xs text-white/40 group-hover:text-primary-400 transition-colors">
-                                    <i class="fas fa-arrow-right"></i>
+                                <span v-if="!task.technician" class="text-[10px] text-warning-400 font-semibold">
+                                    <i class="fas fa-exclamation-circle mr-0.5"></i>Non assigné
                                 </span>
+                                <i class="fas fa-arrow-right text-white/20 group-hover:text-primary-400 transition-colors text-xs mt-0.5"></i>
                             </div>
-                        </Link>
+                        </div>
                     </div>
                     <template #footer>
-                        <Link href="/crm/contracts" class="text-primary-400 hover:text-primary-300 text-sm">
-                            Voir tous les contrats →
+                        <Link href="/crm/tasks" class="text-primary-400 hover:text-primary-300 text-sm">
+                            Voir toutes les tâches →
                         </Link>
                     </template>
                 </AxontisCard>
             </div>
         </div>
     </AxontisDashboardLayout>
+
+    <!-- Panels right-menu (ouverts depuis le widget tâches) -->
+    <InstallationAssignmentPanel
+        :show="showTechnicianPanel"
+        :task="selectedTask"
+        :sub-products="[]"
+        @close="closeTaskPanel"
+        @assigned="() => { closeTaskPanel(); loadPendingTasks() }"
+    />
+
+    <PostalAssignmentPanel
+        :show="showPostalPanel"
+        :task="selectedTask"
+        :sub-products="[]"
+        @close="closeTaskPanel"
+        @assigned="() => { closeTaskPanel(); loadPendingTasks() }"
+    />
 </template>
 
 <script setup>
@@ -164,6 +194,8 @@ import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 import AxontisStatCard from '@/Components/AxontisStatCard.vue'
 import AxontisChartCard from '@/Components/AxontisChartCard.vue'
+import InstallationAssignmentPanel from '@/Components/right-menu/InstallationAssignmentPanel.vue'
+import PostalAssignmentPanel from '@/Components/right-menu/PostalAssignmentPanel.vue'
 
 const page = usePage()
 
@@ -247,16 +279,26 @@ const recentActivity = ref([
 ])
 
 // Scheduled contracts (real data from API)
-const scheduledContracts = ref([])
-const scheduledContractsLoading = ref(false)
+const pendingTasks = ref([])
+const pendingTasksLoading = ref(false)
 
-const formatContractDate = (dateString) => {
-    if (!dateString) return ''
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    })
+// Panel state pour ouvrir les panneaux depuis le widget
+const showTechnicianPanel = ref(false)
+const showPostalPanel     = ref(false)
+const selectedTask        = ref(null)
+
+const openTaskPanel = (task) => {
+    selectedTask.value = task
+    if (task.installation_mode === 'self') {
+        showPostalPanel.value = true
+    } else {
+        showTechnicianPanel.value = true
+    }
+}
+const closeTaskPanel = () => {
+    showTechnicianPanel.value = false
+    showPostalPanel.value     = false
+    selectedTask.value        = null
 }
 
 // Methods
@@ -270,20 +312,20 @@ const onClientViewChanged = (view) => {
     console.log('Client view changed to:', view)
 }
 
-// Load scheduled contracts from API
-const loadScheduledContracts = async () => {
+// Load pending tasks from API
+const loadPendingTasks = async () => {
     try {
-        scheduledContractsLoading.value = true
-        const response = await fetch('/api/dashboard/scheduled-contracts')
+        pendingTasksLoading.value = true
+        const response = await fetch('/api/dashboard/pending-tasks')
         const result = await response.json()
 
         if (response.ok && result.success && result.data) {
-            scheduledContracts.value = result.data
+            pendingTasks.value = result.data
         }
     } catch (error) {
-        console.error('Error loading scheduled contracts:', error)
+        console.error('Error loading pending tasks:', error)
     } finally {
-        scheduledContractsLoading.value = false
+        pendingTasksLoading.value = false
     }
 }
 
@@ -376,10 +418,11 @@ onMounted(() => {
     if (userIsManager.value || userIsAdmin.value) {
         loadDashboardStats()
         loadChartData()
-        loadScheduledContracts()
+        loadPendingTasks()
     } else {
         statsLoading.value = false
         chartsLoading.value = false
+        loadPendingTasks() // les operators voient aussi le widget
     }
 })
 </script>

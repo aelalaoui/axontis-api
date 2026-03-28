@@ -1,7 +1,7 @@
 <template>
     <RightMenu
         :show="show"
-        :title="`Assignation technicien`"
+        title="Expédition postale"
         :subtitle="task
             ? [task.client_name, task.address].filter(Boolean).join(' · ')
             : ''"
@@ -13,23 +13,23 @@
             <!-- Récap tâche client -->
             <div v-if="task" class="px-6 pt-5 pb-4 border-b border-white/10 flex-shrink-0">
                 <div class="flex flex-wrap gap-3">
-                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/20">
-                        <i class="fas fa-tools text-primary-400 text-xs"></i>
-                        <span class="text-xs text-primary-300 font-medium">Intervention technicien</span>
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-warning-500/10 border border-warning-500/20">
+                        <i class="fas fa-box text-warning-400 text-xs"></i>
+                        <span class="text-xs text-warning-300 font-medium">Auto-installation — Livraison postale</span>
                     </div>
                     <div :class="statusBadgeClass(task.status)"
                          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border">
                         <i :class="statusIcon(task.status)" class="text-xs"></i>
                         {{ statusLabel(task.status) }}
                     </div>
-                    <div v-if="task.scheduled_date" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-                        <i class="fas fa-calendar text-white/40 text-xs"></i>
-                        <span class="text-xs text-white/60">{{ formatDate(task.scheduled_date) }}</span>
-                    </div>
                 </div>
-                <div v-if="task.notes" class="mt-3 p-3 rounded-lg bg-warning-500/5 border border-warning-500/20">
-                    <p class="text-xs text-warning-400 font-semibold mb-1 uppercase tracking-wider">Note client</p>
-                    <p class="text-sm text-white/70">{{ task.notes }}</p>
+
+                <!-- Adresse de livraison choisie par le client -->
+                <div v-if="task.delivery_address || task.notes" class="mt-3 p-3 rounded-lg bg-info-500/5 border border-info-500/20">
+                    <p class="text-xs text-info-400 font-semibold mb-1 uppercase tracking-wider">
+                        <i class="fas fa-map-marker-alt mr-1"></i>Adresse choisie par le client
+                    </p>
+                    <p class="text-sm text-white/80">{{ task.delivery_address || extractAddressFromNotes(task.notes) }}</p>
                 </div>
             </div>
 
@@ -40,7 +40,7 @@
                         <button
                             class="flex items-center gap-2 flex-shrink-0 text-sm font-medium transition-colors duration-200"
                             :class="currentStep === index
-                                ? 'text-primary-400'
+                                ? 'text-warning-400'
                                 : index < currentStep
                                     ? 'text-success-400'
                                     : 'text-white/30'"
@@ -50,7 +50,7 @@
                             <span
                                 class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 border"
                                 :class="currentStep === index
-                                    ? 'bg-primary-500/20 border-primary-500 text-primary-400'
+                                    ? 'bg-warning-500/20 border-warning-500 text-warning-400'
                                     : index < currentStep
                                         ? 'bg-success-500/20 border-success-500 text-success-400'
                                         : 'bg-white/5 border-white/20 text-white/30'"
@@ -71,6 +71,8 @@
 
             <!-- Step content -->
             <div class="flex-1 overflow-y-auto px-6 py-6">
+
+                <!-- Device Steps -->
                 <template v-if="currentStep < subProducts.length">
                     <DeviceStep
                         :key="currentStep"
@@ -78,11 +80,12 @@
                         v-model="deviceAssignments[currentStep]"
                     />
                 </template>
+
+                <!-- Step final : Expédition -->
                 <template v-else>
-                    <TechnicianStep
-                        v-model="technicianData"
-                        :staff="staff"
-                        :loading-staff="loadingStaff"
+                    <ShippingStep
+                        v-model="shippingData"
+                        :default-address="defaultDeliveryAddress"
                     />
                 </template>
             </div>
@@ -117,8 +120,8 @@
                     :disabled="!canSubmit || submitting"
                 >
                     <i v-if="submitting" class="fas fa-spinner fa-spin mr-2"></i>
-                    <i v-else class="fas fa-check mr-2"></i>
-                    {{ submitting ? 'Assignation...' : 'Valider l\'assignation' }}
+                    <i v-else class="fas fa-paper-plane mr-2"></i>
+                    {{ submitting ? 'Enregistrement...' : 'Valider l\'expédition' }}
                 </button>
             </div>
         </div>
@@ -128,16 +131,14 @@
 <script setup>
 import {computed, ref, watch} from 'vue'
 import {router} from '@inertiajs/vue3'
-import axios from 'axios'
 import RightMenu from '@/Components/right-menu/RightMenu.vue'
 import DeviceStep from '@/Components/right-menu/DeviceStep.vue'
-import TechnicianStep from '@/Components/right-menu/TechnicianStep.vue'
+import ShippingStep from '@/Components/right-menu/ShippingStep.vue'
 
 const props = defineProps({
     show:        { type: Boolean, default: false },
-    // task: objet enrichi (uuid, client_name, address, notes, status, scheduled_date, installation_mode)
+    // task: objet enrichi (uuid, client_name, address, delivery_address, notes, status, installation_mode)
     task:        { type: Object,  default: null },
-    // subProducts: liste des sous-produits du contrat (pour les device steps)
     subProducts: { type: Array,   default: () => [] },
 })
 
@@ -147,19 +148,25 @@ const emit = defineEmits(['close', 'assigned'])
 const currentStep    = ref(0)
 const maxReachedStep = ref(0)
 const submitting     = ref(false)
-const staff          = ref([])
-const loadingStaff   = ref(false)
 
 const steps = computed(() => [
     ...props.subProducts.map((sp) => ({ label: sp.name || `Équipement ${sp.id}` })),
-    { label: 'Technicien' },
+    { label: 'Expédition' },
 ])
 
 const deviceAssignments = ref([])
 
-const technicianData = ref({
-    technician_id:  null,
-    scheduled_date: '',
+const shippingData = ref({
+    delivery_address: '',
+    tracking_code:    '',
+    carrier:          '',
+})
+
+// Adresse de livraison par défaut (celle choisie par le client)
+const defaultDeliveryAddress = computed(() => {
+    if (!props.task) return ''
+    if (props.task.delivery_address) return props.task.delivery_address
+    return extractAddressFromNotes(props.task.notes)
 })
 
 // ── Watchers ──────────────────────────────────────────────────────────────────
@@ -177,12 +184,21 @@ watch(() => props.subProducts, (val) => {
     maxReachedStep.value = 0
 }, { immediate: true })
 
-watch(() => props.show, async (val) => {
-    if (val && staff.value.length === 0) await loadStaff()
+watch(() => props.show, (val) => {
+    if (val) {
+        // Pré-remplir l'adresse de livraison avec celle du client
+        shippingData.value.delivery_address = defaultDeliveryAddress.value
+    }
     if (!val) {
         currentStep.value    = 0
         maxReachedStep.value = 0
-        technicianData.value = { technician_id: null, scheduled_date: '' }
+        shippingData.value   = { delivery_address: '', tracking_code: '', carrier: '' }
+    }
+})
+
+watch(defaultDeliveryAddress, (addr) => {
+    if (addr && !shippingData.value.delivery_address) {
+        shippingData.value.delivery_address = addr
     }
 })
 
@@ -193,7 +209,7 @@ const canGoNext = computed(() => {
     return a && a.device_id
 })
 
-const canSubmit = computed(() => !!technicianData.value.technician_id)
+const canSubmit = computed(() => !!shippingData.value.delivery_address?.trim())
 
 const goToStep = (index) => { if (index <= maxReachedStep.value) currentStep.value = index }
 const nextStep = () => {
@@ -203,29 +219,17 @@ const nextStep = () => {
 }
 const prevStep = () => { if (currentStep.value > 0) currentStep.value-- }
 
-// ── Staff loading ─────────────────────────────────────────────────────────────
-const loadStaff = async () => {
-    loadingStaff.value = true
-    try {
-        const { data } = await axios.get(route('crm.api.staff'))
-        staff.value = data.users
-    } catch (e) {
-        console.error('Failed to load staff', e)
-    } finally {
-        loadingStaff.value = false
-    }
-}
-
 // ── Submit ────────────────────────────────────────────────────────────────────
 const submit = () => {
     if (!canSubmit.value || submitting.value || !props.task) return
     submitting.value = true
 
     router.patch(
-        route('crm.tasks.assign-technician', props.task.uuid),
+        route('crm.tasks.assign-postal', props.task.uuid),
         {
-            technician_id:  technicianData.value.technician_id,
-            scheduled_date: technicianData.value.scheduled_date || null,
+            delivery_address: shippingData.value.delivery_address,
+            tracking_code:    shippingData.value.tracking_code || null,
+            carrier:          shippingData.value.carrier || null,
             devices: deviceAssignments.value.map((a) => ({
                 device_id:     a.device_id,
                 serial_number: a.serial_number || null,
@@ -244,6 +248,13 @@ const submit = () => {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+const extractAddressFromNotes = (notes) => {
+    if (!notes) return ''
+    // Ex: "Auto-installation – envoi postal à : 123 rue de la Paix"
+    const match = notes.match(/à\s*:\s*(.+)$/i)
+    return match ? match[1].trim() : ''
+}
+
 const statusLabel = (s) => ({ scheduled: 'Planifié', in_progress: 'En cours', completed: 'Terminé', cancelled: 'Annulé' }[s] ?? s)
 const statusIcon  = (s) => ({ scheduled: 'fas fa-clock', in_progress: 'fas fa-play-circle', completed: 'fas fa-check-circle', cancelled: 'fas fa-times-circle' }[s] ?? 'fas fa-circle')
 const statusBadgeClass = (s) => ({
@@ -252,6 +263,5 @@ const statusBadgeClass = (s) => ({
     completed:   'bg-success-500/10 border-success-500/30 text-success-300',
     cancelled:   'bg-error-500/10 border-error-500/30 text-error-300',
 }[s] ?? 'bg-white/5 border-white/10 text-white/40')
-const formatDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' }) : ''
 </script>
 

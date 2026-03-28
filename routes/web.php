@@ -107,6 +107,14 @@ Route::middleware([
 
         // CRM Clients Routes - accessible by managers, administrators, and operators
         Route::middleware('role:manager,administrator,operator')->group(function () {
+            // CRM Tasks Routes
+            Route::get('tasks', [\App\Http\Controllers\TaskController::class, 'index'])
+                ->name('tasks.index');
+            Route::patch('tasks/{uuid}/assign-technician', [\App\Http\Controllers\TaskController::class, 'assignTechnician'])
+                ->name('tasks.assign-technician');
+            Route::patch('tasks/{uuid}/assign-postal', [\App\Http\Controllers\TaskController::class, 'assignPostal'])
+                ->name('tasks.assign-postal');
+
             Route::get('clients', [\App\Http\Controllers\ClientController::class, 'index'])
                 ->name('clients.index');
             Route::get('clients/{uuid}', [\App\Http\Controllers\ClientController::class, 'show'])
@@ -184,6 +192,8 @@ Route::middleware([
                     ->name('devices.search');
                 Route::get('staff', [\App\Http\Controllers\InstallationAssignmentController::class, 'staff'])
                     ->name('staff');
+                Route::get('contracts/{uuid}/sub-products', [\App\Http\Controllers\ContractController::class, 'apiSubProducts'])
+                    ->name('contracts.sub-products');
 
                 // Generic API file routes
                 Route::apiFileRoutes('suppliers', \App\Http\Controllers\SupplierController::class);

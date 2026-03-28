@@ -56,6 +56,7 @@ Route::middleware('web')->group(function () {
     // Routes accessibles aux techniciens et niveaux supérieurs (operator, manager, administrator)
     Route::middleware('role:operator,manager,administrator')->group(function () {
         Route::get('/dashboard/scheduled-contracts', [\App\Http\Controllers\Api\DashboardController::class, 'getScheduledContracts']);
+        Route::get('/dashboard/pending-tasks', [\App\Http\Controllers\Api\DashboardController::class, 'getPendingTasks']);
     });
 
     // Routes accessibles aux managers et administrateurs uniquement

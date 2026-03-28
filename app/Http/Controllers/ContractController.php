@@ -587,4 +587,47 @@ class ContractController extends Controller
                 ->with('error', 'Erreur lors de la mise à jour du contrat: ' . $e->getMessage());
         }
     }
+
+    /**
+     * GET /crm/api/contracts/{uuid}/sub-products
+     * Retourne la liste des sous-produits d'un contrat pour les panels d'assignation.
+     */
+    public function apiSubProducts(string $uuid)
+    {
+        try {
+            $contract = Contract::where('uuid', $uuid)
+                ->with(['client.properties', 'product.children.device'])
+                ->firstOrFail();
+
+            $subProducts = $contract->product
+                ? $contract->product->children
+                    ->filter(function ($child) use ($contract) {
+                        if (!$child->property_name) return true;
+                        $clientValue = $contract->client?->getProperty($child->property_name);
+                        return $clientValue !== null && $clientValue == $child->default_value;
+                    })
+                    ->map(function ($child) {
+                        return [
+                            'id'            => $child->id,
+                            'name'          => $child->name,
+                            'property_name' => $child->property_name,
+                            'default_value' => $child->default_value,
+                            'device'        => $child->device ? [
+                                'id'        => $child->device->id,
+                                'uuid'      => $child->device->uuid,
+                                'brand'     => $child->device->brand,
+                                'model'     => $child->device->model,
+                                'category'  => $child->device->category,
+                                'stock_qty' => $child->device->stock_qty,
+                                'full_name' => $child->device->full_name,
+                            ] : null,
+                        ];
+                    })->values()->all()
+                : [];
+
+            return response()->json(['sub_products' => $subProducts]);
+        } catch (\Exception $e) {
+            return response()->json(['sub_products' => [], 'error' => $e->getMessage()], 200);
+        }
+    }
 }

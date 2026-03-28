@@ -217,6 +217,20 @@ const showNotifications = ref(false)
 const showUserMenu = ref(false)
 const toasts = ref([])
 
+// Compteur de tâches non assignées (badge sidebar)
+const pendingTasksCount = ref(0)
+
+const loadPendingTasksCount = async () => {
+    if (!canManageClients.value) return
+    try {
+        const res = await fetch('/api/dashboard/pending-tasks')
+        if (res.ok) {
+            const json = await res.json()
+            pendingTasksCount.value = json.data?.length ?? 0
+        }
+    } catch { /* silencieux */ }
+}
+
 // App configuration
 const appName = computed(() => usePage().props.appName || 'Axontis CRM')
 
@@ -238,8 +252,17 @@ const canManageClients = computed(() => {
          { name: 'Dashboard', href: '/crm', icon: 'fas fa-home' },
          { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
          { name: 'Communications', href: '/communications', icon: 'fas fa-comments' },
-         { name: 'Reports', href: '/reports', icon: 'fas fa-chart-bar' },
      ]
+
+     // Tâches — visible pour operator, manager, administrator
+     if (canManageClients.value) {
+         items.push({
+             name:  'Tâches',
+             href:  '/crm/tasks',
+             icon:  'fas fa-tasks',
+             badge: pendingTasksCount.value > 0 ? pendingTasksCount.value : null,
+         })
+     }
 
      // Add Users management for managers and administrators only
      if (canManageUsers.value) {
@@ -332,6 +355,7 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside)
+    loadPendingTasksCount()
 })
 
 onUnmounted(() => {

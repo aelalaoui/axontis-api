@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Contract;
+use App\Models\Installation;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -226,6 +228,65 @@ class DashboardController extends Controller
                 'success' => false,
                 'message' => 'Error retrieving scheduled contracts: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * GET /api/dashboard/pending-tasks
+     * Retourne les 8 dernières tâches non-assignées ou schedulées pour le widget home CRM.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getPendingTasks(Request $request)
+    {
+        try {
+            $tasks = Task::with(['user:id,name', 'taskable'])
+                ->where(function ($q) {
+                    $q->whereNull('user_id')
+                      ->orWhere('status', 'scheduled');
+                })
+                ->whereIn('status', ['scheduled', 'in_progress'])
+                ->orderByRaw("CASE WHEN user_id IS NULL THEN 0 ELSE 1 END")
+                ->orderBy('created_at', 'desc')
+                ->limit(8)
+                ->get()
+                ->map(function (Task $task) {
+                    $installationMode = null;
+                    $deliveryAddress  = null;
+                    $clientName       = null;
+                    $clientUuid       = null;
+
+                    if ($task->taskable instanceof Installation) {
+                        $task->taskable->loadMissing('client.properties');
+                        if ($task->taskable->client) {
+                            $installationMode = $task->taskable->client->getProperty('installation_mode');
+                            $deliveryAddress  = $task->taskable->client->getProperty('delivery_address');
+                            $clientName       = $task->taskable->client->full_name;
+                            $clientUuid       = $task->taskable->client->uuid;
+                        }
+                    }
+
+                    return [
+                        'uuid'              => $task->uuid,
+                        'type'              => $task->type,
+                        'status'            => $task->status,
+                        'address'           => $task->address,
+                        'notes'             => $task->notes,
+                        'scheduled_date'    => $task->scheduled_date?->format('Y-m-d'),
+                        'installation_mode' => $installationMode,
+                        'delivery_address'  => $deliveryAddress,
+                        'client_name'       => $clientName,
+                        'client_uuid'       => $clientUuid,
+                        'taskable_uuid'     => $task->taskable_uuid,
+                        'technician'        => $task->user ? ['id' => $task->user->id, 'name' => $task->user->name] : null,
+                        'created_at'        => $task->created_at->format('Y-m-d H:i'),
+                    ];
+                });
+
+            return response()->json(['success' => true, 'data' => $tasks], 200);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
