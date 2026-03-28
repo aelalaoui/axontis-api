@@ -243,25 +243,21 @@
                                     <i :class="deviceCategoryIcon(dev.device?.category)" class="text-success-400 text-sm"></i>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <!-- Numéro séquentiel + nom complet -->
+                                    <!-- Numéro séquentiel + label catégorie comme titre -->
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="text-xs text-white/30 font-medium">#{{ devIdx + 1 }}</span>
                                         <p class="text-sm font-semibold text-white truncate">
-                                            {{ dev.device?.full_name || '—' }}
+                                            {{ dev.device?.category ? deviceCategoryLabel(dev.device.category) : (dev.device?.full_name || '—') }}
                                         </p>
                                     </div>
-                                    <!-- Marque + Modèle + Catégorie -->
-                                    <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                                    <!-- Marque · Modèle en sous-titre -->
+                                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                         <span v-if="dev.device?.brand"
                                               class="text-xs text-white/50">{{ dev.device.brand }}</span>
                                         <span v-if="dev.device?.brand && dev.device?.model"
                                               class="text-white/20 text-xs">·</span>
                                         <span v-if="dev.device?.model"
                                               class="text-xs text-white/40">{{ dev.device.model }}</span>
-                                        <span v-if="dev.device?.category"
-                                              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/5 text-white/30 text-[10px] font-medium uppercase tracking-wide border border-white/10">
-                                            {{ deviceCategoryLabel(dev.device.category) }}
-                                        </span>
                                     </div>
                                 </div>
                                 <!-- Badge statut -->
@@ -985,17 +981,41 @@ const deviceCategoryIcon = (cat) => ({
     repeater: 'fas fa-broadcast-tower',
     panel:    'fas fa-shield-alt',
     other:    'fas fa-microchip',
+    // valeurs en majuscules
+    ALARM_PANEL:      'fas fa-shield-alt',
+    MAGNETIC_SENSOR:  'fas fa-door-open',
+    BRIS_GLASS:       'fas fa-volume-up',
+    PIR_SENSOR:       'fas fa-walking',
+    SMOKE_SENSOR:     'fas fa-smog',
+    FLOOD_SENSOR:     'fas fa-water',
+    SIREN:            'fas fa-bullhorn',
+    CAMERA:           'fas fa-video',
+    REPEATER:         'fas fa-broadcast-tower',
+    KEYPAD:           'fas fa-keyboard',
+    CONTACT:          'fas fa-magnet',
 }[cat] ?? 'fas fa-microchip')
 
 const deviceCategoryLabel = (cat) => ({
     alarm:    'Alarme',
     camera:   'Caméra',
     sensor:   'Capteur',
-    access:   'Contrôle accès',
+    access:   'Contrôle d\'accès',
     network:  'Réseau',
     repeater: 'Répéteur',
-    panel:    'Centrale',
+    panel:    'Centrale d\'alarme',
     other:    'Autre',
+    // valeurs en majuscules
+    ALARM_PANEL:      'Centrale d\'alarme',
+    MAGNETIC_SENSOR:  'Détecteur magnétique',
+    BRIS_GLASS:       'Détecteur bris de verre',
+    PIR_SENSOR:       'Détecteur de mouvement (PIR)',
+    SMOKE_SENSOR:     'Détecteur de fumée',
+    FLOOD_SENSOR:     'Détecteur d\'inondation',
+    SIREN:            'Sirène',
+    CAMERA:           'Caméra',
+    REPEATER:         'Répéteur',
+    KEYPAD:           'Clavier / Badge',
+    CONTACT:          'Détecteur de contact',
 }[cat] ?? cat ?? '—')
 
 const deviceStatusLabel = (s) => ({
