@@ -26,6 +26,9 @@ const installationMode = computed(() =>
 // True if the client has already gone through the installation choice onboarding
 const hasChosenInstallationMode = computed(() => !!props.client.installation_mode);
 
+// True only when at least one alarm panel has sent a heartbeat (physically installed)
+const hasActivePanel = computed(() => !!props.client.has_active_panel);
+
 /**
  * Check if a scheduled date is in the past
  */
@@ -205,8 +208,8 @@ const hasScheduledContracts = computed(() => {
                 </div>
             </div>
 
-            <!-- Welcome Card -->
-            <div class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-6 mb-8 border border-blue-500/20">
+            <!-- Welcome Card — shown ONLY when at least one heartbeat received from the alarm panel -->
+            <div v-if="hasActivePanel" class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-6 mb-8 border border-blue-500/20">
                 <div class="flex items-start gap-4">
                     <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
@@ -218,6 +221,29 @@ const hasScheduledContracts = computed(() => {
                         <h2 class="text-2xl font-bold text-white mb-2">Votre système de sécurité est actif</h2>
                         <p class="text-slate-300">
                             Gérez votre installation de sécurité, consultez vos contrats et accédez à tous vos services depuis cet espace personnel.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Waiting card — shown when installation is chosen but panel not yet active -->
+            <div v-else-if="hasChosenInstallationMode" class="bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-2xl p-6 mb-8 border border-slate-600/40">
+                <div class="flex items-start gap-4">
+                    <div class="w-16 h-16 bg-slate-600/50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white mb-2">Installation en cours de préparation</h2>
+                        <p class="text-slate-300">
+                            <template v-if="installationMode === 'technician'">
+                                Notre équipe prépare l'intervention. Un technicien vous contactera prochainement pour confirmer la date.
+                            </template>
+                            <template v-else>
+                                Votre matériel est en cours de préparation et sera expédié sous peu à l'adresse indiquée.
+                            </template>
                         </p>
                     </div>
                 </div>

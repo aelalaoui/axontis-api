@@ -461,6 +461,19 @@ class ClientController extends Controller
         // Load client relationships
         $client->load(['contracts']);
 
+        // Detect if at least one alarm panel has ever sent a heartbeat (= system physically installed & online at some point)
+        $hasActivePanel = \App\Models\InstallationDevice::alarmPanels()
+            ->whereHas('task', function ($q) use ($client) {
+                $q->whereHas('taskable', function ($q2) use ($client) {
+                    $q2->where('client_uuid', $client->uuid);
+                })->where('taskable_type', \App\Models\Installation::class);
+            })
+            ->whereHas('properties', function ($q) {
+                $q->where('property', 'last_heartbeat_at')
+                  ->whereNotNull('value');
+            })
+            ->exists();
+
         return Inertia::render('Client/Home', [
             'client' => [
                 'uuid'              => $client->uuid,
@@ -472,7 +485,8 @@ class ClientController extends Controller
                 'country'           => $client->country,
                 'status'            => $client->status->value,
                 'step'              => $client->step->value,
-                'installation_mode' => $client->getProperty('installation_mode'), // null | 'technician' | 'self'
+                'installation_mode' => $client->getProperty('installation_mode'),
+                'has_active_panel'  => $hasActivePanel, // true only when a heartbeat was received
             ],
             'contracts' => $client->contracts->map(function ($contract) {
                 $installation = $contract->installations()
