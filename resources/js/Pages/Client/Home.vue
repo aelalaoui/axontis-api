@@ -29,6 +29,14 @@ const hasChosenInstallationMode = computed(() => !!props.client.installation_mod
 // True only when at least one alarm panel has sent a heartbeat (physically installed)
 const hasActivePanel = computed(() => !!props.client.has_active_panel);
 
+// True when technician mode chosen AND a date has already been scheduled
+const hasScheduledTechnician = computed(() => !!props.client.has_scheduled_technician);
+
+// True when technician mode chosen but NO date scheduled yet → needs to plan
+const needsToScheduleTechnician = computed(() =>
+    props.client.installation_mode === 'technician' && !props.client.has_scheduled_technician
+);
+
 /**
  * Check if a scheduled date is in the past
  */
@@ -208,6 +216,47 @@ const hasScheduledContracts = computed(() => {
                 </div>
             </div>
 
+            <!-- 📅 Technician mode: needs to schedule → action banner (replaces generic waiting card) -->
+            <div v-if="needsToScheduleTechnician"
+                 class="mb-8 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl p-6 border border-blue-500/30 animate-pulse">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 bg-blue-500/30 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                             stroke-linejoin="round" class="text-blue-300">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-bold text-blue-100 mb-1">Choisissez la date d'intervention du technicien</h2>
+                        <p class="text-blue-100/80 mb-4">
+                            Votre paiement a bien été reçu. Il ne vous reste plus qu'à sélectionner la date et l'heure qui vous conviennent pour l'intervention du technicien.
+                        </p>
+                        <div class="flex flex-wrap gap-3">
+                            <Link
+                                v-for="contract in pendingContracts"
+                                :key="contract.uuid"
+                                :href="`/installation/${contract.installation}/schedule`"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                Choisir ma date d'intervention
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Welcome Card — shown ONLY when at least one heartbeat received from the alarm panel -->
             <div v-if="hasActivePanel" class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-6 mb-8 border border-blue-500/20">
                 <div class="flex items-start gap-4">
@@ -226,8 +275,9 @@ const hasScheduledContracts = computed(() => {
                 </div>
             </div>
 
-            <!-- Waiting card — shown when installation is chosen but panel not yet active -->
-            <div v-else-if="hasChosenInstallationMode" class="bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-2xl p-6 mb-8 border border-slate-600/40">
+            <!-- Waiting card — technician scheduled OR self-install (waiting for delivery) -->
+            <div v-else-if="hasChosenInstallationMode && !needsToScheduleTechnician"
+                 class="bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-2xl p-6 mb-8 border border-slate-600/40">
                 <div class="flex items-start gap-4">
                     <div class="w-16 h-16 bg-slate-600/50 rounded-2xl flex items-center justify-center flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300">

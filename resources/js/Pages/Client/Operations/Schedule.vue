@@ -195,6 +195,19 @@ onMounted(() => {
 
             <!-- Schedule Card -->
             <div class="max-w-2xl mx-auto">
+                <!-- Payment confirmation context banner (shown when coming from technician fee payment) -->
+                <div v-if="$page.props.flash?.success && !scheduleSuccess"
+                     class="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-xl flex items-center gap-4">
+                    <div class="w-10 h-10 bg-green-500/30 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-400">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-green-100 font-semibold">{{ $page.props.flash.success }}</p>
+                    </div>
+                </div>
+
                 <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700/50">
                     <div class="mb-6">
                         <h2 class="text-3xl font-bold text-white mb-2">{{ isRescheduling ? 'Modifier la planification' : 'Planifier l\'installation' }}</h2>
@@ -344,9 +357,9 @@ onMounted(() => {
                                 <span v-else class="flex items-center justify-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                        <line x="16" y="2" x2="16" y2="6"></line>
-                                        <line x="8" y1="2" x2="8" y2="6"></line>
-                                        <line x="3" y1="10" x2="21" y2="10"></line>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
                                     </svg>
                                     <span>{{ isRescheduling ? 'Modifier la planification' : 'Confirmer la planification' }}</span>
                                 </span>

@@ -486,7 +486,13 @@ class ClientController extends Controller
                 'status'            => $client->status->value,
                 'step'              => $client->step->value,
                 'installation_mode' => $client->getProperty('installation_mode'),
-                'has_active_panel'  => $hasActivePanel, // true only when a heartbeat was received
+                'has_active_panel'  => $hasActivePanel,
+                'has_scheduled_technician' => (
+                    $client->getProperty('installation_mode') === 'technician'
+                    && $client->installations()
+                        ->whereNotNull('scheduled_date')
+                        ->exists()
+                ),
             ],
             'contracts' => $client->contracts->map(function ($contract) {
                 $installation = $contract->installations()

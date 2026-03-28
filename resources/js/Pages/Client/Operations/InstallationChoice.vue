@@ -41,10 +41,11 @@ const errorMessage  = ref('');
 
 // ── Inertia form (POST to store) ──────────────────────────────────────────────
 const form = useForm({
-    installation_uuid:  props.installation.uuid,
-    installation_mode:  '',
-    delivery_address:   '',
-    same_address:       true,
+    installation_uuid:    props.installation.uuid,
+    installation_mode:    '',
+    delivery_address:     '',
+    same_address:         true,
+    redirect_to_schedule: false,
 });
 
 // ── Step 1: select mode ───────────────────────────────────────────────────────
@@ -127,8 +128,9 @@ async function payAndStore() {
 
         if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing') {
             stripePaymentSuccess.value = true;
-            // Submit Inertia form
-            setTimeout(() => submitChoice(), 1500);
+            // After a short delay so the success state is visible, submit and
+            // redirect the client directly to the installation schedule page.
+            setTimeout(() => submitChoice(true), 1800);
         }
     } catch (e) {
         errorMessage.value     = 'Une erreur est survenue lors du paiement';
@@ -145,10 +147,11 @@ function storeSelf() {
     submitChoice();
 }
 
-function submitChoice() {
-    form.installation_mode = selectedMode.value;
-    form.delivery_address  = deliveryAddress.value ?? '';
-    form.same_address      = sameAddress.value;
+function submitChoice(redirectToSchedule = false) {
+    form.installation_mode    = selectedMode.value;
+    form.delivery_address     = deliveryAddress.value ?? '';
+    form.same_address         = sameAddress.value;
+    form.redirect_to_schedule = redirectToSchedule;
     form.post(route('client.installation-setup.store'));
 }
 
@@ -282,8 +285,8 @@ function goBack() {
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-400"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     </div>
                     <div>
-                        <p class="text-green-100 font-semibold">Paiement confirmé !</p>
-                        <p class="text-sm text-green-200">Redirection en cours…</p>
+                        <p class="text-green-100 font-bold text-lg">Paiement confirmé ! 🎉</p>
+                        <p class="text-sm text-green-200 mt-1">Vous allez maintenant choisir la date d'intervention de votre technicien…</p>
                     </div>
                 </div>
 
@@ -405,4 +408,8 @@ function goBack() {
         <AppFooter />
     </div>
 </template>
+
+
+
+
 

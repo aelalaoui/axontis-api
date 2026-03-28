@@ -9,13 +9,24 @@
 > 🔧 **{{ __('Mode d\'installation') }}** : {{ __('Installation par technicien Axontis') }}
 >
 > 💳 **{{ __('Frais d\'installation réglés') }}** : {{ number_format($installationFeeAmount, 2, ',', ' ') }} {{ $currency }}
+@if($scheduledDate)
+>
+> 📅 **{{ __('Date d\'intervention') }}** : {{ \Carbon\Carbon::parse($scheduledDate)->translatedFormat('l d F Y') }} {{ __('à') }} {{ $scheduledTime }}
+@endif
 
 ## {{ __('Prochaines étapes') }}
 
-1. {{ __('Notre équipe vous contactera sous 48h pour confirmer la date d\'intervention') }}
+@if($scheduledDate)
+1. {{ __('Un technicien Axontis certifié se déplacera chez vous à la date convenue') }}
+2. {{ __('L\'installation complète du système sera réalisée et testée devant vous') }}
+3. {{ __('Vous recevrez une démonstration complète de votre système de sécurité') }}
+4. {{ __('Votre système sera opérationnel dès la fin de l\'intervention') }}
+@else
+1. {{ __('Choisissez votre date d\'intervention depuis votre espace client') }}
 2. {{ __('Un technicien certifié se déplacera à l\'adresse de votre installation') }}
 3. {{ __('L\'installation complète du système sera réalisée et testée devant vous') }}
 4. {{ __('Vous recevrez une démonstration de l\'utilisation de votre système') }}
+@endif
 
 @else
 
@@ -40,7 +51,7 @@
 
 ---
 
-{{ __('Une question ? Contactez notre service client :') }} [{{ config('mail.from.address') }}](mailto:{{ config('mail.from.address') }})
+{{ __('Une question ? Contactez notre service client :') }} [contact@axontis.com](mailto:contact@axontis.com)
 
 {{ __('Merci pour votre confiance !') }}
 **{{ __('L\'équipe :company', ['company' => $companyName]) }}**

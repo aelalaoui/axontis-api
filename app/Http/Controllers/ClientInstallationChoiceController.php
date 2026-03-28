@@ -77,10 +77,11 @@ class ClientInstallationChoiceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'installation_uuid'  => 'required|uuid|exists:installations,uuid',
-            'installation_mode'  => 'required|in:technician,self',
-            'delivery_address'   => 'required_if:installation_mode,self|nullable|string|max:500',
-            'same_address'       => 'boolean',
+            'installation_uuid'   => 'required|uuid|exists:installations,uuid',
+            'installation_mode'   => 'required|in:technician,self',
+            'delivery_address'    => 'required_if:installation_mode,self|nullable|string|max:500',
+            'same_address'        => 'boolean',
+            'redirect_to_schedule' => 'boolean',
         ]);
 
         /** @var \App\Models\Client $client */
@@ -125,27 +126,27 @@ class ClientInstallationChoiceController extends Controller
         $client->update(['step' => ClientStep::COMPLETED_STEPS->value]);
 
         // ── Send confirmation email ────────────────────────────────────────
-        $feeProduct = Product::where('property_name', 'installation_mode')
-            ->where('default_value', 'technician')
-            ->where('name', 'Installation Technicien')
-            ->first();
-
-        $feeAmount = ($feeProduct?->caution_price_cents ?? 50000) / 100;
-        $currency  = $installation->contract?->currency ?? 'MAD';
-
-        // Notify via the associated User (which has the Notifiable trait).
-        // Client model does not implement Notifiable directly.
-        if ($client->user) {
+        // Technician mode: email is sent AFTER scheduling (in InstallationController::storeSchedule)
+        // so it can include the chosen intervention date.
+        // Self mode: send immediately since there is no scheduling step.
+        if ($mode === 'self' && $client->user) {
             $client->user->notify(new InstallationChoiceNotification(
                 clientName:            $client->full_name,
                 installationMode:      $mode,
                 deliveryAddress:       $deliveryAddress,
-                installationFeeAmount: $mode === 'technician' ? $feeAmount : null,
-                currency:              $currency,
+                installationFeeAmount: null,
+                currency:              $installation->contract?->currency ?? 'MAD',
             ));
         }
 
         // ── Flash message and redirect ─────────────────────────────────────
+        if ($mode === 'technician' && ($validated['redirect_to_schedule'] ?? false)) {
+            // Payment done → send client directly to the scheduling page
+            return redirect()->route('installation.schedule', ['uuid' => $installation->uuid])
+                ->with('success', 'Paiement confirmé ! Choisissez maintenant la date d\'intervention de votre technicien.')
+                ->with('installation_mode', $mode);
+        }
+
         $flashMessage = $mode === 'technician'
             ? 'Votre choix a été enregistré. Un technicien vous contactera sous 48h pour confirmer la date d\'intervention.'
             : 'Votre choix a été enregistré. Votre matériel sera livré à l\'adresse indiquée.';
@@ -155,5 +156,4 @@ class ClientInstallationChoiceController extends Controller
             ->with('installation_mode', $mode);
     }
 }
-
 

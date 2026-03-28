@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Installation;
+use App\Models\Product;
+use App\Notifications\InstallationChoiceNotification;
 use App\Services\InstallationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -245,6 +247,28 @@ class InstallationController extends Controller
                 $validated['scheduled_time'],
                 $request->get('client')
             );
+
+            // Send confirmation email for technician mode now that we have the scheduled date.
+            $client = $request->get('client');
+            if ($client && $client->getProperty('installation_mode') === 'technician' && $client->user) {
+                $feeProduct = Product::where('property_name', 'installation_mode')
+                    ->where('default_value', 'technician')
+                    ->where('name', 'Installation Technicien')
+                    ->first();
+
+                $feeAmount = ($feeProduct?->caution_price_cents ?? 50000) / 100;
+                $currency  = $installation->contract?->currency ?? 'MAD';
+
+                $client->user->notify(new InstallationChoiceNotification(
+                    clientName:            $client->full_name,
+                    installationMode:      'technician',
+                    deliveryAddress:       null,
+                    installationFeeAmount: $feeAmount,
+                    currency:              $currency,
+                    scheduledDate:         $validated['scheduled_date'],
+                    scheduledTime:         $validated['scheduled_time'],
+                ));
+            }
 
             return redirect()->route('client.home');
 

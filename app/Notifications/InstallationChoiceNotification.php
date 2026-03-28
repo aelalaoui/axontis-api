@@ -30,18 +30,28 @@ class InstallationChoiceNotification extends BaseNotification
     /** Devise */
     public string $currency;
 
+    /** Date d'intervention planifiée (mode technicien uniquement, après scheduling) */
+    public ?string $scheduledDate;
+
+    /** Heure d'intervention planifiée */
+    public ?string $scheduledTime;
+
     public function __construct(
         string  $clientName,
         string  $installationMode,
-        ?string $deliveryAddress      = null,
+        ?string $deliveryAddress       = null,
         ?float  $installationFeeAmount = null,
-        string  $currency              = 'MAD'
+        string  $currency              = 'MAD',
+        ?string $scheduledDate         = null,
+        ?string $scheduledTime         = null
     ) {
         $this->clientName             = $clientName;
         $this->installationMode       = $installationMode;
         $this->deliveryAddress        = $deliveryAddress;
         $this->installationFeeAmount  = $installationFeeAmount;
         $this->currency               = $currency;
+        $this->scheduledDate          = $scheduledDate;
+        $this->scheduledTime          = $scheduledTime;
 
         $this->subject = $installationMode === 'technician'
             ? __('Confirmation – Installation par un technicien Axontis')
@@ -56,11 +66,13 @@ class InstallationChoiceNotification extends BaseNotification
     public function getNotificationData(): array
     {
         return [
-            'client_name'              => $this->clientName,
-            'installation_mode'        => $this->installationMode,
-            'delivery_address'         => $this->deliveryAddress,
-            'installation_fee_amount'  => $this->installationFeeAmount,
-            'currency'                 => $this->currency,
+            'client_name'             => $this->clientName,
+            'installation_mode'       => $this->installationMode,
+            'delivery_address'        => $this->deliveryAddress,
+            'installation_fee_amount' => $this->installationFeeAmount,
+            'currency'                => $this->currency,
+            'scheduled_date'          => $this->scheduledDate,
+            'scheduled_time'          => $this->scheduledTime,
         ];
     }
 
@@ -74,6 +86,8 @@ class InstallationChoiceNotification extends BaseNotification
                 'deliveryAddress'       => $this->deliveryAddress,
                 'installationFeeAmount' => $this->installationFeeAmount,
                 'currency'              => $this->currency,
+                'scheduledDate'         => $this->scheduledDate,
+                'scheduledTime'         => $this->scheduledTime,
                 'companyName'           => config('app.name'),
                 'dashboardUrl'          => route('client.home'),
             ]);
