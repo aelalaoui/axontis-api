@@ -232,39 +232,93 @@
                         </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <div v-for="dev in assignedDevices" :key="dev.uuid"
-                             class="flex items-center gap-3 p-3 rounded-lg bg-success-500/5 border border-success-500/15">
-                            <div class="w-8 h-8 rounded-full bg-success-500/20 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-microchip text-success-400 text-xs"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-white truncate">{{ dev.device?.full_name || '—' }}</p>
-                                <!-- Edition SN inline pour manager/admin -->
-                                <div v-if="isPrivileged" class="mt-1.5 flex items-center gap-2">
-                                    <input
-                                        v-model="snEdits[dev.uuid]"
-                                        type="text"
-                                        :placeholder="dev.serial_number || 'SN-...'"
-                                        class="axontis-input text-xs py-1 px-2 h-6 font-mono flex-1 min-w-0"
-                                        @keydown.enter="saveSerial(dev)"
-                                    />
-                                    <button @click="saveSerial(dev)"
-                                            :disabled="savingSerial === dev.uuid || snEdits[dev.uuid] === (dev.serial_number ?? '')"
-                                            class="text-xs px-2 py-1 rounded-lg bg-primary-500/20 text-primary-300 hover:bg-primary-500/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0">
-                                        <i v-if="savingSerial === dev.uuid" class="fas fa-spinner fa-spin"></i>
-                                        <i v-else class="fas fa-save"></i>
-                                    </button>
+                    <div class="space-y-3">
+                        <div v-for="(dev, devIdx) in assignedDevices" :key="dev.uuid"
+                             class="rounded-xl border border-success-500/20 bg-success-500/5 overflow-hidden">
+
+                            <!-- En-tête équipement -->
+                            <div class="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-dark-800/30">
+                                <!-- Icône catégorie -->
+                                <div class="w-9 h-9 rounded-full bg-success-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i :class="deviceCategoryIcon(dev.device?.category)" class="text-success-400 text-sm"></i>
                                 </div>
-                                <!-- Affichage SN pour les autres rôles -->
-                                <p v-else-if="dev.serial_number" class="text-xs text-white/40 font-mono mt-0.5">
-                                    SN: {{ dev.serial_number }}
-                                </p>
-                                <p v-else class="text-xs text-white/20 mt-0.5 italic">Pas de numéro de série</p>
+                                <div class="flex-1 min-w-0">
+                                    <!-- Numéro séquentiel + nom complet -->
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-xs text-white/30 font-medium">#{{ devIdx + 1 }}</span>
+                                        <p class="text-sm font-semibold text-white truncate">
+                                            {{ dev.device?.full_name || '—' }}
+                                        </p>
+                                    </div>
+                                    <!-- Marque + Modèle + Catégorie -->
+                                    <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                                        <span v-if="dev.device?.brand"
+                                              class="text-xs text-white/50">{{ dev.device.brand }}</span>
+                                        <span v-if="dev.device?.brand && dev.device?.model"
+                                              class="text-white/20 text-xs">·</span>
+                                        <span v-if="dev.device?.model"
+                                              class="text-xs text-white/40">{{ dev.device.model }}</span>
+                                        <span v-if="dev.device?.category"
+                                              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/5 text-white/30 text-[10px] font-medium uppercase tracking-wide border border-white/10">
+                                            {{ deviceCategoryLabel(dev.device.category) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- Badge statut -->
+                                <span :class="deviceStatusBadgeClass(dev.status)"
+                                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border flex-shrink-0">
+                                    <i :class="deviceStatusIcon(dev.status)" class="text-[10px]"></i>
+                                    {{ deviceStatusLabel(dev.status) }}
+                                </span>
                             </div>
-                            <span class="text-xs px-2 py-1 rounded-lg bg-success-500/10 text-success-300 border border-success-500/20 flex-shrink-0">
-                                {{ dev.status }}
-                            </span>
+
+                            <!-- Corps : SN + Notes -->
+                            <div class="px-4 py-3 space-y-3">
+
+                                <!-- Numéro de série -->
+                                <div>
+                                    <p class="text-xs text-white/40 uppercase tracking-wider mb-1.5">
+                                        <i class="fas fa-barcode mr-1.5 text-white/20"></i>Numéro de série
+                                    </p>
+                                    <!-- Édition inline pour manager/admin -->
+                                    <div v-if="isPrivileged" class="flex items-center gap-2">
+                                        <input
+                                            v-model="snEdits[dev.uuid]"
+                                            type="text"
+                                            :placeholder="dev.serial_number || 'SN-...'"
+                                            class="axontis-input text-sm font-mono flex-1 min-w-0"
+                                            @keydown.enter="saveSerial(dev)"
+                                        />
+                                        <button
+                                            @click="saveSerial(dev)"
+                                            :disabled="savingSerial === dev.uuid || snEdits[dev.uuid] === (dev.serial_number ?? '')"
+                                            class="btn-axontis-primary text-xs py-1.5 px-3 flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
+                                            <i v-if="savingSerial === dev.uuid" class="fas fa-spinner fa-spin"></i>
+                                            <template v-else>
+                                                <i class="fas fa-save mr-1"></i>Sauvegarder
+                                            </template>
+                                        </button>
+                                    </div>
+                                    <!-- Lecture seule pour les autres rôles -->
+                                    <p v-else-if="dev.serial_number"
+                                       class="text-sm font-mono text-white bg-dark-800/50 rounded-lg px-3 py-2 border border-white/10 inline-block">
+                                        {{ dev.serial_number }}
+                                    </p>
+                                    <p v-else class="text-sm text-white/25 italic">
+                                        <i class="fas fa-minus mr-1 text-xs"></i>Pas de numéro de série
+                                    </p>
+                                </div>
+
+                                <!-- Notes de l'installation device -->
+                                <div v-if="dev.notes">
+                                    <p class="text-xs text-white/40 uppercase tracking-wider mb-1">
+                                        <i class="fas fa-sticky-note mr-1.5 text-white/20"></i>Notes
+                                    </p>
+                                    <p class="text-sm text-white/70 bg-warning-500/5 border border-warning-500/10 rounded-lg px-3 py-2">
+                                        {{ dev.notes }}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </AxontisCard>
@@ -920,6 +974,53 @@ const statusBadgeClass = s => ({
 const roleLabels = { technician: 'Technicien', operator: 'Opérateur', manager: 'Gestionnaire', administrator: 'Administrateur' }
 const roleLabel  = r => roleLabels[r] ?? r
 const formatDate = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+
+// ── Helpers équipements assignés ──────────────────────────────────────────────
+const deviceCategoryIcon = (cat) => ({
+    alarm:    'fas fa-bell',
+    camera:   'fas fa-video',
+    sensor:   'fas fa-satellite-dish',
+    access:   'fas fa-door-open',
+    network:  'fas fa-wifi',
+    repeater: 'fas fa-broadcast-tower',
+    panel:    'fas fa-shield-alt',
+    other:    'fas fa-microchip',
+}[cat] ?? 'fas fa-microchip')
+
+const deviceCategoryLabel = (cat) => ({
+    alarm:    'Alarme',
+    camera:   'Caméra',
+    sensor:   'Capteur',
+    access:   'Contrôle accès',
+    network:  'Réseau',
+    repeater: 'Répéteur',
+    panel:    'Centrale',
+    other:    'Autre',
+}[cat] ?? cat ?? '—')
+
+const deviceStatusLabel = (s) => ({
+    assigned:    'Assigné',
+    installed:   'Installé',
+    returned:    'Retourné',
+    maintenance: 'En maintenance',
+    replaced:    'Remplacé',
+}[s] ?? s ?? '—')
+
+const deviceStatusIcon = (s) => ({
+    assigned:    'fas fa-tag',
+    installed:   'fas fa-check-circle',
+    returned:    'fas fa-undo',
+    maintenance: 'fas fa-tools',
+    replaced:    'fas fa-exchange-alt',
+}[s] ?? 'fas fa-circle')
+
+const deviceStatusBadgeClass = (s) => ({
+    assigned:    'bg-primary-500/10 border-primary-500/30 text-primary-300',
+    installed:   'bg-success-500/10 border-success-500/30 text-success-300',
+    returned:    'bg-warning-500/10 border-warning-500/30 text-warning-300',
+    maintenance: 'bg-info-500/10 border-info-500/30 text-info-300',
+    replaced:    'bg-error-500/10 border-error-500/30 text-error-300',
+}[s] ?? 'bg-white/5 border-white/10 text-white/40')
 
 function extractAddressFromNotes(notes) {
     if (!notes) return ''

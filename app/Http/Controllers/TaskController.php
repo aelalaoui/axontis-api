@@ -189,6 +189,12 @@ class TaskController extends Controller
      */
     public function updateDeviceSerial(Request $request, string $uuid, string $deviceUuid)
     {
+        $user = $request->user();
+        $role = $user->role instanceof \App\Enums\UserRole ? $user->role->value : $user->role;
+        if (!in_array($role, ['manager', 'administrator'])) {
+            abort(403, 'Action réservée aux managers et administrateurs.');
+        }
+
         $request->validate([
             'serial_number' => 'nullable|string|max:191',
         ]);
@@ -212,6 +218,12 @@ class TaskController extends Controller
      */
     public function reassignTechnician(Request $request, string $uuid)
     {
+        $user = $request->user();
+        $role = $user->role instanceof \App\Enums\UserRole ? $user->role->value : $user->role;
+        if (!in_array($role, ['manager', 'administrator'])) {
+            abort(403, 'Action réservée aux managers et administrateurs.');
+        }
+
         $request->validate([
             'technician_id'  => 'required|exists:users,id',
             'scheduled_date' => 'nullable|date',
