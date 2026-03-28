@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Device;
 use App\Models\Installation;
+use App\Models\InstallationDevice;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -362,36 +364,51 @@ class TaskController extends Controller
     }
 
     /**
-     * Attache des devices à une task (InstallationDevices).
-     * Saute les devices déjà attachés pour éviter les doublons.
+     * Attache des devices à une task via InstallationDevice::create().
+     *
+     * On utilise ::create() et non attach() car :
+     * – la table installation_devices a une PK `uuid` gérée par HasUuid
+     * – attach() ne passe pas par le boot() du modèle et ne génère pas l'uuid
+     * – la relation BelongsToMany join sur device.uuid, pas device.id
+     *
+     * @param Task  $task
+     * @param array $devices  [['device_id' => int, 'serial_number' => ?, 'status' => ?, 'notes' => ?, 'properties' => []], …]
      */
     private function attachDevices(Task $task, array $devices): void
     {
+        if (empty($devices)) return;
+
+        // Résoudre les device_uuid en une seule requête (id → uuid)
+        $deviceIds  = array_unique(array_column($devices, 'device_id'));
+        $deviceUuids = Device::whereIn('id', $deviceIds)
+            ->pluck('uuid', 'id');   // [id => uuid]
+
         foreach ($devices as $deviceData) {
-            // Eviter les doublons si déjà assigné
-            $exists = $task->installationDevices()
-                ->whereHas('device', fn($q) => $q->where('id', $deviceData['device_id']))
+            $deviceId  = $deviceData['device_id'] ?? null;
+            $deviceUuid = $deviceUuids[$deviceId] ?? null;
+
+            if (!$deviceUuid) continue; // device introuvable, on saute
+
+            // Éviter les doublons (même task_uuid + device_uuid)
+            $exists = InstallationDevice::where('task_uuid', $task->uuid)
+                ->where('device_uuid', $deviceUuid)
                 ->exists();
 
             if ($exists) continue;
 
-            $task->devices()->attach($deviceData['device_id'], [
+            // HasUuid génère automatiquement l'uuid via boot()
+            $installationDevice = InstallationDevice::create([
+                'task_uuid'     => $task->uuid,
+                'device_uuid'   => $deviceUuid,
                 'serial_number' => $deviceData['serial_number'] ?? null,
                 'status'        => $deviceData['status'] ?? 'assigned',
                 'notes'         => $deviceData['notes'] ?? null,
             ]);
 
-            // Propriétés custom sur InstallationDevice
-            if (!empty($deviceData['properties'])) {
-                $installationDevice = $task->installationDevices()
-                    ->whereHas('device', fn($q) => $q->where('id', $deviceData['device_id']))
-                    ->latest()
-                    ->first();
-
-                if ($installationDevice) {
-                    foreach ($deviceData['properties'] as $key => $value) {
-                        $installationDevice->setProperty($key, $value);
-                    }
+            // Propriétés custom sur InstallationDevice (via HasProperties)
+            if (!empty($deviceData['properties']) && $installationDevice) {
+                foreach ($deviceData['properties'] as $key => $value) {
+                    $installationDevice->setProperty($key, $value);
                 }
             }
         }
