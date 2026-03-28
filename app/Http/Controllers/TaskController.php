@@ -364,7 +364,8 @@ class TaskController extends Controller
     }
 
     /**
-     * Attache des devices à une task via InstallationDevice::create().
+     * Attache des devices à une task via InstallationDevice::create()
+     * et déduit 1 unité du stock pour chaque device assigné.
      *
      * On utilise ::create() et non attach() car :
      * – la table installation_devices a une PK `uuid` gérée par HasUuid
@@ -378,20 +379,23 @@ class TaskController extends Controller
     {
         if (empty($devices)) return;
 
-        // Résoudre les device_uuid en une seule requête (id → uuid)
-        $deviceIds  = array_unique(array_column($devices, 'device_id'));
-        $deviceUuids = Device::whereIn('id', $deviceIds)
-            ->pluck('uuid', 'id');   // [id => uuid]
+        // Résoudre les device_uuid en une seule requête (id → uuid) et
+        // charger les objets Device pour pouvoir déduire le stock.
+        $deviceIds     = array_unique(array_column($devices, 'device_id'));
+        $deviceObjects = Device::whereIn('id', $deviceIds)
+            ->get()
+            ->keyBy('id');   // Collection indexée par id
 
         foreach ($devices as $deviceData) {
-            $deviceId  = $deviceData['device_id'] ?? null;
-            $deviceUuid = $deviceUuids[$deviceId] ?? null;
+            $deviceId     = $deviceData['device_id'] ?? null;
+            /** @var Device|null $device */
+            $device       = $deviceObjects[$deviceId] ?? null;
 
-            if (!$deviceUuid) continue; // device introuvable, on saute
+            if (!$device) continue; // device introuvable, on saute
 
             // Éviter les doublons (même task_uuid + device_uuid)
             $exists = InstallationDevice::where('task_uuid', $task->uuid)
-                ->where('device_uuid', $deviceUuid)
+                ->where('device_uuid', $device->uuid)
                 ->exists();
 
             if ($exists) continue;
@@ -399,11 +403,27 @@ class TaskController extends Controller
             // HasUuid génère automatiquement l'uuid via boot()
             $installationDevice = InstallationDevice::create([
                 'task_uuid'     => $task->uuid,
-                'device_uuid'   => $deviceUuid,
+                'device_uuid'   => $device->uuid,
                 'serial_number' => $deviceData['serial_number'] ?? null,
                 'status'        => $deviceData['status'] ?? 'assigned',
                 'notes'         => $deviceData['notes'] ?? null,
             ]);
+
+            // ── Déduction du stock ─────────────────────────────────────────
+            // On retire 1 unité par device assigné.
+            // removeStock() retourne false si stock < 1 (on logue un warning
+            // mais on ne bloque pas l'assignation : le technicien peut avoir
+            // du matériel physique non encore enregistré dans le système).
+            $stockDeducted = $device->removeStock(1);
+            if (!$stockDeducted) {
+                Log::warning(
+                    "TaskController: stock insuffisant pour {$device->full_name} (uuid: {$device->uuid}) " .
+                    "lors de l'assignation à la tâche {$task->uuid}. " .
+                    "Stock actuel : {$device->stock_qty}"
+                );
+                // Force la déduction même si stock ≤ 0 (stock négatif toléré)
+                $device->decrement('stock_qty');
+            }
 
             // Propriétés custom sur InstallationDevice (via HasProperties)
             if (!empty($deviceData['properties']) && $installationDevice) {

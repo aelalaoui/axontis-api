@@ -189,14 +189,19 @@
                                 <i class="fas fa-microchip text-primary-400 flex-shrink-0"></i>
                                 <div class="flex-1 min-w-0">
                                     <span class="font-medium text-white text-sm">{{ group.name }}</span>
-                                    <span v-if="group.device" class="ml-2 text-xs text-white/40">
+                                    <span v-if="group.device" class="ml-2 text-xs"
+                                          :class="group.device.stock_qty < group.quantity ? 'text-error-400 font-semibold' : 'text-white/40'">
                                         {{ group.device.full_name }}
-                                        <span :class="group.device.stock_qty > 0 ? 'text-success-400' : 'text-error-400'" class="ml-1">
-                                            (stock : {{ group.device.stock_qty }})
-                                        </span>
+                                        <span class="ml-1">(stock : {{ group.device.stock_qty }})</span>
                                     </span>
                                 </div>
-                                <span v-if="group.quantity > 1"
+                                <!-- Badge stock insuffisant -->
+                                <span v-if="!group.isTechnicianFee && group.device && group.device.stock_qty < group.quantity"
+                                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-500/15 border border-error-500/30 text-error-300 text-xs font-semibold flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle text-[10px]"></i>
+                                    Stock insuffisant ({{ group.device.stock_qty }}/{{ group.quantity }})
+                                </span>
+                                <span v-else-if="group.quantity > 1"
                                       class="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 text-xs font-semibold border border-primary-500/30">
                                     × {{ group.quantity }}
                                 </span>
@@ -358,11 +363,43 @@
                         </div>
                     </div>
 
+                    <!-- Bannière stock insuffisant -->
+                    <div v-if="hasStockIssue"
+                         class="mt-4 p-4 rounded-xl bg-error-500/10 border border-error-500/30">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-exclamation-triangle text-error-400 mt-0.5 flex-shrink-0"></i>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-error-300 mb-2">
+                                    Stock insuffisant — assignation impossible
+                                </p>
+                                <ul class="space-y-1">
+                                    <li v-for="issue in stockIssues" :key="issue.name"
+                                        class="text-xs text-error-400/80">
+                                        <span class="font-medium text-error-300">{{ issue.name }}</span> :
+                                        {{ issue.available }} disponible{{ issue.available > 1 ? 's' : '' }}
+                                        sur {{ issue.needed }} requis
+                                        <span class="text-error-500">(manque {{ issue.shortfall }})</span>
+                                    </li>
+                                </ul>
+                                <p class="text-xs text-white/40 mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Approvisionnez le stock depuis
+                                    <a href="/crm/devices" class="text-primary-400 hover:text-primary-300 underline">la gestion des équipements</a>
+                                    avant de procéder à l'assignation.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="flex justify-end mt-5">
-                        <button @click="submitTechnician" :disabled="!techForm.technician_id || submitting" class="btn-axontis-primary">
+                        <button @click="submitTechnician"
+                                :disabled="!techForm.technician_id || submitting || hasStockIssue"
+                                class="btn-axontis-primary"
+                                :class="{ 'opacity-40 cursor-not-allowed': hasStockIssue }">
                             <i v-if="submitting" class="fas fa-spinner fa-spin mr-2"></i>
+                            <i v-else-if="hasStockIssue" class="fas fa-lock mr-2"></i>
                             <i v-else class="fas fa-check mr-2"></i>
-                            {{ submitting ? 'Enregistrement...' : 'Valider l\'assignation' }}
+                            {{ submitting ? 'Enregistrement...' : hasStockIssue ? 'Stock insuffisant' : 'Valider l\'assignation' }}
                         </button>
                     </div>
                 </AxontisCard>
@@ -382,14 +419,19 @@
                                 <i class="fas fa-box text-warning-400 flex-shrink-0"></i>
                                 <div class="flex-1 min-w-0">
                                     <span class="font-medium text-white text-sm">{{ group.name }}</span>
-                                    <span v-if="group.device" class="ml-2 text-xs text-white/40">
+                                    <span v-if="group.device" class="ml-2 text-xs"
+                                          :class="group.device.stock_qty < group.quantity ? 'text-error-400 font-semibold' : 'text-white/40'">
                                         {{ group.device.full_name }}
-                                        <span :class="group.device.stock_qty > 0 ? 'text-success-400' : 'text-error-400'" class="ml-1">
-                                            (stock : {{ group.device.stock_qty }})
-                                        </span>
+                                        <span class="ml-1">(stock : {{ group.device.stock_qty }})</span>
                                     </span>
                                 </div>
-                                <span v-if="group.quantity > 1"
+                                <!-- Badge stock insuffisant -->
+                                <span v-if="group.device && group.device.stock_qty < group.quantity"
+                                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-500/15 border border-error-500/30 text-error-300 text-xs font-semibold flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle text-[10px]"></i>
+                                    Stock insuffisant ({{ group.device.stock_qty }}/{{ group.quantity }})
+                                </span>
+                                <span v-else-if="group.quantity > 1"
                                       class="px-2 py-0.5 rounded-full bg-warning-500/20 text-warning-300 text-xs font-semibold border border-warning-500/30">
                                     × {{ group.quantity }}
                                 </span>
@@ -458,11 +500,43 @@
                         </div>
                     </div>
 
+                    <!-- Bannière stock insuffisant -->
+                    <div v-if="hasStockIssue"
+                         class="mt-4 p-4 rounded-xl bg-error-500/10 border border-error-500/30">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-exclamation-triangle text-error-400 mt-0.5 flex-shrink-0"></i>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-error-300 mb-2">
+                                    Stock insuffisant — expédition impossible
+                                </p>
+                                <ul class="space-y-1">
+                                    <li v-for="issue in stockIssues" :key="issue.name"
+                                        class="text-xs text-error-400/80">
+                                        <span class="font-medium text-error-300">{{ issue.name }}</span> :
+                                        {{ issue.available }} disponible{{ issue.available > 1 ? 's' : '' }}
+                                        sur {{ issue.needed }} requis
+                                        <span class="text-error-500">(manque {{ issue.shortfall }})</span>
+                                    </li>
+                                </ul>
+                                <p class="text-xs text-white/40 mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Approvisionnez le stock depuis
+                                    <a href="/crm/devices" class="text-primary-400 hover:text-primary-300 underline">la gestion des équipements</a>
+                                    avant de procéder à l'expédition.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="flex justify-end mt-5">
-                        <button @click="submitPostal" :disabled="!postalForm.delivery_address?.trim() || submitting" class="btn-axontis-primary">
+                        <button @click="submitPostal"
+                                :disabled="!postalForm.delivery_address?.trim() || submitting || hasStockIssue"
+                                class="btn-axontis-primary"
+                                :class="{ 'opacity-40 cursor-not-allowed': hasStockIssue }">
                             <i v-if="submitting" class="fas fa-spinner fa-spin mr-2"></i>
+                            <i v-else-if="hasStockIssue" class="fas fa-lock mr-2"></i>
                             <i v-else class="fas fa-paper-plane mr-2"></i>
-                            {{ submitting ? 'Enregistrement...' : 'Valider l\'expédition' }}
+                            {{ submitting ? 'Enregistrement...' : hasStockIssue ? 'Stock insuffisant' : 'Valider l\'expédition' }}
                         </button>
                     </div>
                 </AxontisCard>
@@ -519,6 +593,24 @@ const deviceGroups = computed(() => {
 })
 
 const hasTechnicianFeeProduct = computed(() => deviceGroups.value.some(g => g.isTechnicianFee))
+
+// ── Vérification stock insuffisant ────────────────────────────────────────────
+// Pour chaque groupe avec un device physique, on vérifie que stock_qty >= quantity.
+// On utilise le stock_qty tel qu'il est renvoyé par le backend au moment du chargement
+// de la page (snapshot). Un rechargement est suggéré si on veut voir le stock à jour.
+const stockIssues = computed(() =>
+    deviceGroups.value
+        .filter(g => !g.isTechnicianFee && g.device !== null)
+        .filter(g => (g.device.stock_qty ?? 0) < g.quantity)
+        .map(g => ({
+            name:      g.name,
+            needed:    g.quantity,
+            available: g.device.stock_qty ?? 0,
+            shortfall: g.quantity - (g.device.stock_qty ?? 0),
+        }))
+)
+
+const hasStockIssue = computed(() => stockIssues.value.length > 0)
 
 // ── Init formulaires ──────────────────────────────────────────────────────────
 // On "expand" chaque sous-produit selon sa quantité :
@@ -612,7 +704,7 @@ const submitting = ref(false)
 
 // ── Submit technicien ─────────────────────────────────────────────────────────
 const submitTechnician = () => {
-    if (!techForm.value.technician_id || submitting.value) return
+    if (!techForm.value.technician_id || submitting.value || hasStockIssue.value) return
     submitting.value = true
     // Filtrer les devices "Installation Technicien" (sans device_id réel)
     const devicesToSend = techForm.value.devices
@@ -639,7 +731,7 @@ const submitTechnician = () => {
 
 // ── Submit postal ─────────────────────────────────────────────────────────────
 const submitPostal = () => {
-    if (!postalForm.value.delivery_address?.trim() || submitting.value) return
+    if (!postalForm.value.delivery_address?.trim() || submitting.value || hasStockIssue.value) return
     submitting.value = true
     const devicesToSend = postalForm.value.devices
         .filter(d => d.device_id !== null)
