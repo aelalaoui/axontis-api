@@ -131,11 +131,11 @@ class TaskController extends Controller
                         'name'          => $child->name,
                         'property_name' => $child->property_name,
                         'default_value' => $child->default_value,
-                        // quantity = default_value si c'est un entier > 1 (mainDoors=1, auxiliaryEntries=2, etc.)
-                        // Pour les non-numériques (installation_mode='technician') quantity = 1
-                        'quantity'      => is_numeric($child->default_value) && (int)$child->default_value > 1
-                                            ? (int)$child->default_value
-                                            : 1,
+                        'quantity'      => self::resolveQuantity(
+                                                $child->property_name,
+                                                $child->default_value,
+                                                $child->device
+                                            ),
                         'device'        => $child->device ? [
                             'id'        => $child->device->id,
                             'uuid'      => $child->device->uuid,
@@ -145,7 +145,16 @@ class TaskController extends Controller
                             'stock_qty' => $child->device->stock_qty,
                             'full_name' => $child->device->full_name,
                         ] : null,
-                    ])->values()->all();
+                    ])
+                    // Exclure les sous-produits sans device ET sans logique d'assignation physique
+                    // (Wifi, hasWifi, hasExisting*, etc.) → device null ET pas isTechnicianFee
+                    ->filter(fn($item) =>
+                        $item['device'] !== null
+                        || ($item['property_name'] === 'installation_mode' && $item['default_value'] === 'technician')
+                    )
+                    // Exclure les sous-produits dont la quantité résolue = 0 (ex: Répéteur 0-100)
+                    ->filter(fn($item) => $item['quantity'] > 0)
+                    ->values()->all();
             }
         }
 
@@ -386,6 +395,75 @@ class TaskController extends Controller
                 }
             }
         }
+    }
+
+    /**
+     * Résout la quantité d'unités physiques à assigner pour un sous-produit.
+     *
+     * Règles issues de la migration des produits :
+     *
+     * – mainDoors, auxiliaryEntries, fireSensors, floodSensors
+     *     default_value est l'entier = nombre d'appareils (1, 2, 3…)
+     *
+     * – propertySize (Répéteur)
+     *     plage string → quantité de répéteurs nécessaires :
+     *       '0-100'   → 0   (aucun répéteur)
+     *       '100-200' → 0   (aucun répéteur)
+     *       '200-300' → 1
+     *       '300-400' → 1
+     *       '400-500' → 2
+     *       '500-1000'→ 3
+     *
+     * – propertyType (alarm panel)
+     *     toujours 1 unité physique quelle que soit la valeur (bureau, villa…)
+     *
+     * – installation_mode = 'technician'
+     *     sous-produit frais technicien, pas de device → quantity = 1 (pour l'affichage)
+     *
+     * – tout le reste (hasWifi, hasExisting*, …) sans device → 0 (exclu de l'affichage)
+     */
+    private static function resolveQuantity(
+        ?string $propertyName,
+        mixed   $defaultValue,
+        mixed   $device
+    ): int {
+        // Sous-produits avec quantité entière directe
+        $quantityProperties = ['mainDoors', 'auxiliaryEntries', 'fireSensors', 'floodSensors'];
+        if (in_array($propertyName, $quantityProperties)) {
+            $qty = (int) $defaultValue;
+            return $qty > 0 ? $qty : 1;
+        }
+
+        // Répéteur : plage de surface → nombre de répéteurs
+        if ($propertyName === 'propertySize') {
+            return match ((string) $defaultValue) {
+                '0-100'    => 0,
+                '100-200'  => 0,
+                '200-300'  => 1,
+                '300-400'  => 1,
+                '400-500'  => 2,
+                '500-1000' => 3,
+                default    => 1,
+            };
+        }
+
+        // Alarm panel : toujours 1 unité physique
+        if ($propertyName === 'propertyType') {
+            return 1;
+        }
+
+        // "Installation Technicien" : sous-produit sans device, mais à afficher
+        if ($propertyName === 'installation_mode' && $defaultValue === 'technician') {
+            return 1;
+        }
+
+        // Sous-produit avec device mais property_name non reconnu → 1 par défaut
+        if ($device !== null) {
+            return 1;
+        }
+
+        // Pas de device, pas de logique connue (Wifi, hasExisting*, …) → exclu
+        return 0;
     }
 
     /**
