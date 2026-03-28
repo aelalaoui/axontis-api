@@ -30,6 +30,7 @@ Route::post('/contract/generate/client/{uuid}', [\App\Http\Controllers\ContractC
 
 // Payment routes - PCI-DSS compliant (no card data processed by backend)
 Route::post('/payments/deposit/init', [\App\Http\Controllers\PaymentController::class, 'initializePayment']);
+Route::post('/payments/installation-fee/init', [\App\Http\Controllers\PaymentController::class, 'initializeInstallationFeePayment']);
 Route::get('/payments/{paymentUuid}', [\App\Http\Controllers\PaymentController::class, 'getPaymentDetails']);
 Route::post('/payments/{paymentUuid}/refund', [\App\Http\Controllers\PaymentController::class, 'refundPayment']);
 

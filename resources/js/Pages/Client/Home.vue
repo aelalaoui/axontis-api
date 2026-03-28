@@ -1,5 +1,5 @@
 <script setup>
-import {Head, Link} from '@inertiajs/vue3';
+import {Head, Link, usePage} from '@inertiajs/vue3';
 import {computed} from 'vue';
 import AppHeader from '@/Components/AppHeader.vue';
 import AppFooter from '@/Components/AppFooter.vue';
@@ -14,6 +14,10 @@ const props = defineProps({
         default: () => []
     }
 });
+
+const page = usePage();
+const installationChoiceSuccess = computed(() => page.props.flash?.installation_choice_success ?? null);
+const installationMode          = computed(() => page.props.flash?.installation_mode ?? null);
 
 /**
  * Check if a scheduled date is in the past
@@ -75,6 +79,28 @@ const hasScheduledContracts = computed(() => {
 
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+
+            <!-- ✅ Installation choice confirmation banner (flash, shown once) -->
+            <div v-if="installationChoiceSuccess"
+                 class="mb-8 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-2xl p-6 border border-green-500/30">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 bg-green-500/30 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                             stroke-linejoin="round" class="text-green-300">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-bold text-green-100 mb-1">
+                            {{ installationMode === 'technician' ? '🔧 Installation par technicien confirmée' : '📦 Livraison confirmée' }}
+                        </h2>
+                        <p class="text-green-100/80">{{ installationChoiceSuccess }}</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Scheduled Installation Alert -->
             <div v-if="hasScheduledContracts" class="mb-8 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-2xl p-6 border border-green-500/30">
                 <div class="flex items-start gap-4">

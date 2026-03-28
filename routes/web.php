@@ -199,6 +199,12 @@ Route::middleware([
             Route::get('/', [\App\Http\Controllers\ClientController::class, 'home'])
                 ->name('home');
 
+            // Installation mode choice (onboarding – first login)
+            Route::get('/installation-setup', [\App\Http\Controllers\ClientInstallationChoiceController::class, 'show'])
+                ->name('installation-setup');
+            Route::post('/installation-setup', [\App\Http\Controllers\ClientInstallationChoiceController::class, 'store'])
+                ->name('installation-setup.store');
+
             // Contract routes
             Route::get('/contracts', [\App\Http\Controllers\ContractController::class, 'index'])
                 ->name('contracts.index');

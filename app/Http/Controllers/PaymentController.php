@@ -74,6 +74,59 @@ class PaymentController extends Controller
     }
 
     /**
+     * Initialize payment intent for the technician installation fee (500 DH).
+     * POST /api/payments/installation-fee/init
+     */
+    public function initializeInstallationFeePayment(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'client_uuid'   => 'required|string|exists:clients,uuid',
+            'contract_uuid' => 'required|string|exists:contracts,uuid',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $result = $this->paymentService->initializeInstallationFeePayment(
+                $request->client_uuid,
+                $request->contract_uuid
+            );
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'data'    => $result['data'],
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Payment initialization failed',
+                'error'   => $result['error'] ?? null,
+            ], 400);
+
+        } catch (\Exception $e) {
+            Log::error('Installation fee payment initialization failed', [
+                'exception' => $e->getMessage(),
+                'trace'     => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment initialization failed',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Handle Stripe webhook
      * POST /api/webhooks/stripe
      */

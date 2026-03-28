@@ -52,10 +52,11 @@ class StripeProvider implements PaymentProviderInterface
                     'enabled' => true,
                 ],
                 'metadata' => [
-                    'payment_uuid' => $data['payment_uuid'] ?? null,
+                    'payment_uuid'  => $data['payment_uuid'] ?? null,
                     'contract_uuid' => $data['contract_uuid'] ?? null,
-                    'client_uuid' => $data['client_uuid'] ?? null,
-                    'description' => $data['description'] ?? 'Payment',
+                    'client_uuid'   => $data['client_uuid'] ?? null,
+                    'description'   => $data['description'] ?? 'Payment',
+                    'payment_type'  => $data['payment_type'] ?? 'deposit',
                 ],
             ]);
 
@@ -196,9 +197,10 @@ class StripeProvider implements PaymentProviderInterface
      */
     protected function handlePaymentIntentSucceeded($paymentIntent): void
     {
-        $paymentUuid = $paymentIntent->metadata->payment_uuid ?? null;
+        $paymentUuid  = $paymentIntent->metadata->payment_uuid ?? null;
         $contractUuid = $paymentIntent->metadata->contract_uuid ?? null;
-        $clientUuid = $paymentIntent->metadata->client_uuid ?? null;
+        $clientUuid   = $paymentIntent->metadata->client_uuid ?? null;
+        $paymentType  = $paymentIntent->metadata->payment_type ?? null;
 
         if (is_null($paymentUuid)) {
             Log::warning('Payment UUID not found in PaymentIntent metadata', [
@@ -212,7 +214,7 @@ class StripeProvider implements PaymentProviderInterface
 
         if (is_null($payment)) {
             Log::error('Payment not found', [
-                'payment_uuid' => $paymentUuid,
+                'payment_uuid'      => $paymentUuid,
                 'payment_intent_id' => $paymentIntent->id,
             ]);
             return;
@@ -220,26 +222,36 @@ class StripeProvider implements PaymentProviderInterface
 
         // Update payment status
         $payment->update([
-            'status' => 'successful',
-            'transaction_id' => $paymentIntent->id,
-            'payment_date' => now(),
+            'status'            => 'successful',
+            'transaction_id'    => $paymentIntent->id,
+            'payment_date'      => now(),
             'provider_response' => json_encode([
                 'payment_intent_id' => $paymentIntent->id,
-                'status' => $paymentIntent->status,
-                'amount_received' => $paymentIntent->amount_received / 100,
-                'charges' => $paymentIntent->charges->data ?? [],
+                'status'            => $paymentIntent->status,
+                'amount_received'   => $paymentIntent->amount_received / 100,
+                'charges'           => $paymentIntent->charges->data ?? [],
             ]),
         ]);
 
         Log::info('Payment marked as successful', [
-            'payment_uuid' => $paymentUuid,
+            'payment_uuid'      => $paymentUuid,
             'payment_intent_id' => $paymentIntent->id,
+            'payment_type'      => $paymentType,
         ]);
 
-        // Update contract and client status
+        // For installation fee payments, do NOT change contract/client status
+        // (those are already active from the initial subscription payment).
+        if ($paymentType === 'installation_fee') {
+            Log::info('Installation fee payment – skipping contract/client status update', [
+                'payment_uuid' => $paymentUuid,
+            ]);
+            return;
+        }
+
+        // Update contract and client status (initial subscription payment)
         if ($contractUuid && $clientUuid) {
             $contract = Contract::fromUuid($contractUuid);
-            $client = Client::fromUuid($clientUuid);
+            $client   = Client::fromUuid($clientUuid);
 
             if (!is_null($contract)) {
                 $contract->update(['status' => ContractStatus::PAID->value]);

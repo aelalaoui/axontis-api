@@ -445,10 +445,18 @@ class ClientController extends Controller
      * Display the client security dashboard.
      * Protected by client.active middleware ensuring only clients with active status can access.
      */
-    public function home(Request $request): Response
+    public function home(Request $request): Response|RedirectResponse
     {
         /** @var Client $client */
         $client = $request->get('client');
+
+        // First-login onboarding: redirect to installation mode choice if not done yet
+        if (
+            $client->step->value === ClientStep::SCHEDULE_STEP->value
+            && !$client->getProperty('installation_mode')
+        ) {
+            return redirect()->route('client.installation-setup');
+        }
 
         // Load client relationships
         $client->load(['contracts']);

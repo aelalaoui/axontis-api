@@ -6,6 +6,7 @@ use App\Managers\PaymentManager;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Payment;
+use App\Models\Product;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
@@ -133,6 +134,107 @@ class PaymentService
                 'success' => false,
                 'message' => 'Payment initialization error',
                 'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Initialize payment intent for the technician installation fee (500 DH).
+     * The amount is read from the 'Installation Technicien' sub-product so it
+     * is always up-to-date without hard-coding.
+     */
+    public function initializeInstallationFeePayment(string $clientUuid, string $contractUuid): array
+    {
+        try {
+            $client   = Client::where('uuid', $clientUuid)->first();
+            $contract = Contract::where('uuid', $contractUuid)->first();
+
+            if (!$client) {
+                return ['success' => false, 'message' => 'Client not found'];
+            }
+            if (!$contract) {
+                return ['success' => false, 'message' => 'Contract not found'];
+            }
+            if ($contract->client_uuid !== $client->uuid) {
+                return ['success' => false, 'message' => 'Contract does not belong to this client'];
+            }
+
+            // Resolve amount from the dedicated sub-product
+            $feeProduct = Product::where('property_name', 'installation_mode')
+                ->where('default_value', 'technician')
+                ->where('name', 'Installation Technicien')
+                ->first();
+
+            $amountCents = $feeProduct?->caution_price_cents ?? 50000; // fallback 500 DH
+            $amount      = $amountCents / 100;
+            $currency    = $contract->currency ?? 'MAD';
+
+            // Create a pending payment linked to the contract
+            $payment = Payment::create([
+                'contract_uuid' => $contract->uuid,
+                'amount'        => $amount,
+                'currency'      => $currency,
+                'status'        => 'pending',
+                'method'        => 'card',
+                'notes'         => 'installation_fee',
+            ]);
+
+            $provider       = $this->paymentManager->getProvider();
+            $intentResponse = $provider->createPaymentIntent([
+                'amount'        => $amount,
+                'currency'      => $currency,
+                'payment_uuid'  => $payment->uuid,
+                'contract_uuid' => $contract->uuid,
+                'client_uuid'   => $client->uuid,
+                'payment_type'  => 'installation_fee',
+                'description'   => "Frais d'installation technicien – contrat {$contract->uuid}",
+            ]);
+
+            if (!$intentResponse['success']) {
+                $payment->update(['status' => 'failed']);
+                return [
+                    'success' => false,
+                    'message' => $intentResponse['message'] ?? 'Failed to create payment intent',
+                    'error'   => $intentResponse['error'] ?? null,
+                ];
+            }
+
+            $payment->update([
+                'transaction_id'   => $intentResponse['payment_intent_id'],
+                'provider_response' => json_encode($intentResponse),
+            ]);
+
+            Log::info('Installation fee payment initialized', [
+                'payment_uuid'      => $payment->uuid,
+                'payment_intent_id' => $intentResponse['payment_intent_id'],
+                'client_uuid'       => $clientUuid,
+                'contract_uuid'     => $contractUuid,
+                'amount'            => $amount,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Installation fee payment intent created successfully',
+                'data'    => [
+                    'payment_uuid'      => $payment->uuid,
+                    'client_secret'     => $intentResponse['client_secret'],
+                    'payment_intent_id' => $intentResponse['payment_intent_id'],
+                    'amount'            => $amount,
+                    'currency'          => $currency,
+                    'stripe_public_key' => config('services.stripe.key'),
+                ],
+            ];
+
+        } catch (Exception $e) {
+            Log::error('Installation fee payment initialization error', [
+                'exception'     => $e->getMessage(),
+                'client_uuid'   => $clientUuid,
+                'contract_uuid' => $contractUuid,
+            ]);
+            return [
+                'success' => false,
+                'message' => 'Payment initialization error',
+                'error'   => $e->getMessage(),
             ];
         }
     }
