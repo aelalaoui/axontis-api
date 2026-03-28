@@ -116,6 +116,10 @@ Route::middleware([
                 ->name('tasks.assign-technician');
             Route::patch('tasks/{uuid}/assign-postal', [\App\Http\Controllers\TaskController::class, 'assignPostal'])
                 ->name('tasks.assign-postal');
+            Route::patch('tasks/{uuid}/reassign-technician', [\App\Http\Controllers\TaskController::class, 'reassignTechnician'])
+                ->name('tasks.reassign-technician');
+            Route::patch('tasks/{uuid}/device/{deviceUuid}/serial', [\App\Http\Controllers\TaskController::class, 'updateDeviceSerial'])
+                ->name('tasks.device-serial');
 
             Route::get('clients', [\App\Http\Controllers\ClientController::class, 'index'])
                 ->name('clients.index');

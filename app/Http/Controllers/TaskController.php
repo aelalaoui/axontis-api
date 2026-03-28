@@ -184,6 +184,62 @@ class TaskController extends Controller
     }
 
     /**
+     * PATCH /crm/tasks/{uuid}/device/{deviceUuid}/serial
+     * Met à jour le numéro de série d'un InstallationDevice (manager/administrator seulement).
+     */
+    public function updateDeviceSerial(Request $request, string $uuid, string $deviceUuid)
+    {
+        $request->validate([
+            'serial_number' => 'nullable|string|max:191',
+        ]);
+
+        $installationDevice = InstallationDevice::where('uuid', $deviceUuid)
+            ->whereHas('task', fn($q) => $q->where('uuid', $uuid))
+            ->firstOrFail();
+
+        $installationDevice->update([
+            'serial_number' => $request->serial_number,
+        ]);
+
+        return redirect()
+            ->route('crm.tasks.show', $uuid)
+            ->with('success', 'Numéro de série mis à jour.');
+    }
+
+    /**
+     * PATCH /crm/tasks/{uuid}/reassign-technician
+     * Réassigne le technicien d'une tâche (manager/administrator seulement).
+     */
+    public function reassignTechnician(Request $request, string $uuid)
+    {
+        $request->validate([
+            'technician_id'  => 'required|exists:users,id',
+            'scheduled_date' => 'nullable|date',
+            'scheduled_time' => 'nullable|date_format:H:i',
+        ]);
+
+        $task = Task::where('uuid', $uuid)->firstOrFail();
+
+        DB::transaction(function () use ($request, $task) {
+            $task->update([
+                'user_id'        => $request->technician_id,
+                'scheduled_date' => $request->scheduled_date ?? $task->scheduled_date,
+            ]);
+
+            if ($task->taskable instanceof Installation && $request->scheduled_date) {
+                $task->taskable->update([
+                    'scheduled_date' => $request->scheduled_date,
+                    'scheduled_time' => $request->scheduled_time,
+                ]);
+            }
+        });
+
+        return redirect()
+            ->route('crm.tasks.show', $uuid)
+            ->with('success', 'Technicien réassigné avec succès.');
+    }
+
+    /**
      * PATCH /crm/tasks/{uuid}/assign-technician
      * Assigne un technicien + date à une tâche de type "technician".
      */
@@ -393,9 +449,23 @@ class TaskController extends Controller
 
             if (!$device) continue; // device introuvable, on saute
 
-            // Éviter les doublons (même task_uuid + device_uuid)
+            // Éviter les vrais doublons : même task + même device + même serial_number
+            // Si serial_number diffère (ou est null), c'est une unité distincte → on l'insère.
+            // Cas : auxiliaryEntries × 2 → 2 lignes avec le même device_uuid mais SN différents.
+            $serialNumber = $deviceData['serial_number'] ?? null;
+
             $exists = InstallationDevice::where('task_uuid', $task->uuid)
                 ->where('device_uuid', $device->uuid)
+                ->where(function ($q) use ($serialNumber) {
+                    if ($serialNumber !== null && $serialNumber !== '') {
+                        // Doublon exact : même SN → on saute
+                        $q->where('serial_number', $serialNumber);
+                    } else {
+                        // SN vide : on vérifie s'il existe déjà une ligne sans SN
+                        // pour ce même device (limite 1 ligne sans SN par device)
+                        $q->whereNull('serial_number')->orWhere('serial_number', '');
+                    }
+                })
                 ->exists();
 
             if ($exists) continue;
