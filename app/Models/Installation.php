@@ -48,7 +48,7 @@ class Installation extends Model
      */
     public function tasks(): MorphMany
     {
-        return $this->morphMany(Task::class, 'taskable');
+        return $this->morphMany(Task::class, 'taskable', 'taskable_type', 'taskable_uuid', 'uuid');
     }
 
 
