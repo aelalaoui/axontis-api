@@ -31,8 +31,8 @@ class ClientAlarmDashboardController extends Controller
 
         // Centrales alarme via la chaîne correcte Installation → Task → InstallationDevice
         $installationDevices = InstallationDevice::alarmPanels()
-            ->whereHas('task', function ($q) use ($installationIds) {
-                $q->whereIn('taskable_id', $installationIds)
+            ->whereHas('task', function ($q) use ($installationUuids) {
+                $q->whereIn('taskable_uuid', $installationUuids)
                   ->where('taskable_type', Installation::class);
             })
             ->with(['device', 'properties', 'task.taskable'])

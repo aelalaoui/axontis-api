@@ -196,7 +196,7 @@ class ClientAlarmDeviceController extends Controller
         return InstallationDevice::alarmPanels()
             ->where('uuid', $uuid)
             ->whereHas('task', function ($q) use ($installation) {
-                $q->where('taskable_id', $installation->id)
+                $q->where('taskable_uuid', $installation->uuid)
                   ->where('taskable_type', Installation::class);
             })
             ->with(['device', 'task.taskable'])

@@ -83,7 +83,7 @@ class InstallationAssignmentController extends Controller
                 // Create the Task linked to this installation
                 $task = Task::create([
                     'taskable_type'  => Installation::class,
-                    'taskable_id'    => $installation->id,
+                    'taskable_uuid'  => $installation->uuid,
                     'address'        => $installation->address ?? '',
                     'type'           => 'installation',
                     'status'         => 'scheduled',
