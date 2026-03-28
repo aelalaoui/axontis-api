@@ -116,11 +116,11 @@
                         <p class="text-sm">Toutes les tâches sont assignées 🎉</p>
                     </div>
                     <div v-else class="space-y-2">
-                        <div
+                        <Link
                             v-for="task in pendingTasks"
                             :key="task.uuid"
-                            class="flex items-start gap-3 p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200 cursor-pointer group"
-                            @click="openTaskPanel(task)"
+                            :href="route('crm.tasks.show', task.uuid)"
+                            class="flex items-start gap-3 p-3 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200 group"
                         >
                             <!-- Icône mode -->
                             <div
@@ -157,7 +157,7 @@
                                 </span>
                                 <i class="fas fa-arrow-right text-white/20 group-hover:text-primary-400 transition-colors text-xs mt-0.5"></i>
                             </div>
-                        </div>
+                        </Link>
                     </div>
                     <template #footer>
                         <Link href="/crm/tasks" class="text-primary-400 hover:text-primary-300 text-sm">
@@ -168,23 +168,6 @@
             </div>
         </div>
     </AxontisDashboardLayout>
-
-    <!-- Panels right-menu (ouverts depuis le widget tâches) -->
-    <InstallationAssignmentPanel
-        :show="showTechnicianPanel"
-        :task="selectedTask"
-        :sub-products="[]"
-        @close="closeTaskPanel"
-        @assigned="() => { closeTaskPanel(); loadPendingTasks() }"
-    />
-
-    <PostalAssignmentPanel
-        :show="showPostalPanel"
-        :task="selectedTask"
-        :sub-products="[]"
-        @close="closeTaskPanel"
-        @assigned="() => { closeTaskPanel(); loadPendingTasks() }"
-    />
 </template>
 
 <script setup>
@@ -194,8 +177,6 @@ import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
 import AxontisStatCard from '@/Components/AxontisStatCard.vue'
 import AxontisChartCard from '@/Components/AxontisChartCard.vue'
-import InstallationAssignmentPanel from '@/Components/right-menu/InstallationAssignmentPanel.vue'
-import PostalAssignmentPanel from '@/Components/right-menu/PostalAssignmentPanel.vue'
 
 const page = usePage()
 
@@ -283,23 +264,7 @@ const pendingTasks = ref([])
 const pendingTasksLoading = ref(false)
 
 // Panel state pour ouvrir les panneaux depuis le widget
-const showTechnicianPanel = ref(false)
-const showPostalPanel     = ref(false)
-const selectedTask        = ref(null)
-
-const openTaskPanel = (task) => {
-    selectedTask.value = task
-    if (task.installation_mode === 'self') {
-        showPostalPanel.value = true
-    } else {
-        showTechnicianPanel.value = true
-    }
-}
-const closeTaskPanel = () => {
-    showTechnicianPanel.value = false
-    showPostalPanel.value     = false
-    selectedTask.value        = null
-}
+// (Supprimé - navigation directe vers /crm/tasks/{uuid})
 
 // Methods
 const onRevenueViewChanged = (view) => {

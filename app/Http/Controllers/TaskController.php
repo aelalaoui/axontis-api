@@ -28,7 +28,8 @@ class TaskController extends Controller
 
         $query = Task::with([
             'user:id,name,role',
-            'taskable',
+            'taskable.client.properties',
+            'taskable.contract',
             'installationDevices',
         ])->withCount('installationDevices');
 
@@ -98,6 +99,75 @@ class TaskController extends Controller
     }
 
     /**
+     * GET /crm/tasks/{uuid}
+     * Affiche le détail d'une tâche avec tout le contexte pour traitement.
+     */
+    public function show(string $uuid)
+    {
+        $task = Task::with([
+            'user:id,name,role',
+            'taskable.client.properties',
+            'taskable.contract.product.children.device',
+            'installationDevices.device',
+        ])->where('uuid', $uuid)->firstOrFail();
+
+        $data = $this->transformTask($task);
+
+        // Enrichir avec les sous-produits du contrat
+        $subProducts = [];
+        if ($task->taskable instanceof Installation && $task->taskable->contract) {
+            $contract = $task->taskable->contract;
+            $client   = $task->taskable->client;
+
+            if ($contract->product) {
+                $subProducts = $contract->product->children
+                    ->filter(function ($child) use ($client) {
+                        if (!$child->property_name) return true;
+                        $val = $client?->getProperty($child->property_name);
+                        return $val !== null && $val == $child->default_value;
+                    })
+                    ->map(fn($child) => [
+                        'id'            => $child->id,
+                        'name'          => $child->name,
+                        'property_name' => $child->property_name,
+                        'default_value' => $child->default_value,
+                        'device'        => $child->device ? [
+                            'id'        => $child->device->id,
+                            'uuid'      => $child->device->uuid,
+                            'brand'     => $child->device->brand,
+                            'model'     => $child->device->model,
+                            'category'  => $child->device->category,
+                            'stock_qty' => $child->device->stock_qty,
+                            'full_name' => $child->device->full_name,
+                        ] : null,
+                    ])->values()->all();
+            }
+        }
+
+        // Devices déjà attachés à cette tâche
+        $assignedDevices = $task->installationDevices->map(fn($id) => [
+            'uuid'          => $id->uuid,
+            'serial_number' => $id->serial_number,
+            'status'        => $id->status,
+            'notes'         => $id->notes,
+            'device'        => $id->device ? [
+                'id'       => $id->device->id,
+                'brand'    => $id->device->brand,
+                'model'    => $id->device->model,
+                'category' => $id->device->category,
+                'full_name'=> $id->device->full_name,
+            ] : null,
+        ])->all();
+
+        return Inertia::render('CRM/Tasks/Show', [
+            'task'            => $data,
+            'subProducts'     => $subProducts,
+            'assignedDevices' => $assignedDevices,
+            'staff'           => $this->getStaff(),
+        ]);
+    }
+
+    /**
      * PATCH /crm/tasks/{uuid}/assign-technician
      * Assigne un technicien + date à une tâche de type "technician".
      */
@@ -129,10 +199,14 @@ class TaskController extends Controller
                 $this->attachDevices($task, $request->devices);
             });
 
-            return back()->with('success', 'Technicien assigné avec succès.');
+            return redirect()
+                ->route('crm.tasks.show', $uuid)
+                ->with('success', 'Technicien assigné avec succès.');
         } catch (\Exception $e) {
             Log::error('TaskController::assignTechnician failed: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Erreur : ' . $e->getMessage()]);
+            return redirect()
+                ->route('crm.tasks.show', $uuid)
+                ->withErrors(['error' => 'Erreur : ' . $e->getMessage()]);
         }
     }
 
@@ -176,10 +250,14 @@ class TaskController extends Controller
                 $this->attachDevices($task, $request->devices);
             });
 
-            return back()->with('success', 'Expédition enregistrée avec succès.');
+            return redirect()
+                ->route('crm.tasks.show', $uuid)
+                ->with('success', 'Expédition enregistrée avec succès.');
         } catch (\Exception $e) {
             Log::error('TaskController::assignPostal failed: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Erreur : ' . $e->getMessage()]);
+            return redirect()
+                ->route('crm.tasks.show', $uuid)
+                ->withErrors(['error' => 'Erreur : ' . $e->getMessage()]);
         }
     }
 
@@ -192,17 +270,20 @@ class TaskController extends Controller
         $deliveryAddress  = null;
         $clientName       = null;
         $clientUuid       = null;
+        $clientEmail      = null;
+        $clientPhone      = null;
         $contractUuid     = null;
 
         if ($task->taskable instanceof Installation) {
             $installation = $task->taskable;
-            $installation->loadMissing('client.properties', 'contract');
 
             if ($installation->client) {
                 $installationMode = $installation->client->getProperty('installation_mode');
                 $deliveryAddress  = $installation->client->getProperty('delivery_address');
                 $clientName       = $installation->client->full_name;
                 $clientUuid       = $installation->client->uuid;
+                $clientEmail      = $installation->client->email;
+                $clientPhone      = $installation->client->phone;
             }
 
             if ($installation->contract) {
@@ -219,10 +300,12 @@ class TaskController extends Controller
             'scheduled_date'    => $task->scheduled_date?->format('Y-m-d'),
             'is_overdue'        => $task->is_overdue,
             'created_at'        => $task->created_at->format('Y-m-d H:i'),
-            'installation_mode' => $installationMode, // 'technician' | 'self' | null
+            'installation_mode' => $installationMode,
             'delivery_address'  => $deliveryAddress,
             'client_name'       => $clientName,
             'client_uuid'       => $clientUuid,
+            'client_email'      => $clientEmail,
+            'client_phone'      => $clientPhone,
             'contract_uuid'     => $contractUuid,
             'technician'        => $task->user ? [
                 'id'   => $task->user->id,
@@ -290,5 +373,10 @@ class TaskController extends Controller
             ->toArray();
     }
 }
+
+
+
+
+
 
 

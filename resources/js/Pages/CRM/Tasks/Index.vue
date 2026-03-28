@@ -194,11 +194,11 @@
                             <!-- Action -->
                             <td class="py-3 px-4">
                                 <button
-                                    @click="openPanel(task)"
+                                    @click="openTask(task)"
                                     class="opacity-0 group-hover:opacity-100 transition-opacity btn-axontis-secondary text-xs py-1.5 px-3"
                                 >
                                     <i class="fas fa-arrow-right mr-1.5"></i>
-                                    {{ task.installation_mode === 'self' ? 'Expédier' : 'Assigner' }}
+                                    Traiter
                                 </button>
                             </td>
                         </tr>
@@ -241,23 +241,6 @@
             </div>
         </AxontisCard>
 
-        <!-- Panels right-menu -->
-        <InstallationAssignmentPanel
-            :show="showTechnicianPanel"
-            :task="selectedTask"
-            :sub-products="subProducts"
-            @close="closePanel"
-            @assigned="onAssigned"
-        />
-
-        <PostalAssignmentPanel
-            :show="showPostalPanel"
-            :task="selectedTask"
-            :sub-products="subProducts"
-            @close="closePanel"
-            @assigned="onAssigned"
-        />
-
     </AxontisDashboardLayout>
 </template>
 
@@ -266,9 +249,6 @@ import {computed, ref} from 'vue'
 import {router} from '@inertiajs/vue3'
 import AxontisDashboardLayout from '@/Layouts/AxontisDashboardLayout.vue'
 import AxontisCard from '@/Components/AxontisCard.vue'
-import InstallationAssignmentPanel from '@/Components/right-menu/InstallationAssignmentPanel.vue'
-import PostalAssignmentPanel from '@/Components/right-menu/PostalAssignmentPanel.vue'
-import axios from 'axios'
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 const props = defineProps({
@@ -341,50 +321,9 @@ const pageNumbers = computed(() => {
     return pages
 })
 
-// ── Panel state ───────────────────────────────────────────────────────────────
-const showTechnicianPanel = ref(false)
-const showPostalPanel     = ref(false)
-const selectedTask        = ref(null)
-const subProducts         = ref([])
-const loadingSubProducts  = ref(false)
-
-const openPanel = async (task) => {
-    selectedTask.value = task
-    // Charger les sous-produits via le contrat de la taskable
-    await loadSubProducts(task)
-
-    if (task.installation_mode === 'self') {
-        showPostalPanel.value = true
-    } else {
-        showTechnicianPanel.value = true
-    }
-}
-
-const closePanel = () => {
-    showTechnicianPanel.value = false
-    showPostalPanel.value     = false
-    selectedTask.value        = null
-}
-
-const onAssigned = () => {
-    router.reload({ only: ['tasks', 'pendingCount'] })
-}
-
-const loadSubProducts = async (task) => {
-    if (!task.contract_uuid) {
-        subProducts.value = []
-        return
-    }
-    loadingSubProducts.value = true
-    try {
-        // Réutiliser l'API de contrat si elle existe, sinon retourner tableau vide
-        const { data } = await axios.get(`/crm/api/contracts/${task.contract_uuid}/sub-products`).catch(() => ({ data: { sub_products: [] } }))
-        subProducts.value = data.sub_products ?? []
-    } catch {
-        subProducts.value = []
-    } finally {
-        loadingSubProducts.value = false
-    }
+// ── Navigation vers le show ───────────────────────────────────────────────────
+const openTask = (task) => {
+    router.visit(route('crm.tasks.show', task.uuid))
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -402,5 +341,9 @@ const formatDate = (d) => {
     return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 </script>
+
+
+
+
 
 

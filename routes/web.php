@@ -110,6 +110,8 @@ Route::middleware([
             // CRM Tasks Routes
             Route::get('tasks', [\App\Http\Controllers\TaskController::class, 'index'])
                 ->name('tasks.index');
+            Route::get('tasks/{uuid}', [\App\Http\Controllers\TaskController::class, 'show'])
+                ->name('tasks.show');
             Route::patch('tasks/{uuid}/assign-technician', [\App\Http\Controllers\TaskController::class, 'assignTechnician'])
                 ->name('tasks.assign-technician');
             Route::patch('tasks/{uuid}/assign-postal', [\App\Http\Controllers\TaskController::class, 'assignPostal'])
