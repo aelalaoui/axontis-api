@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Communication;
@@ -242,7 +243,12 @@ class DashboardController extends Controller
         try {
             $user = $request->user();
 
-            $restrictedRoles = ['technician', 'operator', 'accountant', 'storekeeper'];
+            $restrictedRoles = [
+                UserRole::OPERATOR,
+                UserRole::STOREKEEPER,
+                UserRole::ACCOUNTANT,
+                UserRole::TECHNICIAN
+            ];
             $isRestricted    = $user && in_array($user->role, $restrictedRoles);
 
             $query = Task::with(['user:id,name', 'taskable'])
@@ -255,11 +261,7 @@ class DashboardController extends Controller
                       ->orderBy('created_at', 'desc');
             } else {
                 // Managers / admins : tâches non-assignées en priorité
-                $query->where(function ($q) {
-                            $q->whereNull('user_id')
-                              ->orWhere('status', 'scheduled');
-                        })
-                      ->orderByRaw("CASE WHEN user_id IS NULL THEN 0 ELSE 1 END")
+                $query->orderByRaw("CASE WHEN user_id IS NULL THEN 0 ELSE 1 END")
                       ->orderBy('created_at', 'desc');
             }
 
