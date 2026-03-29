@@ -123,7 +123,7 @@ const hasScheduledContracts = computed(() => {
                         <p class="text-green-100/80">
                             <template v-if="installationChoiceSuccess">{{ installationChoiceSuccess }}</template>
                             <template v-else-if="installationMode === 'technician'">
-                                Un technicien Axontis vous contactera sous 48h pour confirmer la date d'intervention.
+                                Un technicien Axontis vous contactera avant 48h de la date d'intervention.
                             </template>
                             <template v-else>
                                 Votre matériel sera livré à l'adresse indiquée. Un guide d'installation sera inclus dans votre colis.
@@ -270,30 +270,6 @@ const hasScheduledContracts = computed(() => {
                         <h2 class="text-2xl font-bold text-white mb-2">Votre système de sécurité est actif</h2>
                         <p class="text-slate-300">
                             Gérez votre installation de sécurité, consultez vos contrats et accédez à tous vos services depuis cet espace personnel.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Waiting card — technician scheduled OR self-install (waiting for delivery) -->
-            <div v-else-if="hasChosenInstallationMode && !needsToScheduleTechnician"
-                 class="bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-2xl p-6 mb-8 border border-slate-600/40">
-                <div class="flex items-start gap-4">
-                    <div class="w-16 h-16 bg-slate-600/50 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-white mb-2">Installation en cours de préparation</h2>
-                        <p class="text-slate-300">
-                            <template v-if="installationMode === 'technician'">
-                                Notre équipe prépare l'intervention. Un technicien vous contactera prochainement pour confirmer la date.
-                            </template>
-                            <template v-else>
-                                Votre matériel est en cours de préparation et sera expédié sous peu à l'adresse indiquée.
-                            </template>
                         </p>
                     </div>
                 </div>
