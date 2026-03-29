@@ -77,10 +77,11 @@
                         <div class="pt-2 border-t border-white/10">
                             <div class="flex items-center justify-between mb-2">
                                 <p class="text-xs text-white/40 uppercase tracking-wider">Technicien assigné</p>
-                                <button v-if="isPrivileged && task.technician && !showReassignForm"
+                                <button v-if="isPrivileged && !showReassignForm"
                                         @click="openReassignForm"
                                         class="text-xs text-primary-400 hover:text-primary-300 transition-colors">
-                                    <i class="fas fa-edit mr-1"></i>Changer
+                                    <i :class="task.technician ? 'fas fa-edit' : 'fas fa-plus-circle'" class="mr-1"></i>
+                                    {{ task.technician ? 'Changer' : 'Assigner' }}
                                 </button>
                             </div>
 
