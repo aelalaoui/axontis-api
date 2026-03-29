@@ -105,8 +105,8 @@ Route::middleware([
                 ->name('suppliers.toggle-status');
         });
 
-        // CRM Clients Routes - accessible by managers, administrators, and operators
-        Route::middleware('role:manager,administrator,operator')->group(function () {
+        // CRM Clients Routes - accessible by managers, administrators, operators and technicians
+        Route::middleware('role:manager,administrator,operator,technician')->group(function () {
             // CRM Tasks Routes
             Route::get('tasks', [\App\Http\Controllers\TaskController::class, 'index'])
                 ->name('tasks.index');

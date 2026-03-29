@@ -54,9 +54,14 @@ Route::middleware('auth:sanctum')->group(function () {
 // Entity search routes - accessible for authenticated web users
 Route::middleware('web')->group(function () {
     // Routes accessibles aux techniciens et niveaux supérieurs (operator, manager, administrator)
-    Route::middleware('role:operator,manager,administrator')->group(function () {
+    Route::middleware('role:technician,operator,manager,administrator')->group(function () {
         Route::get('/dashboard/scheduled-contracts', [\App\Http\Controllers\Api\DashboardController::class, 'getScheduledContracts']);
         Route::get('/dashboard/pending-tasks', [\App\Http\Controllers\Api\DashboardController::class, 'getPendingTasks']);
+    });
+
+    // Route accessibles aux techniciens uniquement (leurs propres communications)
+    Route::middleware('role:technician,operator,manager,administrator')->group(function () {
+        Route::get('/dashboard/my-communications', [\App\Http\Controllers\Api\DashboardController::class, 'getMyRecentCommunications']);
     });
 
     // Routes accessibles aux managers et administrateurs uniquement

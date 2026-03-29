@@ -20,6 +20,9 @@ class TaskController extends Controller
      */
     public function index(Request $request)
     {
+        $user      = $request->user();
+        $isTechnician = $user && $user->role === 'technician';
+
         $search    = $request->query('search', '');
         $status    = $request->query('status', '');
         $type      = $request->query('type', '');
@@ -35,6 +38,11 @@ class TaskController extends Controller
             'installationDevices',
         ])->withCount('installationDevices');
 
+        // Les techniciens ne voient que leurs propres tâches assignées
+        if ($isTechnician) {
+            $query->where('user_id', $user->id);
+        }
+
         // ── Filtres ────────────────────────────────────────────────────────
         if ($status) {
             $query->where('status', $status);
@@ -44,7 +52,7 @@ class TaskController extends Controller
             $query->where('type', $type);
         }
 
-        if ($unassigned) {
+        if ($unassigned && !$isTechnician) {
             $query->whereNull('user_id');
         }
 
@@ -79,10 +87,18 @@ class TaskController extends Controller
             return $this->transformTask($task);
         });
 
-        // Compteur pour le badge sidebar (tâches non-assignées)
-        $pendingCount = Task::whereNull('user_id')
-            ->whereIn('status', ['scheduled', 'in_progress'])
-            ->count();
+        // Compteur pour le badge sidebar
+        // Pour les techniciens : leurs tâches en cours ou planifiées
+        // Pour les autres : tâches non-assignées
+        if ($isTechnician) {
+            $pendingCount = Task::where('user_id', $user->id)
+                ->whereIn('status', ['scheduled', 'in_progress'])
+                ->count();
+        } else {
+            $pendingCount = Task::whereNull('user_id')
+                ->whereIn('status', ['scheduled', 'in_progress'])
+                ->count();
+        }
 
         return Inertia::render('CRM/Tasks/Index', [
             'tasks'        => $tasks,

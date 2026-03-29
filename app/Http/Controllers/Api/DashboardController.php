@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\Communication;
 use App\Models\Contract;
 use App\Models\Installation;
 use App\Models\Task;
@@ -233,7 +234,8 @@ class DashboardController extends Controller
 
     /**
      * GET /api/dashboard/pending-tasks
-     * Retourne les 8 dernières tâches non-assignées ou schedulées pour le widget home CRM.
+     * Pour les techniciens : retourne leurs tâches assignées.
+     * Pour les autres rôles : retourne les tâches non-assignées ou schedulées.
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -241,16 +243,28 @@ class DashboardController extends Controller
     public function getPendingTasks(Request $request)
     {
         try {
-            $tasks = Task::with(['user:id,name', 'taskable'])
-                ->where(function ($q) {
-                    $q->whereNull('user_id')
-                      ->orWhere('status', 'scheduled');
-                })
-                ->whereIn('status', ['scheduled', 'in_progress'])
-                ->orderByRaw("CASE WHEN user_id IS NULL THEN 0 ELSE 1 END")
-                ->orderBy('created_at', 'desc')
-                ->limit(8)
-                ->get()
+            $user = $request->user();
+            $isTechnician = $user && $user->role === 'technician';
+
+            $query = Task::with(['user:id,name', 'taskable'])
+                ->whereIn('status', ['scheduled', 'in_progress']);
+
+            if ($isTechnician) {
+                // Le technicien voit uniquement ses tâches assignées
+                $query->where('user_id', $user->id)
+                      ->orderBy('scheduled_date', 'asc')
+                      ->orderBy('created_at', 'desc');
+            } else {
+                // Les autres rôles voient les tâches non-assignées en priorité
+                $query->where(function ($q) {
+                            $q->whereNull('user_id')
+                              ->orWhere('status', 'scheduled');
+                        })
+                      ->orderByRaw("CASE WHEN user_id IS NULL THEN 0 ELSE 1 END")
+                      ->orderBy('created_at', 'desc');
+            }
+
+            $tasks = $query->limit(8)->get()
                 ->map(function (Task $task) {
                     $installationMode = null;
                     $deliveryAddress  = null;
@@ -285,6 +299,48 @@ class DashboardController extends Controller
                 });
 
             return response()->json(['success' => true, 'data' => $tasks], 200);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * GET /api/dashboard/my-communications
+     * Retourne les 8 dernières communications liées au technicien connecté.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getMyRecentCommunications(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            $communications = Communication::where(function ($q) use ($user) {
+                    $q->where('communicable_type', \App\Models\User::class)
+                      ->where('communicable_id', $user->id);
+                })
+                ->orWhere('handled_by', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->limit(8)
+                ->get()
+                ->map(function (Communication $comm) {
+                    return [
+                        'id'          => $comm->id,
+                        'uuid'        => $comm->uuid,
+                        'channel'     => $comm->channel,
+                        'direction'   => $comm->direction,
+                        'subject'     => $comm->subject,
+                        'message'     => $comm->getMessageExcerpt(80),
+                        'status'      => $comm->status,
+                        'sent_at'     => $comm->sent_at?->diffForHumans(),
+                        'created_at'  => $comm->created_at?->diffForHumans(),
+                        'channel_icon' => $comm->channel_icon,
+                        'status_icon'  => $comm->status_icon,
+                    ];
+                });
+
+            return response()->json(['success' => true, 'data' => $communications], 200);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }

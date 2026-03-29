@@ -70,10 +70,50 @@
 
         <!-- Recent Activity & Upcoming Tasks -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Recent Activity -->
+            <!-- Recent Activity / Recent Communications -->
             <div>
-                <AxontisCard title="Recent Activity" subtitle="Latest updates from your CRM">
-                    <div class="space-y-4">
+                <AxontisCard
+                    :title="userIsTechnician ? 'Récentes Communications' : 'Recent Activity'"
+                    :subtitle="userIsTechnician ? 'Vos dernières communications' : 'Latest updates from your CRM'"
+                >
+                    <!-- Vue Technicien : communications réelles depuis l'API -->
+                    <div v-if="userIsTechnician">
+                        <div v-if="recentCommunicationsLoading" class="flex items-center justify-center py-8">
+                            <i class="fas fa-spinner fa-spin text-primary-400 text-2xl"></i>
+                        </div>
+                        <div v-else-if="recentCommunications.length === 0" class="flex flex-col items-center justify-center py-8 text-white/40">
+                            <i class="fas fa-comments text-3xl mb-3"></i>
+                            <p class="text-sm">Aucune communication récente</p>
+                        </div>
+                        <div v-else class="space-y-4">
+                            <div
+                                v-for="comm in recentCommunications"
+                                :key="comm.id"
+                                class="flex items-start gap-4 p-4 rounded-lg bg-dark-800/30 hover:bg-dark-800/50 transition-colors duration-200"
+                            >
+                                <div class="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0 text-lg">
+                                    {{ comm.channel_icon }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-white truncate">{{ comm.subject || 'Sans objet' }}</p>
+                                    <p class="text-xs text-white/60 mt-1 truncate">{{ comm.message || '—' }}</p>
+                                    <p class="text-xs text-white/40 mt-2">{{ comm.sent_at || comm.created_at }}</p>
+                                </div>
+                                <div :class="[
+                                    'px-2 py-1 rounded-full text-xs font-medium',
+                                    comm.status === 'delivered' ? 'bg-success-500/20 text-success-300' :
+                                    comm.status === 'sent'      ? 'bg-primary-500/20 text-primary-300' :
+                                    comm.status === 'pending'   ? 'bg-warning-500/20 text-warning-300' :
+                                    'bg-error-500/20 text-error-300'
+                                ]">
+                                    {{ comm.status_icon }} {{ comm.status }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vue Manager/Admin/Operator : activité statique existante -->
+                    <div v-else class="space-y-4">
                         <div
                             v-for="activity in recentActivity"
                             :key="activity.id"
@@ -97,8 +137,12 @@
                             </div>
                         </div>
                     </div>
+
                     <template #footer>
-                        <Link href="/activity" class="text-primary-400 hover:text-primary-300 text-sm">
+                        <Link v-if="userIsTechnician" href="/communications" class="text-primary-400 hover:text-primary-300 text-sm">
+                            Voir toutes les communications →
+                        </Link>
+                        <Link v-else href="/activity" class="text-primary-400 hover:text-primary-300 text-sm">
                             View all activity →
                         </Link>
                     </template>
@@ -107,13 +151,18 @@
 
             <!-- Tâches à traiter -->
             <div>
-                <AxontisCard title="Tâches à traiter" subtitle="Interventions et livraisons en attente d'assignation">
+                <AxontisCard
+                    :title="userIsTechnician ? 'Mes Tâches' : 'Tâches à traiter'"
+                    :subtitle="userIsTechnician ? 'Vos interventions planifiées' : 'Interventions et livraisons en attente d\'assignation'"
+                >
                     <div v-if="pendingTasksLoading" class="flex items-center justify-center py-8">
                         <i class="fas fa-spinner fa-spin text-primary-400 text-2xl"></i>
                     </div>
                     <div v-else-if="pendingTasks.length === 0" class="flex flex-col items-center justify-center py-8 text-white/40">
                         <i class="fas fa-check-double text-3xl mb-3"></i>
-                        <p class="text-sm">Toutes les tâches sont assignées 🎉</p>
+                        <p class="text-sm">
+                            {{ userIsTechnician ? 'Aucune tâche assignée pour le moment' : 'Toutes les tâches sont assignées 🎉' }}
+                        </p>
                     </div>
                     <div v-else class="space-y-2">
                         <Link
@@ -192,6 +241,12 @@ const userIsAdmin = computed(() => {
     return user.role === 'administrator'
 })
 
+const userIsTechnician = computed(() => {
+    const user = page.props.auth?.user
+    if (!user) return false
+    return user.role === 'technician'
+})
+
 // Loading states
 const statsLoading = ref(true)
 const chartsLoading = ref(true)
@@ -263,6 +318,10 @@ const recentActivity = ref([
 const pendingTasks = ref([])
 const pendingTasksLoading = ref(false)
 
+// Recent communications pour les techniciens (depuis l'API)
+const recentCommunications = ref([])
+const recentCommunicationsLoading = ref(false)
+
 // Panel state pour ouvrir les panneaux depuis le widget
 // (Supprimé - navigation directe vers /crm/tasks/{uuid})
 
@@ -291,6 +350,23 @@ const loadPendingTasks = async () => {
         console.error('Error loading pending tasks:', error)
     } finally {
         pendingTasksLoading.value = false
+    }
+}
+
+// Load recent communications for technicians
+const loadRecentCommunications = async () => {
+    try {
+        recentCommunicationsLoading.value = true
+        const response = await fetch('/api/dashboard/my-communications')
+        const result = await response.json()
+
+        if (response.ok && result.success && result.data) {
+            recentCommunications.value = result.data
+        }
+    } catch (error) {
+        console.error('Error loading recent communications:', error)
+    } finally {
+        recentCommunicationsLoading.value = false
     }
 }
 
@@ -384,6 +460,11 @@ onMounted(() => {
         loadDashboardStats()
         loadChartData()
         loadPendingTasks()
+    } else if (userIsTechnician.value) {
+        statsLoading.value = false
+        chartsLoading.value = false
+        loadPendingTasks()
+        loadRecentCommunications()
     } else {
         statsLoading.value = false
         chartsLoading.value = false

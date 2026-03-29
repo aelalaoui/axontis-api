@@ -221,7 +221,9 @@ const toasts = ref([])
 const pendingTasksCount = ref(0)
 
 const loadPendingTasksCount = async () => {
-    if (!canManageClients.value) return
+    const userRole = usePage().props.auth?.user?.role
+    const hasTasks = userRole === 'technician' || userRole === 'operator' || userRole === 'manager' || userRole === 'administrator'
+    if (!hasTasks) return
     try {
         const res = await fetch('/api/dashboard/pending-tasks')
         if (res.ok) {
@@ -246,16 +248,34 @@ const canManageClients = computed(() => {
     return userRole === 'administrator' || userRole === 'manager' || userRole === 'operator'
 })
 
+// Check if user is technician
+const isTechnician = computed(() => {
+    return usePage().props.auth?.user?.role === 'technician'
+})
+
  // Navigation items
  const navigation = computed(() => {
      const items = [
          { name: 'Dashboard', href: '/crm', icon: 'fas fa-home' },
-         { name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' },
-         { name: 'Communications', href: '/communications', icon: 'fas fa-comments' },
      ]
 
-     // Tâches — visible pour operator, manager, administrator
-     if (canManageClients.value) {
+     // Devices — masqué pour les techniciens uniquement
+     if (!isTechnician.value) {
+         items.push({ name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' })
+     }
+
+     // Communications — visible pour tout le monde (techniciens inclus)
+     items.push({ name: 'Communications', href: '/crm/communications', icon: 'fas fa-comments' })
+
+     // Tâches — visible pour les techniciens, operator, manager, administrator
+     if (isTechnician.value) {
+         items.push({
+             name:  'Mes Tâches',
+             href:  '/crm/tasks',
+             icon:  'fas fa-tasks',
+             badge: pendingTasksCount.value > 0 ? pendingTasksCount.value : null,
+         })
+     } else if (canManageClients.value) {
          items.push({
              name:  'Tâches',
              href:  '/crm/tasks',
@@ -272,7 +292,7 @@ const canManageClients = computed(() => {
          items.push({ name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' });
      }
 
-     // Add Users management for managers and administrators only
+     // Clients, Contracts, Files — masqués pour les techniciens
      if (canManageClients.value) {
          items.push({ name: 'Clients', href: '/crm/clients', icon: 'fas fa-users' });
          items.push({ name: 'Contracts', href: '/crm/contracts', icon: 'fas fa-file-contract' });
