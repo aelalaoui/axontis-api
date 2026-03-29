@@ -202,6 +202,30 @@
                     </div>
                 </AxontisCard>
 
+                <!-- Détails d'installation (si lié à une installation) -->
+                <AxontisCard v-if="isInstallation && (task.installation_address || task.installation_city || task.installation_country)" title="Détails d'installation">
+                    <div class="space-y-3">
+                        <div v-if="task.installation_address" class="flex items-start gap-3">
+                            <i class="fas fa-map-marker-alt w-4 text-center text-info-400 mt-0.5"></i>
+                            <div class="flex-1">
+                                <p class="text-xs text-white/40 uppercase tracking-wider">Adresse d'installation</p>
+                                <p class="text-sm text-white">{{ task.installation_address }}</p>
+                            </div>
+                        </div>
+                        <div v-if="task.installation_city || task.installation_country" class="flex items-start gap-3">
+                            <i class="fas fa-city w-4 text-center text-info-400 mt-0.5"></i>
+                            <div class="flex-1">
+                                <p class="text-xs text-white/40 uppercase tracking-wider">Localisation</p>
+                                <p class="text-sm text-white">
+                                    <span v-if="task.installation_city">{{ task.installation_city }}</span>
+                                    <span v-if="task.installation_city && task.installation_country">, </span>
+                                    <span v-if="task.installation_country">{{ task.installation_country }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </AxontisCard>
+
                 <!-- Adresse livraison (mode self) -->
                 <AxontisCard v-if="task.installation_mode === 'self' && task.delivery_address" title="Adresse de livraison">
                     <div class="flex items-start gap-3">
@@ -709,6 +733,9 @@ const deviceGroups = computed(() =>
 )
 
 const hasTechnicianFeeProduct = computed(() => deviceGroups.value.some(g => g.isTechnicianFee))
+
+// ── Vérifier si la tâche est liée à une installation ──────────────────────────
+const isInstallation = computed(() => props.task.taskable_type === 'Installation')
 
 // ── Stock insuffisant ─────────────────────────────────────────────────────────
 const stockIssues = computed(() =>

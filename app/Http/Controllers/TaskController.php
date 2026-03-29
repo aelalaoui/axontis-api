@@ -393,6 +393,9 @@ class TaskController extends Controller
         $clientEmail      = null;
         $clientPhone      = null;
         $contractUuid     = null;
+        $installationAddress = null;
+        $installationCity    = null;
+        $installationCountry = null;
 
         if ($task->taskable instanceof Installation) {
             $installation = $task->taskable;
@@ -405,6 +408,11 @@ class TaskController extends Controller
                 $clientEmail      = $installation->client->email;
                 $clientPhone      = $installation->client->phone;
             }
+
+            // Récupérer les détails d'installation (adresse, ville, pays)
+            $installationAddress = $installation->address;
+            $installationCity    = $installation->city_fr;
+            $installationCountry = $installation->country;
 
             if ($installation->contract) {
                 $contractUuid = $installation->contract->uuid;
@@ -444,6 +452,9 @@ class TaskController extends Controller
             'client_email'      => $clientEmail,
             'client_phone'      => $clientPhone,
             'contract_uuid'     => $contractUuid,
+            'installation_address' => $installationAddress,
+            'installation_city'    => $installationCity,
+            'installation_country' => $installationCountry,
             'technician'        => $task->user ? [
                 'id'   => $task->user->id,
                 'name' => $task->user->name,
