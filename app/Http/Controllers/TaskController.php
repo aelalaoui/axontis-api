@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Models\Device;
 use App\Models\Installation;
 use App\Models\InstallationDevice;
@@ -25,10 +26,18 @@ class TaskController extends Controller
         $user = $request->user();
 
         // Rôles qui voient toutes les tâches
-        $privilegedRoles = ['manager', 'administrator'];
+        $privilegedRoles = [
+            UserRole::MANAGER,
+            UserRole::ADMINISTRATOR,
+        ];
         $isPrivileged    = $user && in_array($user->role, $privilegedRoles);
         // Rôles qui ne voient que leurs propres tâches
-        $restrictedRoles = ['technician', 'operator', 'accountant', 'storekeeper'];
+        $restrictedRoles = [
+            UserRole::STOREKEEPER,
+            UserRole::OPERATOR,
+            UserRole::ACCOUNTANT,
+            UserRole::STOREKEEPER
+        ];
         $isRestricted    = $user && in_array($user->role, $restrictedRoles);
 
         $search     = $request->query('search', '');
@@ -60,10 +69,6 @@ class TaskController extends Controller
             $query->where('type', $type);
         }
 
-        // Le filtre "non assignées" n'a de sens que pour les rôles privilégiés
-        if ($unassigned && $isPrivileged) {
-            $query->whereNull('user_id');
-        }
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -102,9 +107,7 @@ class TaskController extends Controller
                 ->whereIn('status', ['scheduled', 'in_progress'])
                 ->count();
         } else {
-            $pendingCount = Task::whereNull('user_id')
-                ->whereIn('status', ['scheduled', 'in_progress'])
-                ->count();
+            $pendingCount = Task::whereIn('status', ['scheduled', 'in_progress'])->count();
         }
 
         return Inertia::render('CRM/Tasks/Index', [
