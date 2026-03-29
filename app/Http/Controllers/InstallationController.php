@@ -7,7 +7,6 @@ use App\Models\Installation;
 use App\Models\InstallationDevice;
 use App\Models\Product;
 use App\Notifications\InstallationChoiceNotification;
-use App\Services\HikPartnerProService;
 use App\Services\InstallationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,12 +17,10 @@ use Inertia\Inertia;
 class InstallationController extends Controller
 {
     protected InstallationService $installationService;
-    protected HikPartnerProService $hpp;
 
-    public function __construct(InstallationService $installationService, HikPartnerProService $hpp)
+    public function __construct(InstallationService $installationService)
     {
         $this->installationService = $installationService;
-        $this->hpp = $hpp;
     }
 
     /**
@@ -382,7 +379,10 @@ class InstallationController extends Controller
 
     /**
      * POST /crm/installations/{uuid}/alarm-devices/{deviceUuid}/test-heartbeat
-     * Teste la connectivité (heartbeat) d'une centrale d'alarme.
+     *
+     * Rafraîchit et retourne le statut de connectivité d'une centrale d'alarme
+     * en lisant les propriétés locales mises à jour passivement via webhook.
+     * (Pas d'appel sortant vers HPP — le heartbeat est reçu, jamais émis.)
      */
     public function testHeartbeat(string $uuid, string $deviceUuid)
     {
@@ -397,18 +397,37 @@ class InstallationController extends Controller
             return back()->withErrors(['error' => 'Cet équipement n\'est pas une centrale d\'alarme.']);
         }
 
-        try {
-            $result = $this->hpp->testHeartbeat($installationDevice);
+        $lastHeartbeatAt = $installationDevice->getProperty('last_heartbeat_at');
+        $connectionStatus = $installationDevice->getConnectionStatus();
 
-            $connectionStatus = $result['online'] ? 'online' : 'offline';
-            $installationDevice->setProperty('connection_status', $connectionStatus);
-            $installationDevice->setProperty('last_heartbeat_at', $result['checked_at'], 'date');
+        // Déduire le statut à partir du dernier heartbeat reçu
+        // (si aucun heartbeat depuis X minutes → offline)
+        $offlineThresholdSeconds = config('hikvision.heartbeat.offline_threshold', 600);
 
-            return back()->with('success', 'Heartbeat testé — centrale ' . ($connectionStatus === 'online' ? 'en ligne ✓' : 'hors ligne'));
-        } catch (\Exception $e) {
-            $installationDevice->setProperty('connection_status', 'offline');
-
-            return back()->withErrors(['error' => 'Impossible de contacter la centrale : ' . $e->getMessage()]);
+        if ($lastHeartbeatAt) {
+            try {
+                $lastHeartbeat = new \Carbon\Carbon($lastHeartbeatAt);
+                $isRecent = $lastHeartbeat->diffInSeconds(now()) < $offlineThresholdSeconds;
+                $connectionStatus = $isRecent ? 'online' : 'offline';
+            } catch (\Exception) {
+                // date invalide → on garde le statut stocké
+            }
+        } else {
+            // Aucun heartbeat reçu → offline
+            $connectionStatus = 'offline';
         }
+
+        // Persister le statut recalculé
+        $installationDevice->setProperty('connection_status', $connectionStatus);
+
+        $label = $connectionStatus === 'online'
+            ? 'Centrale en ligne ✓'
+            : 'Centrale hors ligne — aucun heartbeat reçu récemment';
+
+        if ($lastHeartbeatAt) {
+            $label .= ' (dernier heartbeat : ' . \Carbon\Carbon::parse($lastHeartbeatAt)->locale('fr')->diffForHumans() . ')';
+        }
+
+        return back()->with('success', $label);
     }
 }

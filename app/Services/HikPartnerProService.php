@@ -86,25 +86,6 @@ class HikPartnerProService
         return $response->json();
     }
 
-    /**
-     * Tester la connectivité (heartbeat) d'une centrale.
-     * Retourne ['online' => bool, 'status' => array] ou lève une exception.
-     */
-    public function testHeartbeat(InstallationDevice $installationDevice): array
-    {
-        $status = $this->getDeviceStatus($installationDevice);
-
-        $online = isset($status['online'])
-            ? (bool) $status['online']
-            : (isset($status['connectivity']) && $status['connectivity'] === 'online');
-
-        return [
-            'online'     => $online,
-            'checked_at' => now()->toIso8601String(),
-            'raw'        => $status,
-        ];
-    }
-
     // ─── Public API — Panel Users ────────────────────────────
 
     /**
