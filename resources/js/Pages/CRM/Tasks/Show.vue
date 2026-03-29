@@ -77,7 +77,7 @@
                         <div class="pt-2 border-t border-white/10">
                             <div class="flex items-center justify-between mb-2">
                                 <p class="text-xs text-white/40 uppercase tracking-wider">Technicien assigné</p>
-                                <button v-if="isPrivileged && !showReassignForm"
+                                <button v-if="isHighPrivilage && !showReassignForm"
                                         @click="openReassignForm"
                                         class="text-xs text-primary-400 hover:text-primary-300 transition-colors">
                                     <i :class="task.technician ? 'fas fa-edit' : 'fas fa-plus-circle'" class="mr-1"></i>
@@ -102,7 +102,7 @@
                             </div>
 
                             <!-- Formulaire réassignation inline (manager/admin) -->
-                            <div v-if="showReassignForm && isPrivileged" class="space-y-3">
+                            <div v-if="showReassignForm && isHighPrivilage" class="space-y-3">
                                 <div class="relative" style="z-index: 100;">
                                     <input
                                         v-model="reassignSearch"
@@ -157,7 +157,7 @@
                             <i class="fas fa-user w-4 text-center text-white/30 mt-0.5"></i>
                             <div>
                                 <p class="text-xs text-white/40 uppercase tracking-wider">Nom</p>
-                                <Link v-if="task.client_uuid" :href="route('crm.clients.show', task.client_uuid)"
+                                <Link v-if="task.client_uuid && isPrivileged" :href="route('crm.clients.show', task.client_uuid)"
                                       class="text-sm font-medium text-primary-400 hover:text-primary-300">
                                     {{ task.client_name }}<i class="fas fa-external-link-alt ml-1 text-xs"></i>
                                 </Link>
@@ -278,7 +278,7 @@
                                         <i class="fas fa-barcode mr-1.5 text-white/20"></i>Numéro de série
                                     </p>
                                     <!-- Édition inline pour manager/admin -->
-                                    <div v-if="isPrivileged" class="flex items-center gap-2">
+                                    <div v-if="isHighPrivilage" class="flex items-center gap-2">
                                         <input
                                             v-model="snEdits[dev.uuid]"
                                             type="text"
@@ -669,7 +669,10 @@ const props = defineProps({
 // ── Rôle de l'utilisateur connecté ───────────────────────────────────────────
 const authRole = computed(() => usePage().props.auth?.user?.role ?? '')
 const isPrivileged = computed(() =>
-        ['operator', 'accountant', 'storekeeper', 'manager', 'administrator'].includes(authRole.value)
+    ['operator', 'accountant', 'storekeeper', 'manager', 'administrator'].includes(authRole.value)
+)
+const isHighPrivilage = computed(() =>
+    ['manager', 'administrator'].includes(authRole.value)
 )
 
 // ── Nombre total de devices physiques attendus (hors isTechnicianFee) ─────────
