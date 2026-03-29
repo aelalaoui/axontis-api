@@ -150,6 +150,50 @@
                     </div>
                 </AxontisCard>
 
+                <!-- Détails d'installation (si lié à une installation) -->
+                <AxontisCard v-if="isInstallation && (task.installation_address || task.installation_city || task.installation_country)" title="Détails d'installation">
+                    <div class="space-y-3">
+                        <div v-if="task.installation_address" class="flex items-start gap-3">
+                            <i class="fas fa-map-marker-alt w-4 text-center text-info-400 mt-0.5"></i>
+                            <div class="flex-1">
+                                <p class="text-xs text-white/40 uppercase tracking-wider">Adresse d'installation</p>
+                                <p class="text-sm text-white">{{ task.installation_address }}</p>
+                            </div>
+                        </div>
+                        <div v-if="task.installation_city || task.installation_country" class="flex items-start gap-3">
+                            <i class="fas fa-city w-4 text-center text-info-400 mt-0.5"></i>
+                            <div class="flex-1">
+                                <p class="text-xs text-white/40 uppercase tracking-wider">Localisation</p>
+                                <p class="text-sm text-white">
+                                    <span v-if="task.installation_city">{{ task.installation_city }}</span>
+                                    <span v-if="task.installation_city && task.installation_country">, </span>
+                                    <span v-if="task.installation_country">{{ task.installation_country }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-white/10 space-y-3">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-calendar w-4 text-center text-info-400"></i>
+                                <div>
+                                    <p class="text-xs text-white/40 uppercase tracking-wider">Date d'intervention</p>
+                                    <p v-if="task.scheduled_date" class="text-sm font-semibold text-info-300">
+                                        {{ formatDate(task.scheduled_date) }}
+                                        <span v-if="task.scheduled_time" class="ml-1">à {{ task.scheduled_time }}</span>
+                                    </p>
+                                    <p v-else class="text-sm text-white/60">—</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-plus-circle w-4 text-center text-white/30"></i>
+                                <div>
+                                    <p class="text-xs text-white/40 uppercase tracking-wider">Créée le</p>
+                                    <p class="text-sm text-white">{{ formatDate(task.created_at) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </AxontisCard>
+
                 <!-- Client -->
                 <AxontisCard title="Client">
                     <div class="space-y-3">
@@ -199,30 +243,6 @@
                 <AxontisCard v-if="task.notes" title="Note client">
                     <div class="p-3 rounded-lg bg-warning-500/5 border border-warning-500/15">
                         <p class="text-sm text-white/80 leading-relaxed">{{ task.notes }}</p>
-                    </div>
-                </AxontisCard>
-
-                <!-- Détails d'installation (si lié à une installation) -->
-                <AxontisCard v-if="isInstallation && (task.installation_address || task.installation_city || task.installation_country)" title="Détails d'installation">
-                    <div class="space-y-3">
-                        <div v-if="task.installation_address" class="flex items-start gap-3">
-                            <i class="fas fa-map-marker-alt w-4 text-center text-info-400 mt-0.5"></i>
-                            <div class="flex-1">
-                                <p class="text-xs text-white/40 uppercase tracking-wider">Adresse d'installation</p>
-                                <p class="text-sm text-white">{{ task.installation_address }}</p>
-                            </div>
-                        </div>
-                        <div v-if="task.installation_city || task.installation_country" class="flex items-start gap-3">
-                            <i class="fas fa-city w-4 text-center text-info-400 mt-0.5"></i>
-                            <div class="flex-1">
-                                <p class="text-xs text-white/40 uppercase tracking-wider">Localisation</p>
-                                <p class="text-sm text-white">
-                                    <span v-if="task.installation_city">{{ task.installation_city }}</span>
-                                    <span v-if="task.installation_city && task.installation_country">, </span>
-                                    <span v-if="task.installation_country">{{ task.installation_country }}</span>
-                                </p>
-                            </div>
-                        </div>
                     </div>
                 </AxontisCard>
 
