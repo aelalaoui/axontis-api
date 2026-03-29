@@ -388,6 +388,7 @@ class InstallationController extends Controller
     {
         Installation::where('uuid', $uuid)->firstOrFail();
 
+        /** @var $installationDevice $installationDevice */
         $installationDevice = InstallationDevice::where('uuid', $deviceUuid)
             ->whereHas('task', fn ($q) => $q->where('taskable_uuid', $uuid))
             ->with('device')
