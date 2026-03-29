@@ -241,11 +241,14 @@ const userIsAdmin = computed(() => {
     return user.role === 'administrator'
 })
 
-const userIsTechnician = computed(() => {
-    const user = page.props.auth?.user
-    if (!user) return false
-    return user.role === 'technician'
+// Rôles restreints : ne voient que leurs propres tâches/communications
+const userIsRestricted = computed(() => {
+    const role = page.props.auth?.user?.role
+    return ['technician', 'operator', 'accountant', 'storekeeper'].includes(role)
 })
+
+// Alias conservé pour compatibilité template
+const userIsTechnician = userIsRestricted
 
 // Loading states
 const statsLoading = ref(true)
@@ -460,7 +463,7 @@ onMounted(() => {
         loadDashboardStats()
         loadChartData()
         loadPendingTasks()
-    } else if (userIsTechnician.value) {
+    } else if (userIsRestricted.value) {
         statsLoading.value = false
         chartsLoading.value = false
         loadPendingTasks()
@@ -468,7 +471,7 @@ onMounted(() => {
     } else {
         statsLoading.value = false
         chartsLoading.value = false
-        loadPendingTasks() // les operators voient aussi le widget
+        loadPendingTasks()
     }
 })
 </script>

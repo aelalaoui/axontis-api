@@ -222,7 +222,7 @@ const pendingTasksCount = ref(0)
 
 const loadPendingTasksCount = async () => {
     const userRole = usePage().props.auth?.user?.role
-    const hasTasks = userRole === 'technician' || userRole === 'operator' || userRole === 'manager' || userRole === 'administrator'
+    const hasTasks = ['technician', 'operator', 'accountant', 'storekeeper', 'manager', 'administrator'].includes(userRole)
     if (!hasTasks) return
     try {
         const res = await fetch('/api/dashboard/pending-tasks')
@@ -253,29 +253,43 @@ const isTechnician = computed(() => {
     return usePage().props.auth?.user?.role === 'technician'
 })
 
+// Rôles qui ne voient que leurs propres tâches (pas de vue globale)
+const isRestrictedRole = computed(() => {
+    const role = usePage().props.auth?.user?.role
+    return ['technician', 'operator', 'accountant', 'storekeeper'].includes(role)
+})
+
+// Rôles privilégiés (voient tout)
+const isPrivilegedRole = computed(() => {
+    const role = usePage().props.auth?.user?.role
+    return ['manager', 'administrator'].includes(role)
+})
+
  // Navigation items
  const navigation = computed(() => {
      const items = [
          { name: 'Dashboard', href: '/crm', icon: 'fas fa-home' },
      ]
 
-     // Devices — masqué pour les techniciens uniquement
-     if (!isTechnician.value) {
+     // Devices — masqué pour les rôles restreints
+     if (!isRestrictedRole.value) {
          items.push({ name: 'Devices', href: '/crm/devices', icon: 'fas fa-microchip' })
      }
 
-     // Communications — visible pour tout le monde (techniciens inclus)
+     // Communications — visible pour tout le monde
      items.push({ name: 'Communications', href: '/crm/communications', icon: 'fas fa-comments' })
 
-     // Tâches — visible pour les techniciens, operator, manager, administrator
-     if (isTechnician.value) {
+     // Tâches
+     if (isRestrictedRole.value) {
+         // Rôles restreints : "Mes Tâches" (leurs propres tâches uniquement)
          items.push({
              name:  'Mes Tâches',
              href:  '/crm/tasks',
              icon:  'fas fa-tasks',
              badge: pendingTasksCount.value > 0 ? pendingTasksCount.value : null,
          })
-     } else if (canManageClients.value) {
+     } else if (isPrivilegedRole.value) {
+         // Managers / admins : toutes les tâches
          items.push({
              name:  'Tâches',
              href:  '/crm/tasks',
@@ -284,7 +298,7 @@ const isTechnician = computed(() => {
          })
      }
 
-     // Add Users management for managers and administrators only
+     // Gestion avancée — managers et administrateurs uniquement
      if (canManageUsers.value) {
          items.push({ name: 'Utilisateurs', href: '/crm/users', icon: 'fas fa-user-cog' });
          items.push({ name: 'Products', href: '/crm/products', icon: 'fas fa-box' });
@@ -292,7 +306,7 @@ const isTechnician = computed(() => {
          items.push({ name: 'Suppliers', href: '/crm/suppliers', icon: 'fas fa-truck' });
      }
 
-     // Clients, Contracts, Files — masqués pour les techniciens
+     // Clients, Contracts, Files — masqués pour les rôles restreints
      if (canManageClients.value) {
          items.push({ name: 'Clients', href: '/crm/clients', icon: 'fas fa-users' });
          items.push({ name: 'Contracts', href: '/crm/contracts', icon: 'fas fa-file-contract' });

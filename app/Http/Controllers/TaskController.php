@@ -17,19 +17,27 @@ class TaskController extends Controller
     /**
      * GET /crm/tasks
      * Listing paginé des tâches avec filtres.
+     * - manager / administrator : voient TOUTES les tâches
+     * - technician / operator / accountant / storekeeper : voient uniquement leurs tâches assignées
      */
     public function index(Request $request)
     {
-        $user      = $request->user();
-        $isTechnician = $user && $user->role === 'technician';
+        $user = $request->user();
 
-        $search    = $request->query('search', '');
-        $status    = $request->query('status', '');
-        $type      = $request->query('type', '');
-        $mode      = $request->query('mode', '');      // 'technician' | 'self' | ''
-        $unassigned = $request->boolean('unassigned'); // only user_id IS NULL
-        $sort      = $request->query('sort', 'created_at');
-        $direction = $request->query('direction', 'desc');
+        // Rôles qui voient toutes les tâches
+        $privilegedRoles = ['manager', 'administrator'];
+        $isPrivileged    = $user && in_array($user->role, $privilegedRoles);
+        // Rôles qui ne voient que leurs propres tâches
+        $restrictedRoles = ['technician', 'operator', 'accountant', 'storekeeper'];
+        $isRestricted    = $user && in_array($user->role, $restrictedRoles);
+
+        $search     = $request->query('search', '');
+        $status     = $request->query('status', '');
+        $type       = $request->query('type', '');
+        $mode       = $request->query('mode', '');
+        $unassigned = $request->boolean('unassigned');
+        $sort       = $request->query('sort', 'created_at');
+        $direction  = $request->query('direction', 'desc');
 
         $query = Task::with([
             'user:id,name,role',
@@ -38,8 +46,8 @@ class TaskController extends Controller
             'installationDevices',
         ])->withCount('installationDevices');
 
-        // Les techniciens ne voient que leurs propres tâches assignées
-        if ($isTechnician) {
+        // Restriction : les rôles non-privilégiés ne voient que leurs tâches
+        if ($isRestricted) {
             $query->where('user_id', $user->id);
         }
 
@@ -52,7 +60,8 @@ class TaskController extends Controller
             $query->where('type', $type);
         }
 
-        if ($unassigned && !$isTechnician) {
+        // Le filtre "non assignées" n'a de sens que pour les rôles privilégiés
+        if ($unassigned && $isPrivileged) {
             $query->whereNull('user_id');
         }
 
@@ -63,7 +72,6 @@ class TaskController extends Controller
             });
         }
 
-        // Filtre sur le mode d'installation (propriété client via taskable)
         if ($mode) {
             $query->whereHasMorph('taskable', [Installation::class], function ($q) use ($mode) {
                 $q->whereHas('client.properties', function ($pq) use ($mode) {
@@ -82,15 +90,14 @@ class TaskController extends Controller
 
         $tasks = $query->paginate(20)->withQueryString();
 
-        // Enrichir chaque tâche avec les données du client
         $tasks->getCollection()->transform(function (Task $task) {
             return $this->transformTask($task);
         });
 
-        // Compteur pour le badge sidebar
-        // Pour les techniciens : leurs tâches en cours ou planifiées
-        // Pour les autres : tâches non-assignées
-        if ($isTechnician) {
+        // Badge sidebar :
+        // - Rôles restreints : leurs tâches actives
+        // - Rôles privilégiés : tâches non-assignées
+        if ($isRestricted) {
             $pendingCount = Task::where('user_id', $user->id)
                 ->whereIn('status', ['scheduled', 'in_progress'])
                 ->count();

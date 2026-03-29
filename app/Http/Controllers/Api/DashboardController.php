@@ -234,28 +234,27 @@ class DashboardController extends Controller
 
     /**
      * GET /api/dashboard/pending-tasks
-     * Pour les techniciens : retourne leurs tâches assignées.
-     * Pour les autres rôles : retourne les tâches non-assignées ou schedulées.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * - manager / administrator : tâches non-assignées en priorité
+     * - technician / operator / accountant / storekeeper : uniquement leurs tâches assignées
      */
     public function getPendingTasks(Request $request)
     {
         try {
             $user = $request->user();
-            $isTechnician = $user && $user->role === 'technician';
+
+            $restrictedRoles = ['technician', 'operator', 'accountant', 'storekeeper'];
+            $isRestricted    = $user && in_array($user->role, $restrictedRoles);
 
             $query = Task::with(['user:id,name', 'taskable'])
                 ->whereIn('status', ['scheduled', 'in_progress']);
 
-            if ($isTechnician) {
-                // Le technicien voit uniquement ses tâches assignées
+            if ($isRestricted) {
+                // L'utilisateur ne voit que ses propres tâches
                 $query->where('user_id', $user->id)
                       ->orderBy('scheduled_date', 'asc')
                       ->orderBy('created_at', 'desc');
             } else {
-                // Les autres rôles voient les tâches non-assignées en priorité
+                // Managers / admins : tâches non-assignées en priorité
                 $query->where(function ($q) {
                             $q->whereNull('user_id')
                               ->orWhere('status', 'scheduled');

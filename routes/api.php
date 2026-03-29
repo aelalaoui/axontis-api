@@ -53,14 +53,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Entity search routes - accessible for authenticated web users
 Route::middleware('web')->group(function () {
-    // Routes accessibles aux techniciens et niveaux supérieurs (operator, manager, administrator)
-    Route::middleware('role:technician,operator,manager,administrator')->group(function () {
+    // Routes accessibles à tous les rôles internes (technician, operator, accountant, storekeeper, manager, administrator)
+    Route::middleware('role:technician,operator,accountant,storekeeper,manager,administrator')->group(function () {
         Route::get('/dashboard/scheduled-contracts', [\App\Http\Controllers\Api\DashboardController::class, 'getScheduledContracts']);
         Route::get('/dashboard/pending-tasks', [\App\Http\Controllers\Api\DashboardController::class, 'getPendingTasks']);
     });
 
-    // Route accessibles aux techniciens uniquement (leurs propres communications)
-    Route::middleware('role:technician,operator,manager,administrator')->group(function () {
+    // Communications personnelles — tous les rôles internes
+    Route::middleware('role:technician,operator,accountant,storekeeper,manager,administrator')->group(function () {
         Route::get('/dashboard/my-communications', [\App\Http\Controllers\Api\DashboardController::class, 'getMyRecentCommunications']);
     });
 
