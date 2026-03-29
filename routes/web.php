@@ -108,9 +108,9 @@ Route::middleware([
         // CRM Tasks — accessibles à tous les rôles internes (chacun filtre ses propres tâches)
         Route::middleware('role:manager,administrator,operator,technician,accountant,storekeeper')->group(function () {
             // CRM Installations Routes
-            Route::get('installations/{uuid}', [\App\Http\Controllers\CrmInstallationController::class, 'show'])
+            Route::get('installations/{uuid}', [InstallationController::class, 'crmShow'])
                 ->name('installations.show');
-            Route::post('installations/{uuid}/alarm-devices/{deviceUuid}/test-heartbeat', [\App\Http\Controllers\CrmInstallationController::class, 'testHeartbeat'])
+            Route::post('installations/{uuid}/alarm-devices/{deviceUuid}/test-heartbeat', [InstallationController::class, 'testHeartbeat'])
                 ->name('installations.alarm-devices.test-heartbeat');
 
             // CRM Tasks Routes
