@@ -465,6 +465,7 @@ class TaskController extends Controller
             'devices_count'     => $task->installation_devices_count ?? 0,
             'taskable_type'     => class_basename($task->taskable_type ?? ''),
             'taskable_uuid'     => $task->taskable_uuid,
+            'installation_uuid' => ($task->taskable instanceof Installation) ? $task->taskable->uuid : null,
         ];
     }
 

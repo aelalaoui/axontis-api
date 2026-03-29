@@ -191,6 +191,15 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Lien vers le détail de l'installation -->
+                        <div v-if="task.installation_uuid" class="pt-2 border-t border-white/10">
+                            <Link :href="route('crm.installations.show', task.installation_uuid)"
+                                  class="inline-flex items-center gap-2 text-xs text-info-400 hover:text-info-300 transition-colors">
+                                <i class="fas fa-building"></i>Voir le détail de l'installation
+                                <i class="fas fa-arrow-right text-[10px]"></i>
+                            </Link>
+                        </div>
                     </div>
                 </AxontisCard>
 
