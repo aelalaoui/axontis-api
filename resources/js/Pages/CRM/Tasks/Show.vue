@@ -844,7 +844,15 @@ const submitReassign = () => {
             scheduled_date: props.task.scheduled_date || null,
             scheduled_time: props.task.scheduled_time || null,
         },
-        { onFinish: () => { reassigning.value = false; showReassignForm.value = false } }
+        {
+            onSuccess: () => {
+                reassigning.value = false
+                showReassignForm.value = false
+            },
+            onError: () => {
+                reassigning.value = false
+            }
+        }
     )
 }
 

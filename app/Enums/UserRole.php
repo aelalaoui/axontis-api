@@ -8,6 +8,8 @@ enum UserRole: string
     case CLIENT = 'client';
     case TECHNICIAN = 'technician';
     case OPERATOR = 'operator';
+    case ACCOUNTANT = 'accountant';
+    case STOREKEEPER = 'storekeeper';
     case MANAGER = 'manager';
     case ADMINISTRATOR = 'administrator';
 
@@ -20,6 +22,8 @@ enum UserRole: string
             self::CLIENT => 'Client',
             self::TECHNICIAN => 'Technicien',
             self::OPERATOR => 'Opérateur',
+            self::ACCOUNTANT => 'Comptable',
+            self::STOREKEEPER => 'Magasinier',
             self::MANAGER => 'Gestionnaire',
             self::ADMINISTRATOR => 'Administrateur',
         };
@@ -34,6 +38,8 @@ enum UserRole: string
             self::CLIENT => 'Accès limité aux informations personnelles et tickets',
             self::TECHNICIAN => 'Peut intervenir sur les tickets et gérer les interventions',
             self::OPERATOR => 'Gère les tickets, planifie les interventions',
+            self::ACCOUNTANT => 'Gére les factures et les rapports financiers',
+            self::STOREKEEPER => 'Gére les stocks et les commandes',
             self::MANAGER => 'Supervise les équipes et génère des rapports',
             self::ADMINISTRATOR => 'Accès complet au système',
         };
@@ -48,8 +54,10 @@ enum UserRole: string
             self::CLIENT => 1,
             self::TECHNICIAN => 2,
             self::OPERATOR => 3,
-            self::MANAGER => 4,
-            self::ADMINISTRATOR => 5,
+            self::ACCOUNTANT => 4,
+            self::STOREKEEPER => 5,
+            self::MANAGER => 6,
+            self::ADMINISTRATOR => 7,
         };
     }
 
@@ -82,6 +90,21 @@ enum UserRole: string
                 'schedule.view',
                 'schedule.manage',
                 'reports.view_basic',
+                'profile.*',
+            ],
+            self::ACCOUNTANT => [
+                'invoices.*',
+                'payments.*',
+                'financial_reports.*',
+                'clients.view',
+                'tickets.view',
+                'profile.*',
+            ],
+            self::STOREKEEPER => [
+                'inventory.*',
+                'orders.*',
+                'stock.*',
+                'suppliers.view',
                 'profile.*',
             ],
             self::MANAGER => [
@@ -146,6 +169,8 @@ enum UserRole: string
             self::CLIENT => 'gray',
             self::TECHNICIAN => 'blue',
             self::OPERATOR => 'green',
+            self::ACCOUNTANT => 'yellow',
+            self::STOREKEEPER => 'orange',
             self::MANAGER => 'purple',
             self::ADMINISTRATOR => 'red',
         };
@@ -160,6 +185,8 @@ enum UserRole: string
             self::CLIENT => 'fa-user',
             self::TECHNICIAN => 'fa-tools',
             self::OPERATOR => 'fa-headset',
+            self::ACCOUNTANT => 'fa-calculator',
+            self::STOREKEEPER => 'fa-warehouse',
             self::MANAGER => 'fa-user-tie',
             self::ADMINISTRATOR => 'fa-shield-alt',
         };
