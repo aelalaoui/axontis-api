@@ -185,7 +185,7 @@
                                 <p class="text-sm text-white">{{ task.address || '—' }}</p>
                             </div>
                         </div>
-                        <div v-if="task.contract_uuid" class="pt-2 border-t border-white/10">
+                        <div v-if="task.contract_uuid && isPrivileged" class="pt-2 border-t border-white/10">
                             <Link :href="route('crm.contracts.show', task.contract_uuid)"
                                   class="inline-flex items-center gap-2 text-xs text-primary-400 hover:text-primary-300">
                                 <i class="fas fa-file-contract"></i>Voir le contrat associé
@@ -669,7 +669,7 @@ const props = defineProps({
 // ── Rôle de l'utilisateur connecté ───────────────────────────────────────────
 const authRole = computed(() => usePage().props.auth?.user?.role ?? '')
 const isPrivileged = computed(() =>
-    authRole.value === 'administrator' || authRole.value === 'manager'
+        ['operator', 'accountant', 'storekeeper', 'manager', 'administrator'].includes(authRole.value)
 )
 
 // ── Nombre total de devices physiques attendus (hors isTechnicianFee) ─────────
