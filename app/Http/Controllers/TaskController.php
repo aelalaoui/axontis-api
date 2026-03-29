@@ -33,10 +33,10 @@ class TaskController extends Controller
         $isPrivileged    = $user && in_array($user->role, $privilegedRoles);
         // Rôles qui ne voient que leurs propres tâches
         $restrictedRoles = [
+            UserRole::TECHNICIAN,
             UserRole::STOREKEEPER,
             UserRole::OPERATOR,
             UserRole::ACCOUNTANT,
-            UserRole::STOREKEEPER
         ];
         $isRestricted    = $user && in_array($user->role, $restrictedRoles);
 
