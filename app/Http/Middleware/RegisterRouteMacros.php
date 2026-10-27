@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
  * Generic file management routes for any model
  * This macro allows to register file routes for any model dynamically
  */
-Route::macro('fileRoutes', function (string $prefix, string $controller, string $parameterName = null) {
+Route::macro('fileRoutes', function (string $prefix, string $controller, ?string $parameterName = null) {
     $parameterName = $parameterName ?: Str::singular($prefix);
 
     Route::prefix($prefix)->name("{$prefix}.")->group(function () use ($controller, $parameterName) {
@@ -38,7 +38,7 @@ Route::macro('fileRoutes', function (string $prefix, string $controller, string 
 /**
  * Generic file routes helper for API
  */
-Route::macro('apiFileRoutes', function (string $prefix, string $controller, string $parameterName = null) {
+Route::macro('apiFileRoutes', function (string $prefix, string $controller, ?string $parameterName = null) {
     $parameterName = $parameterName ?: Str::singular($prefix);
 
     Route::prefix("api/{$prefix}")->name("api.{$prefix}.")->group(function () use ($controller, $parameterName) {

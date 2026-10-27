@@ -257,7 +257,7 @@ if systemctl is-active --quiet redis-server; then
 fi
 
 # Reload PHP-FPM
-systemctl reload php8.3-fpm
+systemctl reload php8.5-fpm
 
 # Redémarrer Horizon (Supervisor le relancera automatiquement)
 php artisan horizon:terminate
