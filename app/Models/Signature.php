@@ -133,7 +133,7 @@ class Signature extends Model
         return !empty($this->signature_file) && $this->signed_at !== null;
     }
 
-    public function getSignatureMetadata(string $key = null)
+    public function getSignatureMetadata(?string $key = null)
     {
         if ($key) {
             return $this->metadata[$key] ?? null;

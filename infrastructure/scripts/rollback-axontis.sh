@@ -164,7 +164,7 @@ chmod -R 775 $APP_PATH/bootstrap/cache
 # REDÉMARRAGE
 # ============================================
 echo -e "\n${YELLOW}🔄 Redémarrage des services...${NC}"
-systemctl reload php8.3-fpm
+systemctl reload php8.5-fpm
 php artisan queue:restart
 supervisorctl restart axontis-worker:* 2>/dev/null || true
 

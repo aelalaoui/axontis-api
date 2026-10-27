@@ -17,31 +17,31 @@ echo "📦 Mise à jour du système..."
 apt update && apt upgrade -y
 
 # ============================================
-# 2. INSTALLATION DE PHP 8.3
+# 2. INSTALLATION DE PHP 8.5
 # ============================================
-echo "🐘 Installation de PHP 8.3..."
+echo "🐘 Installation de PHP 8.5..."
 apt install -y software-properties-common
 add-apt-repository -y ppa:ondrej/php
 apt update
 
 apt install -y \
-    php8.3-fpm \
-    php8.3-cli \
-    php8.3-mysql \
-    php8.3-pgsql \
-    php8.3-sqlite3 \
-    php8.3-gd \
-    php8.3-curl \
-    php8.3-mbstring \
-    php8.3-xml \
-    php8.3-zip \
-    php8.3-bcmath \
-    php8.3-intl \
-    php8.3-readline \
-    php8.3-soap \
-    php8.3-redis \
-    php8.3-imagick \
-    php8.3-fileinfo
+    php8.5-fpm \
+    php8.5-cli \
+    php8.5-mysql \
+    php8.5-pgsql \
+    php8.5-sqlite3 \
+    php8.5-gd \
+    php8.5-curl \
+    php8.5-mbstring \
+    php8.5-xml \
+    php8.5-zip \
+    php8.5-bcmath \
+    php8.5-intl \
+    php8.5-readline \
+    php8.5-soap \
+    php8.5-redis \
+    php8.5-imagick \
+    php8.5-fileinfo
 
 # ============================================
 # 3. INSTALLATION DE NGINX
@@ -119,7 +119,7 @@ server {
     error_page 404 /index.php;
 
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.5-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         include fastcgi_params;
         fastcgi_hide_header X-Powered-By;
@@ -155,17 +155,17 @@ nginx -t && systemctl reload nginx
 echo "🐘 Configuration de PHP-FPM..."
 
 # Désactiver le pool par défaut pour éviter les conflits
-if [ -f /etc/php/8.3/fpm/pool.d/www.conf ]; then
-  mv /etc/php/8.3/fpm/pool.d/www.conf /etc/php/8.3/fpm/pool.d/www.conf.disabled
+if [ -f /etc/php/8.5/fpm/pool.d/www.conf ]; then
+  mv /etc/php/8.5/fpm/pool.d/www.conf /etc/php/8.5/fpm/pool.d/www.conf.disabled
   echo "✅ Pool www.conf désactivé"
 fi
 
 # Créer le pool axontis
-cat > /etc/php/8.3/fpm/pool.d/axontis.conf << 'EOF'
+cat > /etc/php/8.5/fpm/pool.d/axontis.conf << 'EOF'
 [axontis]
 user = www-data
 group = www-data
-listen = /var/run/php/php8.3-fpm.sock
+listen = /var/run/php/php8.5-fpm.sock
 listen.owner = www-data
 listen.group = www-data
 listen.mode = 0660
@@ -183,7 +183,7 @@ php_admin_value[post_max_size] = 100M
 php_admin_value[max_execution_time] = 300
 
 ; Logs
-php_admin_value[error_log] = /var/log/php8.3-fpm-axontis.log
+php_admin_value[error_log] = /var/log/php8.5-fpm-axontis.log
 php_admin_flag[log_errors] = on
 EOF
 
@@ -193,15 +193,15 @@ chown www-data:www-data /var/run/php
 
 # Tester la configuration PHP-FPM
 echo "🔍 Test de la configuration PHP-FPM..."
-php-fpm8.3 -t
+php-fpm8.5 -t
 
 # Redémarrer PHP-FPM
-systemctl restart php8.3-fpm
-if systemctl is-active --quiet php8.3-fpm; then
+systemctl restart php8.5-fpm
+if systemctl is-active --quiet php8.5-fpm; then
   echo "✅ PHP-FPM démarré avec succès"
 else
   echo "❌ Erreur PHP-FPM, vérification des logs..."
-  journalctl -xeu php8.3-fpm.service --no-pager -n 20
+  journalctl -xeu php8.5-fpm.service --no-pager -n 20
   exit 1
 fi
 
@@ -313,7 +313,7 @@ echo "🎉 SERVEUR CONFIGURÉ AVEC SUCCÈS!"
 echo "=========================================="
 echo ""
 echo "📋 SERVICES INSTALLÉS:"
-echo "   ✅ PHP 8.3-FPM"
+echo "   ✅ PHP 8.5-FPM"
 echo "   ✅ Nginx"
 echo "   ✅ Composer"
 echo "   ✅ Node.js 22"

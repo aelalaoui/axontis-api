@@ -242,7 +242,7 @@ class PaymentService
     /**
      * Refund a payment
      */
-    public function refundPayment(string $paymentUuid, float $amount = null): array
+    public function refundPayment(string $paymentUuid, ?float $amount = null): array
     {
         try {
             $payment = Payment::where('uuid', $paymentUuid)->first();

@@ -8,7 +8,7 @@ on:
 env:
   APP_PATH: /var/www/axontis
   RELEASES_PATH: /var/www/axontis-releases
-  PHP_VERSION: '8.3'
+  PHP_VERSION: '8.5'
   NODE_VERSION: '22'
 
 jobs:
@@ -621,7 +621,7 @@ jobs:
 
           # Reload PHP-FPM pour vider l'opcache
           echo "🔄 Rechargement PHP-FPM..."
-          systemctl reload php8.3-fpm
+          systemctl reload php8.5-fpm
 
           # IMPORTANT: Attendre que PHP-FPM se recharge complètement
           sleep 2

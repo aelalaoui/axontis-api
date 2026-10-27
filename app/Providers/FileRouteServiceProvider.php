@@ -33,7 +33,7 @@ class FileRouteServiceProvider extends ServiceProvider
          * Generic file management routes for any model
          * Usage: Route::fileRoutes('devices', DeviceController::class);
          */
-        Route::macro('fileRoutes', function (string $prefix, string $controller, string $parameterName = null) {
+        Route::macro('fileRoutes', function (string $prefix, string $controller, ?string $parameterName = null) {
             $parameterName = $parameterName ?: Str::singular($prefix);
 
             Route::prefix($prefix)->name("{$prefix}.")->group(function () use ($controller, $parameterName) {
@@ -66,7 +66,7 @@ class FileRouteServiceProvider extends ServiceProvider
          * Generic file routes helper for API
          * Usage: Route::apiFileRoutes('devices', DeviceController::class);
          */
-        Route::macro('apiFileRoutes', function (string $prefix, string $controller, string $parameterName = null) {
+        Route::macro('apiFileRoutes', function (string $prefix, string $controller, ?string $parameterName = null) {
             $parameterName = $parameterName ?: Str::singular($prefix);
 
             Route::prefix("api/{$prefix}")->name("api.{$prefix}.")->group(function () use ($controller, $parameterName) {

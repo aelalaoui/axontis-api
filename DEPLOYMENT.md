@@ -194,7 +194,7 @@ php artisan up
 ### Vérifier les services
 
 ```bash
-systemctl status nginx php8.3-fpm mysql supervisor
+systemctl status nginx php8.5-fpm mysql supervisor
 ```
 
 ### Logs Laravel

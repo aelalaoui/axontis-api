@@ -217,7 +217,7 @@ class Communication extends Model
     /**
      * Filtrer les communications pour un client spécifique
      */
-    public function scopeForClient(Builder $query, int|string $clientId = null): Builder
+    public function scopeForClient(Builder $query, int|string|null $clientId = null): Builder
     {
         $query->where('communicable_type', Client::class);
 
@@ -231,7 +231,7 @@ class Communication extends Model
     /**
      * Filtrer les communications pour un user spécifique
      */
-    public function scopeForUser(Builder $query, int|string $userId = null): Builder
+    public function scopeForUser(Builder $query, int|string|null $userId = null): Builder
     {
         $query->where('communicable_type', User::class);
 

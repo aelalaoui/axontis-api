@@ -158,7 +158,7 @@ chmod -R 775 $APP_PATH/bootstrap/cache
 # 9. REDÉMARRAGE DES SERVICES
 # ============================================
 echo -e "\n${YELLOW}🔄 Redémarrage des services...${NC}"
-systemctl reload php8.3-fpm
+systemctl reload php8.5-fpm
 
 # Horizon : graceful terminate (Supervisor le relancera automatiquement)
 echo "Redémarrage de Horizon..."
