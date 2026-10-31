@@ -56,10 +56,10 @@ echo "📦 Installation de Composer..."
 curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # ============================================
-# 5. INSTALLATION DE NODE.JS 22
+# 5. INSTALLATION DE NODE.JS 24
 # ============================================
-echo "📦 Installation de Node.js 22..."
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+echo "📦 Installation de Node.js 24..."
+curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
 apt install -y nodejs
 
 # ============================================
@@ -316,7 +316,7 @@ echo "📋 SERVICES INSTALLÉS:"
 echo "   ✅ PHP 8.5-FPM"
 echo "   ✅ Nginx"
 echo "   ✅ Composer"
-echo "   ✅ Node.js 22"
+echo "   ✅ Node.js 24"
 echo "   ✅ Redis"
 echo "   ✅ Supervisor"
 echo "   ✅ Certbot (SSL)"

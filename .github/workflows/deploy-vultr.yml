@@ -9,7 +9,7 @@ env:
   APP_PATH: /var/www/axontis
   RELEASES_PATH: /var/www/axontis-releases
   PHP_VERSION: '8.5'
-  NODE_VERSION: '22'
+  NODE_VERSION: '24'
 
 jobs:
   # =============================================================================
@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🐘 Setup PHP
         uses: shivammathur/setup-php@v2
@@ -210,7 +210,7 @@ jobs:
       # 1. CHECKOUT & SETUP
       # =========================================================================
       - name: 📥 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -222,7 +222,7 @@ jobs:
           coverage: none
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -375,7 +375,7 @@ jobs:
       # 5. SSH SETUP
       # =========================================================================
       - name: 🔐 Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.VULTR_SSH_PRIVATE_KEY }}
 
