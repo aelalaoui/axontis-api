@@ -39,7 +39,7 @@ packages:
   # MySQL
   - mysql-server
   - mysql-client
-  # PHP 8.3 et extensions
+  # PHP 8.5 et extensions
   - software-properties-common
   # Supervisor pour les queues
   - supervisor
@@ -56,11 +56,11 @@ packages:
 
 runcmd:
   # ═══════════════════════════════════════════════════════════════════════════════
-  # INSTALLATION PHP 8.3
+  # INSTALLATION PHP 8.5
   # ═══════════════════════════════════════════════════════════════════════════════
   - add-apt-repository -y ppa:ondrej/php
   - apt-get update
-  - apt-get install -y php8.3-fpm php8.3-cli php8.3-common php8.3-mysql php8.3-zip php8.3-gd php8.3-mbstring php8.3-curl php8.3-xml php8.3-bcmath php8.3-intl php8.3-readline php8.3-redis php8.3-tokenizer
+  - apt-get install -y php8.5-fpm php8.5-cli php8.5-common php8.5-mysql php8.5-zip php8.5-gd php8.5-mbstring php8.5-curl php8.5-xml php8.5-bcmath php8.5-intl php8.5-readline php8.5-redis php8.5-tokenizer
 
   # ═══════════════════════════════════════════════════════════════════════════════
   # INSTALLATION COMPOSER
@@ -110,7 +110,7 @@ runcmd:
         error_page 404 /index.php;
 
         location ~ \.php$ {
-            fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+            fastcgi_pass unix:/var/run/php/php8.5-fpm.sock;
             fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
             include fastcgi_params;
         }
@@ -133,15 +133,15 @@ runcmd:
   # ═══════════════════════════════════════════════════════════════════════════════
   # CONFIGURATION PHP-FPM
   # ═══════════════════════════════════════════════════════════════════════════════
-  - systemctl enable php8.3-fpm
-  - systemctl start php8.3-fpm
+  - systemctl enable php8.5-fpm
+  - systemctl start php8.5-fpm
 
   # Optimisations PHP pour production
-  - sed -i 's/upload_max_filesize = .*/upload_max_filesize = 64M/' /etc/php/8.3/fpm/php.ini
-  - sed -i 's/post_max_size = .*/post_max_size = 64M/' /etc/php/8.3/fpm/php.ini
-  - sed -i 's/memory_limit = .*/memory_limit = 256M/' /etc/php/8.3/fpm/php.ini
-  - sed -i 's/max_execution_time = .*/max_execution_time = 60/' /etc/php/8.3/fpm/php.ini
-  - systemctl restart php8.3-fpm
+  - sed -i 's/upload_max_filesize = .*/upload_max_filesize = 64M/' /etc/php/8.5/fpm/php.ini
+  - sed -i 's/post_max_size = .*/post_max_size = 64M/' /etc/php/8.5/fpm/php.ini
+  - sed -i 's/memory_limit = .*/memory_limit = 256M/' /etc/php/8.5/fpm/php.ini
+  - sed -i 's/max_execution_time = .*/max_execution_time = 60/' /etc/php/8.5/fpm/php.ini
+  - systemctl restart php8.5-fpm
 
   # ═══════════════════════════════════════════════════════════════════════════════
   # CONFIGURATION SUPERVISOR (pour les queues Laravel)
@@ -286,7 +286,7 @@ final_message: |
 
   Services installés:
   - Nginx (port 80/443)
-  - PHP 8.3-FPM
+  - PHP 8.5-FPM
   - MySQL 8
   - Supervisor (queues)
   - Fail2ban

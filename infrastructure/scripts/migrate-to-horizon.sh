@@ -45,7 +45,7 @@ if php -m | grep -q pcntl; then
     echo -e "${GREEN}✅ installé${NC}"
 else
     echo -e "${RED}❌ MANQUANT !${NC}"
-    echo -e "${RED}  → Installez : sudo apt install php8.3-pcntl && sudo systemctl restart php8.3-fpm${NC}"
+    echo -e "${RED}  → Installez : sudo apt install php8.5-pcntl && sudo systemctl restart php8.5-fpm${NC}"
     exit 1
 fi
 
@@ -55,7 +55,7 @@ if php -m | grep -q posix; then
     echo -e "${GREEN}✅ installé${NC}"
 else
     echo -e "${RED}❌ MANQUANT !${NC}"
-    echo -e "${RED}  → Installez : sudo apt install php8.3-posix && sudo systemctl restart php8.3-fpm${NC}"
+    echo -e "${RED}  → Installez : sudo apt install php8.5-posix && sudo systemctl restart php8.5-fpm${NC}"
     exit 1
 fi
 

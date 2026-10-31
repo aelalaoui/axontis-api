@@ -178,8 +178,8 @@ if php -m | grep -q "redis"; then
     echo "✅ Extension PHP Redis déjà installée"
 else
     echo "📦 Installation de l'extension PHP Redis..."
-    apt install -y php8.3-redis
-    systemctl restart php8.3-fpm
+    apt install -y php8.5-redis
+    systemctl restart php8.5-fpm
     echo "✅ Extension PHP Redis installée"
 fi
 

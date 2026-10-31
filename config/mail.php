@@ -45,10 +45,6 @@ return [
         */
         'resend' => [
             'transport' => 'resend',
-            'from' => [
-                'address' => 'noreply@mail.axontis.net',
-                'name' => "Axontis",
-            ],
         ],
 
         /*
@@ -61,10 +57,6 @@ return [
             'client' => [
                 'timeout' => 10,
             ],
-            'from' => [
-                'address' => 'noreply@mailgun.axontis.net',
-                'name' => "Axontis",
-            ],
         ],
 
         /*
@@ -75,23 +67,15 @@ return [
         'brevo' => [
             'transport' => 'brevo',
             'key' => env('BREVO_API_KEY'),
-            'from' => [
-                'address' => 'noreply@email.axontis.net',
-                'name' => "Axontis",
-            ],
         ],
 
         /*
         |--------------------------------------------------------------------------
-        | Failover - Cascade automatique : Resend → SMTP
+        | Failover - Cascade automatique : Brevo → Resend
         |--------------------------------------------------------------------------
-        | Si Resend échoue, Laravel essaiera automatiquement SMTP local
-        | comme dernier recours. Cela garantit qu'au moins un mailer
-        | fonctionne toujours.
-        |
-        | Note: Pour activer Mailgun ou Brevo, installez d'abord les packages:
-        | - Mailgun: composer require symfony/mailgun-mailer
-        | - Brevo: déjà supporté via SMTP
+        | Si Brevo échoue, Laravel essaie automatiquement Resend.
+        | Tous les mailers utilisent l'expéditeur global (mail.from), dont le
+        | domaine doit être authentifié chez chaque provider.
         */
         'failover' => [
             'transport' => 'failover',
@@ -120,10 +104,6 @@ return [
 
         'ses' => [
             'transport' => 'ses',
-            'from' => [
-                'address' => 'noreply@ses.axontis.net',
-                'name' => "Axontis",
-            ],
         ],
 
         'postmark' => [

@@ -30,7 +30,7 @@ class PaymentManager
     /**
      * Get payment provider instance
      */
-    public function getProvider(string $provider = null): PaymentProviderInterface
+    public function getProvider(?string $provider = null): PaymentProviderInterface
     {
         $providerName = $provider ?? $this->defaultProvider;
 
