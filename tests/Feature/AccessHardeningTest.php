@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\User;
 use App\Services\PaymentService;
+use App\Services\SignatureService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -54,6 +55,7 @@ class AccessHardeningTest extends TestCase
 
     public function test_signature_webhooks_page_is_staff_only(): void
     {
+        $this->mock(SignatureService::class); // le vrai service exige la configuration DocuSign
         $this->get('/signature/webhooks')->assertRedirect(route('login'));
         $this->actingAs($this->userWithRole(UserRole::CLIENT))->get('/signature/webhooks')->assertRedirect(route('dashboard'));
         $this->actingAs($this->userWithRole())->get('/signature/webhooks')->assertOk();
