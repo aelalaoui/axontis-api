@@ -72,7 +72,7 @@ Route::middleware('web')->group(function () {
         Route::post('/payments/{paymentUuid}/refund', [\App\Http\Controllers\PaymentController::class, 'refundPayment']);
     });
 
-    Route::prefix('entities')->group(function () {
+    Route::prefix('entities')->middleware('role:technician,operator,accountant,storekeeper,manager,administrator')->group(function () {
         Route::get('/types', [\App\Http\Controllers\Api\EntitySearchController::class, 'getEntityTypes']);
         Route::get('/search', [\App\Http\Controllers\Api\EntitySearchController::class, 'search']);
     });

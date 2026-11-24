@@ -12,7 +12,7 @@ class AccessHardeningTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function staff(UserRole $role = UserRole::MANAGER): User
+    private function userWithRole(UserRole $role = UserRole::MANAGER): User
     {
         return User::factory()->create(['role' => $role->value]);
     }
@@ -24,7 +24,7 @@ class AccessHardeningTest extends TestCase
         $this->mock(PaymentService::class)->shouldNotReceive('refundPayment');
 
         $this->postJson('/api/payments/some-uuid/refund')->assertStatus(302);
-        $this->actingAs($this->staff(UserRole::CLIENT))
+        $this->actingAs($this->userWithRole(UserRole::CLIENT))
             ->postJson('/api/payments/some-uuid/refund')->assertStatus(302);
     }
 
@@ -34,7 +34,7 @@ class AccessHardeningTest extends TestCase
             ->shouldReceive('refundPayment')->once()->with('some-uuid', null)
             ->andReturn(['success' => true, 'message' => 'Refunded', 'data' => []]);
 
-        $this->actingAs($this->staff())
+        $this->actingAs($this->userWithRole())
             ->postJson('/api/payments/some-uuid/refund')
             ->assertOk()->assertJson(['success' => true]);
     }
@@ -46,7 +46,35 @@ class AccessHardeningTest extends TestCase
             ->andReturn(['success' => true, 'data' => ['payment_uuid' => 'some-uuid']]);
 
         $this->getJson('/api/payments/some-uuid')->assertStatus(302);
-        $this->actingAs($this->staff(UserRole::ADMINISTRATOR))
+        $this->actingAs($this->userWithRole(UserRole::ADMINISTRATOR))
             ->getJson('/api/payments/some-uuid')->assertOk();
+    }
+
+    // ─── Pages et API internes ───────────────────────────────
+
+    public function test_signature_webhooks_page_is_staff_only(): void
+    {
+        $this->get('/signature/webhooks')->assertRedirect(route('login'));
+        $this->actingAs($this->userWithRole(UserRole::CLIENT))->get('/signature/webhooks')->assertRedirect(route('dashboard'));
+        $this->actingAs($this->userWithRole())->get('/signature/webhooks')->assertOk();
+    }
+
+    public function test_entity_search_is_refused_to_anonymous_and_client(): void
+    {
+        $url = '/api/entities/search?type=' . urlencode(User::class) . '&query=a';
+
+        $this->getJson($url)->assertStatus(302);
+        $this->getJson('/api/entities/types')->assertStatus(302);
+        $this->actingAs($this->userWithRole(UserRole::CLIENT))->getJson($url)->assertStatus(302);
+    }
+
+    public function test_entity_search_works_for_internal_user(): void
+    {
+        $this->userWithRole(UserRole::ADMINISTRATOR)->update(['name' => 'Alice Admin']);
+
+        $this->actingAs($this->userWithRole(UserRole::TECHNICIAN))
+            ->getJson('/api/entities/search?type=' . urlencode(User::class) . '&query=Alice')
+            ->assertOk()
+            ->assertSee('Alice Admin');
     }
 }
