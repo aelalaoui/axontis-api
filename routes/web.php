@@ -34,11 +34,11 @@ Route::get('/docusign/callback', function () {
     ]);
 })->name('docusign.callback');
 
-// Signature webhooks viewer
+// Signature webhooks viewer (charges DocuSign complètes : staff uniquement)
 Route::get(
     '/signature/webhooks',
     [\App\Http\Controllers\SignatureController::class, 'viewWebhooks']
-)->name('signature.webhooks');
+)->name('signature.webhooks')->middleware('role:manager,administrator');
 
 // Client payment route - no middleware
 Route::get(

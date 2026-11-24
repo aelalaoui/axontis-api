@@ -10,22 +10,14 @@ use App\Models\Product;
 class ClientService
 {
     /**
-     * Find or create a client by email
+     * Create a new prospect (an e-mail may belong to several prospects)
      *
      * @param string $email
      * @param string $country
      * @return Client
      */
-    public function findOrCreateClient(string $email, string $country): Client
+    public function createClient(string $email, string $country): Client
     {
-        // Check if client exists
-        $client = Client::where('email', $email)->first();
-
-        if ($client) {
-            return $client;
-        }
-
-        // Create new client
         return Client::create([
             'email' => $email,
             'country' => $country,
@@ -229,17 +221,6 @@ class ClientService
             'total_subproducts_analyzed' => $subProducts->count(),
             'calculation_timestamp' => now()->toDateTimeString()
         ];
-    }
-
-    /**
-     * Check if client already exists by email
-     *
-     * @param string $email
-     * @return bool
-     */
-    public function clientExists(string $email): bool
-    {
-        return Client::where('email', $email)->exists();
     }
 
     /**

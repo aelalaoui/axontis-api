@@ -31,8 +31,6 @@ Route::post('/contract/generate/client/{uuid}', [\App\Http\Controllers\ContractC
 // Payment routes - PCI-DSS compliant (no card data processed by backend)
 Route::post('/payments/deposit/init', [\App\Http\Controllers\PaymentController::class, 'initializePayment']);
 Route::post('/payments/installation-fee/init', [\App\Http\Controllers\PaymentController::class, 'initializeInstallationFeePayment']);
-Route::get('/payments/{paymentUuid}', [\App\Http\Controllers\PaymentController::class, 'getPaymentDetails']);
-Route::post('/payments/{paymentUuid}/refund', [\App\Http\Controllers\PaymentController::class, 'refundPayment']);
 
 // Stripe webhook endpoint (publicly accessible, signature verified by provider)
 Route::post('/webhooks/stripe', [\App\Http\Controllers\PaymentController::class, 'handleStripeWebhook']);
@@ -68,9 +66,13 @@ Route::middleware('web')->group(function () {
     Route::middleware('role:manager,administrator')->group(function () {
         Route::get('/dashboard/charts', [\App\Http\Controllers\Api\DashboardController::class, 'getChartData']);
         Route::get('/dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
+
+        // Lecture et remboursement d'un paiement : staff uniquement
+        Route::get('/payments/{paymentUuid}', [\App\Http\Controllers\PaymentController::class, 'getPaymentDetails']);
+        Route::post('/payments/{paymentUuid}/refund', [\App\Http\Controllers\PaymentController::class, 'refundPayment']);
     });
 
-    Route::prefix('entities')->group(function () {
+    Route::prefix('entities')->middleware('role:technician,operator,accountant,storekeeper,manager,administrator')->group(function () {
         Route::get('/types', [\App\Http\Controllers\Api\EntitySearchController::class, 'getEntityTypes']);
         Route::get('/search', [\App\Http\Controllers\Api\EntitySearchController::class, 'search']);
     });

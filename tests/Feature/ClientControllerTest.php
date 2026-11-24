@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Enums\ClientStatus;
 use App\Enums\ClientStep;
+use App\Enums\UserRole;
 use App\Models\Client;
+use App\Models\Contract;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,7 +16,7 @@ class ClientControllerTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Test that a new client can be created.
+     * Test that a new client can be created and only its UUID is returned.
      *
      * @return void
      */
@@ -21,72 +24,121 @@ class ClientControllerTest extends TestCase
     {
         $this->withoutExceptionHandling();
 
-
         $response = $this->postJson('/api/client/new', [
             'email' => 'test@example.com',
             'country' => 'France',
         ]);
 
-        if ($response->status() !== 201) {
-            // dump($response->json());
-        }
+        $client = Client::where('email', 'test@example.com')->firstOrFail();
 
         $response->assertStatus(201)
-            ->assertJson([
+            ->assertExactJson([
                 'success' => true,
                 'message' => 'Client created successfully',
-                'data' => [
-                    'email' => 'test@example.com',
-                    'country' => 'France',
-                ]
+                'data' => ['uuid' => $client->uuid],
             ]);
-
-        $this->assertDatabaseHas('clients', [
-            'email' => 'test@example.com',
-        ]);
     }
 
     /**
-     * Test that an existing client is returned if email already exists.
+     * A known e-mail must not reveal the existing client (no UUID, no details).
      *
      * @return void
      */
-    public function test_existing_client_is_returned()
+    public function test_existing_email_does_not_leak_existing_client()
     {
         $this->withoutExceptionHandling();
 
-        // Create a client first
-        $client = Client::create([
+        $existing = Client::create([
             'email' => 'existing@example.com',
             'country' => 'Germany',
+            'first_name' => 'Secret',
             'type' => 'unknown',
             'step' => ClientStep::EMAIL_STEP,
             'status' => ClientStatus::CREATED
         ]);
 
-        // Try to create the same client again
         $response = $this->postJson('/api/client/new', [
             'email' => 'existing@example.com',
             'country' => 'Germany',
         ]);
 
-        if ($response->status() !== 200) {
-            dump($response->json());
-        }
+        $response->assertStatus(201)
+            ->assertJsonPath('message', 'Client created successfully')
+            ->assertJsonMissing(['first_name' => 'Secret'])
+            ->assertJsonMissing(['email' => 'existing@example.com']);
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Client already exists',
-                'data' => [
-                    'email' => 'existing@example.com',
-                    'country' => 'Germany',
-                    'uuid' => $client->uuid
-                ]
-            ]);
+        $this->assertNotEquals($existing->uuid, $response->json('data.uuid'));
+        $this->assertCount(2, Client::where('email', 'existing@example.com')->get());
+    }
 
-        // Ensure no duplicate was created
-        $this->assertCount(1, Client::where('email', 'existing@example.com')->get());
+    private function clientWithContract(string $email): array
+    {
+        $client = Client::create([
+            'email' => $email,
+            'country' => 'MA',
+            'first_name' => 'Jean',
+            'last_name' => 'Client',
+            'type' => 'individual',
+            'step' => ClientStep::PAYMENT_STEP,
+            'status' => ClientStatus::CREATED,
+        ]);
+        $contract = Contract::create([
+            'client_uuid' => $client->uuid,
+            'start_date' => now(),
+            'status' => 'paid',
+        ]);
+
+        return [$client, $contract];
+    }
+
+    public function test_create_account_creates_client_user_and_logs_in()
+    {
+        [$client, $contract] = $this->clientWithContract('new-client@example.com');
+
+        $this->post('/client/create-account', [
+            'client_uuid' => $client->uuid,
+            'contract_uuid' => $contract->uuid,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertRedirect(route('client.home'));
+
+        $user = User::where('email', 'new-client@example.com')->firstOrFail();
+        $this->assertAuthenticatedAs($user);
+        $this->assertTrue($user->isClient());
+        $this->assertEquals($user->id, $client->fresh()->user_id);
+    }
+
+    public function test_create_account_refuses_existing_account_without_login_or_downgrade()
+    {
+        $staff = User::factory()->create(['email' => 'staff@example.com', 'role' => UserRole::MANAGER->value]);
+        [$client, $contract] = $this->clientWithContract('staff@example.com');
+
+        $this->post('/client/create-account', [
+            'client_uuid' => $client->uuid,
+            'contract_uuid' => $contract->uuid,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertRedirect(route('login'));
+
+        $this->assertGuest();
+        $this->assertEquals(UserRole::MANAGER, $staff->fresh()->role);
+        $this->assertNull($client->fresh()->user_id);
+    }
+
+    public function test_create_account_refuses_contract_of_another_client()
+    {
+        [$client] = $this->clientWithContract('a@example.com');
+        [, $otherContract] = $this->clientWithContract('b@example.com');
+
+        $this->post('/client/create-account', [
+            'client_uuid' => $client->uuid,
+            'contract_uuid' => $otherContract->uuid,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertSessionHasErrors('contract_uuid');
+
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'a@example.com']);
     }
 
     /**

@@ -200,3 +200,42 @@ jobs:
           echo "🎉 All migration tests passed!"
 
   # =============================================================================
+
+  security-tests:
+    # Tests d'accès de la PR « security » ; la suite complète n'est pas encore verte (factories manquantes).
+    name: security-tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: axontis_test
+        ports: [ "3306:3306" ]
+        options: --health-cmd="mysqladmin ping -ptestpassword" --health-interval=5s --health-timeout=5s --health-retries=20
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: axontis_test
+      DB_USERNAME: root
+      DB_PASSWORD: testpassword
+      BROADCAST_DRIVER: 'null'
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, intl, zip, bcmath, gd, pdo, pdo_mysql
+          coverage: none
+
+      - run: composer install --prefer-dist --no-interaction
+
+      - name: PHPUnit (accès)
+        run: |
+          export APP_KEY="base64:$(openssl rand -base64 32)"
+          vendor/bin/phpunit tests/Feature/AccessHardeningTest.php tests/Feature/ClientControllerTest.php tests/Feature/HikvisionWebhookTest.php
