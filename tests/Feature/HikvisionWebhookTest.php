@@ -116,6 +116,27 @@ class HikvisionWebhookTest extends TestCase
 
     // ─── Deduplication ───────────────────────────────────────
 
+    public function test_webhook_requires_signature_outside_local_and_testing(): void
+    {
+        Queue::fake();
+        $this->app['env'] = 'production';
+        $payload = $this->buildCidPayload(1759, 3130, 1);
+
+        $this->postJson('/api/webhooks/hikvision/Q25385404', $payload)->assertStatus(403);
+        $this->postJson('/api/webhooks/hikvision/Q25385404', $payload, $this->buildWebhookHeaders($payload))
+            ->assertStatus(202);
+    }
+
+    public function test_webhook_without_secret_is_refused_outside_local_and_testing(): void
+    {
+        $this->app['env'] = 'production';
+        $this->installationDevice->properties()->where('property', 'webhook_secret')->delete();
+        $payload = $this->buildCidPayload(1759, 3130, 1);
+
+        $this->postJson('/api/webhooks/hikvision/Q25385404', $payload, $this->buildWebhookHeaders($payload))
+            ->assertStatus(403);
+    }
+
     public function test_webhook_deduplicates_same_event_within_window(): void
     {
         Queue::fake();

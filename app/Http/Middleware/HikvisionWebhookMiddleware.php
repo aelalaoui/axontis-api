@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * 1. Lookup InstallationDevice par serial_number (champ natif)
  * 2. Vérification IP source contre webhook_ip_whitelist
- * 3. Vérification signature HMAC (X-Hikvision-Signature)
+ * 3. Vérification signature HMAC (X-Hikvision-Signature), obligatoire hors local/testing
  * 4. Rate limiting Redis : 500 req/min par IP
  * 5. Déduplication Redis : fenêtre 60s par (installation_device_uuid + cid_code)
  */
@@ -49,15 +49,15 @@ class HikvisionWebhookMiddleware
             abort(403);
         }
 
-        // 3. Vérification signature HMAC
+        // 3. Vérification signature HMAC : obligatoire hors local/testing (sans secret, tout est refusé)
         $webhookSecret = $installationDevice->getWebhookSecret();
         $signature = $request->header('X-Hikvision-Signature');
 
-        if ($webhookSecret && $signature) {
-            $expectedSignature = hash_hmac('sha256', $request->getContent(), $webhookSecret);
+        if (!app()->environment('local', 'testing') || ($webhookSecret && $signature)) {
+            $expectedSignature = hash_hmac('sha256', $request->getContent(), (string) $webhookSecret);
 
-            if (!hash_equals($expectedSignature, $signature)) {
-                Log::warning('Hikvision webhook: invalid HMAC signature', [
+            if (!$webhookSecret || !hash_equals($expectedSignature, (string) $signature)) {
+                Log::warning('Hikvision webhook: missing or invalid HMAC signature', [
                     'serial' => $serialNumber,
                     'ip' => $sourceIp,
                 ]);
