@@ -50,20 +50,17 @@ class ClientController extends Controller
         }
 
         try {
-            // Check if client already existed
-            $isExisting = $this->clientService->clientExists($request->email);
-
-            // Use service to find or create client
-            $client = $this->clientService->findOrCreateClient(
+            // Toujours un nouveau prospect, et seulement son UUID : la réponse ne dit pas si l'e-mail est connu
+            $client = $this->clientService->createClient(
                 $request->email,
                 $request->country
             );
 
             return response()->json([
                 'success' => true,
-                'message' => $isExisting ? 'Client already exists' : 'Client created successfully',
-                'data' => $client
-            ], $isExisting ? 200 : 201);
+                'message' => 'Client created successfully',
+                'data' => ['uuid' => $client->uuid],
+            ], 201);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -315,6 +312,11 @@ class ClientController extends Controller
         ]);
     }
 
+    private function accountExists(Client $client): bool
+    {
+        return $client->user_id || User::query()->where('email', $client->email)->exists();
+    }
+
     /**
      * Display the create account form for a client after payment
      */
@@ -334,9 +336,12 @@ class ClientController extends Controller
             abort(404, 'Contract not found');
         }
 
-        // Check if user already exists for this client
-        if ($client->user_id) {
-            return redirect()->route('login')->with('message', 'Un compte existe déjà pour ce client.');
+        if ($contract->client_uuid !== $client->uuid) {
+            abort(404, 'Contract not found');
+        }
+
+        if ($this->accountExists($client)) {
+            return redirect()->route('login')->with('message', 'Un compte existe déjà pour cet e-mail. Connectez-vous.');
         }
 
         // Link user to client
@@ -383,33 +388,16 @@ class ClientController extends Controller
             /** @var Contract $contract */
             $contract = Contract::fromUuid($request->contract_uuid);
 
-            if (is_null($contract)) {
+            if (is_null($contract) || $contract->client_uuid !== $client->uuid) {
                 return back()->withErrors(['contract_uuid' => 'Contrat introuvable.']);
             }
 
+            // Compte existant : jamais de session ouverte ici, la connexion exige son mot de passe
+            if ($this->accountExists($client)) {
+                return redirect()->route('login')->with('message', 'Un compte existe déjà pour cet e-mail. Connectez-vous.');
+            }
+
             $contract->update(['status' => ContractStatus::PENDING->value]);
-
-            // Check if user already exists for this email
-            $existingUser = User::query()->where('email', $client->email)->first();
-
-            if ($existingUser) {
-                // Link existing user to client
-                $client->update(['user_id' => $existingUser->id]);
-
-                // S'assurer que l'utilisateur existant a le rôle CLIENT
-                if (!$existingUser->isClient()) {
-                    $existingUser->update(['role' => UserRole::CLIENT]);
-                }
-
-                Auth::login($existingUser);
-                return redirect()->route('client.home');
-            }
-
-            // Check if client already has a user
-            if ($client->user_id) {
-                Auth::loginUsingId($client->user_id);
-                return redirect()->route('client.home');
-            }
 
             // Create new user with CLIENT role
             $user = User::create([
