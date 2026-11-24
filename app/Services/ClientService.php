@@ -224,17 +224,6 @@ class ClientService
     }
 
     /**
-     * Check if client already exists by email
-     *
-     * @param string $email
-     * @return bool
-     */
-    public function clientExists(string $email): bool
-    {
-        return Client::where('email', $email)->exists();
-    }
-
-    /**
      * Get client by email
      *
      * @param string $email
